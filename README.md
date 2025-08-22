@@ -1,55 +1,30 @@
-# ft_transcendence
+# Vite + TypeScript App
 
-# Project Structure
+A simple starter project using **Vite** with **TypeScript** (no React).
 
-```
-ft_transcendence/
-└── src/
-    ├── backend/
-    │   ├── controllers/
-    │   ├── routes/
-    │   ├── services/
-    │   ├── middleware/
-    │   ├── models/
-    │   ├── utils/
-    │   ├── config/
-    │   ├── app.ts
-    │   └── main.ts
-    ├── frontend/
-    │   ├── public/
-    │   ├── src/
-    │   │   ├── assets/
-    │   │   ├── components/
-    │   │   ├── views/
-    │   │   ├── router/
-    │   │   ├── store/
-    │   │   ├── services/
-    │   │   ├── utils/
-    │   │   └── main.ts
-    │   ├── tailwind.config.js
-    │   └── tsconfig.json
-    ├── database/              ◄◄◄ SHARED LOCATION
-    │   ├── schema.sql
-    │   ├── seed.sql
-    │   ├── migrations/
-    │   ├── prisma/
-    │   └── utils.ts           # DB helper functions
-    ├── pong/
-    │   ├── engine/
-    │   ├── graphics/
-    │   ├── ai/                 # If we use AI module??
-    │   └── game.ts
-    ├── cli/
-    │   └── cli.ts
-    ├── docker/
-    │   ├── Dockerfile.backend
-    │   ├── Dockerfile.frontend
-    │   └── nginx.conf          # As reverse proxy
-    ├── docs/
-    │   ├── README.md
-    │   └── diagrams/
-    ├── test/
-    │   ├── backend/
+---
+
+## 🚀 Run Locally
+
+### 1. Clone the repository
+```bash
+git clone https://github.com/your-username/your-repo-name.git
+cd your-repo-name
+
+2. Install dependencies
+npm install
+
+3. Start development server
+npm run dev
+
+
+Then open: http://localhost:5173
+
+4. Build for production
+npm run build
+
+📂 Project Structure
+
     │   ├── frontend/
     │   └── pong/
     ├── .env
