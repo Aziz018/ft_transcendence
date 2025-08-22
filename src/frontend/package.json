@@ -8,6 +8,6 @@
     "dev": "tsc --watch"
   },
   "devDependencies": {
-    "typescript": "^4.9.0"
+    "typescript": "^4.9.5"
   }
 }
