@@ -1,9 +1,8 @@
 FROM node:alpine3.22
 
-COPY src /app
-
 WORKDIR /app
-
+COPY package*.json ./
 RUN npm install
+COPY . .
 
-CMD [ "npm run dev" ]
+CMD [ "npm", "start" ]

@@ -55,7 +55,7 @@ function routes( app: FastifyInstance ) {
         }
     });
 
-    app.delete('', async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+    app.delete('/api/users/:id', async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
         const { id } = request.params;
         const userIndex = users.findIndex(u => u.id === id);
 

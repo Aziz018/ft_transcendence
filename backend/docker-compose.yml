@@ -7,6 +7,8 @@ services:
       - ft_transcendence
     # depends_on:
     #   - database
+    volumes:
+      - ./src:/app/src
 
 networks:
   ft_transcendence:
