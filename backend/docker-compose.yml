@@ -1,0 +1,14 @@
+services:
+  backend:
+    build: .
+    ports:
+      - 3000:3000
+    networks:
+      - ft_transcendence
+    # depends_on:
+    #   - database
+    volumes:
+      - ./src:/app/src
+
+networks:
+  ft_transcendence:
