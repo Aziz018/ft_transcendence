@@ -1,5 +1,5 @@
-import { MyReact } from "../../lib/core";
-import { Router, Link } from "../../lib/router";
+import Fuego, { useEffect, useRender, useState } from "../../index";
+import { Router, Link } from "../../library/Router/Router";
 
 function Register() {
   let currentName = "";
@@ -31,16 +31,10 @@ function Register() {
       const data = await response.json();
 
       if (response.ok && (data.success || data.access_token)) {
-        console.log("Login successful:", data);
-
         if (data.user?.name) {
           localStorage.setItem("userName", data.user.name);
         } else if (data.name) {
           localStorage.setItem("userName", data.name);
-        }
-
-        if (data.access_token) {
-          console.log("Access token received");
         }
 
         window.dispatchEvent(

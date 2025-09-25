@@ -11,12 +11,12 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "preserve",
-    "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
+    "strict": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
-    "jsxFactory": "MyReact.createElement",
-    "jsxFragmentFactory": "MyReact.Fragment"
+    "jsxFactory": "Fuego.createElement",
+    "jsxFragmentFactory": "Fuego.Fragment"
   },
   "include": ["src/**/*", "src/lib/jsx.d.ts"]
 }

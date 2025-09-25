@@ -1,34 +1,18 @@
-import { MyReact } from "./lib/core";
-import { Router } from "./lib/router";
-import Dashboard from "./screens/Dashboard/Dashboard";
-import Home from "./screens/Home/Home";
+import Fuego from "./index";
+import { Router, Link } from "./library/Router/Router";
+import { FunctionComponent } from "./library/types/types";
 import Login from "./screens/Login/Login";
-import Register from "./screens/Register/Register";
+import Home from "./screens/Home/Home";
 
-function App() {
+const App: FunctionComponent = () => {
   return (
-    <div>
-      <main id="router-outlet"></main>
+    <div className="">
+      <main>
+        <Router path="/" Component={Home} />
+        <Router path="/login" Component={Login} />
+      </main>
     </div>
   );
-}
+};
 
-export function initializeApp() {
-  const appContainer = document.getElementById("app")!;
-  MyReact.render(<App />, appContainer);
-
-  const routerContainer = document.getElementById("router-outlet")!;
-  const router = new Router(routerContainer);
-
-  router.addRoute("/", () => <Home />);
-  router.addRoute("/login", () => <Login />);
-  router.addRoute("/register", () => <Register />);
-  router.addRoute("/dashboard", () => <Dashboard />);
-
-  window.addEventListener("navigate", ((e: CustomEvent) => {
-    router.navigate(e.detail);
-  }) as EventListener);
-
-  const initialPath = window.location.pathname || "/";
-  router.navigate(initialPath, false);
-}
+export default App;
