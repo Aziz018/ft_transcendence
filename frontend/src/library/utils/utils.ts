@@ -1,4 +1,4 @@
-import { Props, TextVNode, VNode } from "../types/types";
+import { Props, TextVNode, VNode, FiberNode } from "../types/types";
 
 export function setAttributes(elm: Element, props: Props, oldProps?: Props) {
   if (oldProps) {
@@ -74,6 +74,8 @@ export function isEventListener(event: string): boolean {
   return event.startsWith("on") && event.length > 2;
 }
 
-export function isTextNode(elm: VNode | TextVNode): elm is TextVNode {
+export function isTextNode(
+  elm: VNode | TextVNode | FiberNode
+): elm is TextVNode {
   return elm.type == "TEXT_NODE";
 }

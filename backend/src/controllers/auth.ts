@@ -13,26 +13,72 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { authHelper } from "../utils/auth.js";
 
-
-
 export const googleOAuthCallbackController = async (
-    req: FastifyRequest, res: FastifyReply
+  req: FastifyRequest,
+  res: FastifyReply
 ): Promise<void> => {
+  const token = await authHelper(req, res, "google");
 
-    const token = await authHelper(req, res, 'google');
-    res.code(200).send({
-        access_token: token
-    });
+  // Return HTML that sends token to parent window via postMessage
+  const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Login Success</title>
+        </head>
+        <body>
+            <script>
+                if (window.opener) {
+                    window.opener.postMessage(
+                        { access_token: '${token}' },
+                        '${
+                          process.env.FRONTEND_ORIGIN || "http://localhost:5173"
+                        }'
+                    );
+                    window.close();
+                } else {
+                    document.body.innerHTML = '<h2>Authentication successful! You can close this window.</h2>';
+                }
+            </script>
+            <h2>Redirecting...</h2>
+        </body>
+        </html>
+    `;
 
-}
+  res.type("text/html").code(200).send(html);
+};
 
 export const facebookOAuthCallbackController = async (
-    req: FastifyRequest, res: FastifyReply
+  req: FastifyRequest,
+  res: FastifyReply
 ): Promise<void> => {
+  const token = await authHelper(req, res, "facebook");
 
-    const token = await authHelper(req, res, 'facebook');
-    res.code(200).send({
-        access_token: token
-    });
+  // Return HTML that sends token to parent window via postMessage
+  const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Login Success</title>
+        </head>
+        <body>
+            <script>
+                if (window.opener) {
+                    window.opener.postMessage(
+                        { access_token: '${token}' },
+                        '${
+                          process.env.FRONTEND_ORIGIN || "http://localhost:5173"
+                        }'
+                    );
+                    window.close();
+                } else {
+                    document.body.innerHTML = '<h2>Authentication successful! You can close this window.</h2>';
+                }
+            </script>
+            <h2>Redirecting...</h2>
+        </body>
+        </html>
+    `;
 
-}
+  res.type("text/html").code(200).send(html);
+};

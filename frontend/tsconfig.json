@@ -18,5 +18,10 @@
     "jsxFactory": "Fuego.createElement",
     "jsxFragmentFactory": "Fuego.Fragment"
   },
-  "include": ["src/**/*", "src/lib/jsx.d.ts"]
+  "include": [
+    "src/**/*",
+    "src/lib/jsx.d.ts",
+    "src/library/types/svg.d.ts",
+    "src/library/types/types.ts"
+  ]
 }

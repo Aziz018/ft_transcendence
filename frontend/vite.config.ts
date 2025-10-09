@@ -4,13 +4,11 @@ export default defineConfig({
   assetsInclude: ["**/*.svg"],
   plugins: [],
   build: {
-    lib: {
-      entry: "./src/main.ts",
-      name: "MyReactLikeLibrary",
-      fileName: "my-react-like-library",
+    outDir: "dist",
+    rollupOptions: {
+      input: {
+        main: "./index.html",
+      },
     },
-  },
-  optimizeDeps: {
-    include: ["src/lib/jsx.d.ts"],
   },
 });

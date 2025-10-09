@@ -1,13 +1,15 @@
 import Fuego from "../../index";
-import Button from "../ui/button";
 import Shape from "../../assets/Shape.svg";
 import { Link } from "../../library/Router/Router";
+import PrimaryButton from "../ui/PrimaryButton";
 
 const Main = () => {
   return (
-    <div className="py-[11%] relative">
+    <div className="pt-[11%] pb-[9%] relative">
       <div className="absolute opacity-[0.02] left-[530px] top-[30px]">
-        <img src={Shape} className="w-auto h-[680px]" />
+        <Link to="/">
+          <img src={Shape} alt="shape" />
+        </Link>
       </div>
       <h5 className="text-light opacity-50 pt- [100px] pb-[20px] text-[18px]">
         Master the Game with Just One Swing
@@ -16,7 +18,7 @@ const Main = () => {
         One Swing to Rule the Table  A Power Move to Conquer Every Rally.
       </h1>
       <Link to="/secondary-login">
-        <Button />
+        <PrimaryButton data="Get Started" />
       </Link>
       <div className="flex justify-end">
         <p className="text-light w-[444px] leading-[35px] text-[16px]">

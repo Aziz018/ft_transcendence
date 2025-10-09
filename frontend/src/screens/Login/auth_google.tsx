@@ -10,7 +10,7 @@ const GoogleAuth = () => {
   return (
     <button
       onClick={handleGoogleLogin}
-      className="bg-green-500 w-[215px] py-3 rounded-[30px] text-white hover:bg-white/10">
+      className="bg-green-500 w-[215px] py-3 rounded-[30px] text-light hover:bg-white/10">
       Google
     </button>
   );
