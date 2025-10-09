@@ -10,7 +10,7 @@ const SecondaryLogin = () => {
   return (
     <div className="bg-[#141517] overflow-hidden w-full min-h-screen relative">
       <BackgroundBlurEffect />
-      <div className="absolute inset-0 opacity-[0.01] flex items-center justify-center pointer-events-none">
+      <div className="absolute inset-0 opacity-[0.01] flex items-center justify-center pointer-events-none animate-[spin_30s_linear_infinite]">
         <img
           src={Shape}
           className="w-full h-full object-contain object-center"

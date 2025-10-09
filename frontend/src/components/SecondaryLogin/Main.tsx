@@ -80,26 +80,26 @@ const Main = () => {
   return (
     <div className="pt -[11%] pb-[9%] relative">
       <div className="flex justify-center flex-col items-center bg- red-500">
-        <div>
+        <div className="animate-[fadeInUp_0.8s_ease-out_0.2s_both]">
           <h1 className="text-light text-[128px] leading -[90px] w- [580px] pb -[45px] font-family[Questrial]">
             Ping-Together
           </h1>
         </div>
-        <div className="pt-4">
+        <div className="pt-4 animate-[fadeInUp_0.8s_ease-out_0.4s_both]">
           <p className="text-light w-[607px] m-auto text-center leading-[35px] text-[15px] opacity-70">
             Think you've got the skills to outplay your friends? Step into the
             virtual ping pong arena and prove it. Quick reflexes, sharp aim, and
             a bit of strategy are all you need to.
           </p>
         </div>
-        <div className="flex gap-4 mt-8">
-          <div>
+        <div className="flex gap-4 mt-8 animate-[fadeInUp_0.8s_ease-out_0.6s_both]">
+          <div className="hover:scale-105 transition-transform duration-300">
             {" "}
             <button onClick={openGooglePopup}>
               <PrimaryButton data="Google" />
             </button>
           </div>
-          <div>
+          <div className="hover:scale-105 transition-transform duration-300">
             {" "}
             <button onClick={openFacebookPopup}>
               <SecondaryButton data="Facebook" />
