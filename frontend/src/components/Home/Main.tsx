@@ -15,7 +15,7 @@ const Main = () => {
       <h1 className="text-light text-[45px] leading-[90px] w-[580px] pb-[45px] font-family[Questrial]">
         One Swing to Rule the Table  A Power Move to Conquer Every Rally.
       </h1>
-      <Link to="/login">
+      <Link to="/secondary-login">
         <Button />
       </Link>
       <div className="flex justify-end">

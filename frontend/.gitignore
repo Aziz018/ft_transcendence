@@ -1,1 +1,11 @@
 node_modules/
+dist/
+.env
+.DS_Store
+.vscode/
+.idea/
+*.log
+coverage/
+*.tmp
+npm-debug.log*
+yarn-error.log
