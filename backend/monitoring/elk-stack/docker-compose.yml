@@ -13,7 +13,7 @@ services:
     build: setupSSL
     container_name: init_certs
     volumes:
-      - certs:${CERTS_PATH}
+      - certs:/usr/share/elasticsearch/certs:rw
   setup_passwords:
     build: setupPassowrds
     container_name: setup_passwords
