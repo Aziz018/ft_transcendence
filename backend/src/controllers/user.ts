@@ -65,9 +65,8 @@ export const userRegisterController = async (
   request: FastifyRequest<{ Body: UserRegisterInput }>,
   reply: FastifyReply
 ): Promise<void> => {
-  const { name, email, password } = request.body; // as { email: string, password: string};
+  const { name, email, password } = request.body;
 
-  // 1. Check if user exists
   const isUserExist = await prisma.user.findUnique({
     where: { email },
   });
@@ -76,11 +75,8 @@ export const userRegisterController = async (
     return reply.code(400).send({ error: "Email or username already exists" });
   }
 
-  // 2. Hash password
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  // 3. Create user
-  // fastify.service.user.create({ name, email, password } as UserModel);
   const user = await prisma.user.create({
     data: {
       name,
@@ -89,7 +85,6 @@ export const userRegisterController = async (
     },
   });
 
-  // 4. Generate JWT token for auto-login after registration
   const token = request.jwt.sign(
     {
       uid: user.id,
@@ -101,11 +96,10 @@ export const userRegisterController = async (
     }
   );
 
-  // 5. Set cookie
   reply.setCookie("access_token", token, {
     path: "/",
     httpOnly: true,
-    secure: false, // Set to true in production with HTTPS
+    secure: false,
     sameSite: "lax",
   });
 

@@ -23,26 +23,14 @@ export const JWTAuthentication = async (
   req: FastifyRequest,
   rep: FastifyReply
 ): Promise<void> => {
-  // Try to get token from cookie first, then from Authorization header
   let token = req.cookies.access_token;
 
   if (!token) {
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith("Bearer ")) {
-      token = authHeader.substring(7); // Remove 'Bearer ' prefix
+      token = authHeader.substring(7);
     }
   }
-
-  // Debug logging
-  req.log.debug(
-    {
-      hasCookie: !!req.cookies.access_token,
-      hasAuthHeader: !!req.headers.authorization,
-      hasToken: !!token,
-      url: req.url,
-    },
-    "JWT Authentication attempt"
-  );
 
   if (!token) {
     return rep.status(401).send({

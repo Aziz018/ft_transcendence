@@ -13,24 +13,8 @@ const WelcomeHeaderSection = () => {
   const deriveNameFromToken = () => {
     try {
       const token = getToken();
-      // debug: log raw token
-      if (typeof window !== "undefined") {
-        // avoid noisy logs on server side if any
-        // eslint-disable-next-line no-console
-        console.debug(
-          "[WelcomeHeader] deriveNameFromToken: raw token ->",
-          token
-        );
-      }
       if (!token) return "Guest";
       const payload = decodeTokenPayload(token);
-      if (typeof window !== "undefined") {
-        // eslint-disable-next-line no-console
-        console.debug(
-          "[WelcomeHeader] deriveNameFromToken: token payload ->",
-          payload
-        );
-      }
       if (payload?.name) return payload.name;
       if (payload?.given_name) return payload.given_name;
       if (payload?.email) {
@@ -44,50 +28,20 @@ const WelcomeHeaderSection = () => {
       }
       return "Guest";
     } catch (e) {
-      if (typeof window !== "undefined") {
-        // eslint-disable-next-line no-console
-        console.error("[WelcomeHeader] deriveNameFromToken error:", e);
-      }
       return "Guest";
     }
   };
 
   const [name, setName] = useState<string>(deriveNameFromToken());
 
-  if (typeof window !== "undefined") {
-    // eslint-disable-next-line no-console
-    console.debug("[WelcomeHeader] initial name from token ->", name);
-    // eslint-disable-next-line no-console
-    console.debug("[WelcomeHeader] document.cookie ->", document?.cookie);
-  }
-
   useEffect(() => {
     if (name && name !== "Guest") {
-      if (typeof window !== "undefined") {
-        console.debug(
-          "[WelcomeHeader] name already set, skipping profile fetch ->",
-          name
-        );
-      }
       return;
     }
 
     const fetchProfile = async () => {
       try {
-        if (typeof window !== "undefined") {
-          console.debug(
-            "[WelcomeHeader] fetchProfile: starting. current cookie ->",
-            document.cookie
-          );
-        }
-
         const token = getToken();
-        if (typeof window !== "undefined") {
-          console.debug(
-            "[WelcomeHeader] fetchProfile: token from getToken() ->",
-            token
-          );
-        }
 
         const backend =
           (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
@@ -99,26 +53,10 @@ const WelcomeHeaderSection = () => {
         const res = await fetch(`${backend}/v1/user/profile`, {
           method: "GET",
           headers,
-          // include credentials so cookies are sent if backend expects them
           credentials: "include",
         });
 
-        if (typeof window !== "undefined") {
-          console.debug(
-            "[WelcomeHeader] fetchProfile: response status ->",
-            res.status,
-            res.statusText
-          );
-        }
-
         if (!res.ok) {
-          const text = await res.text().catch(() => "<no-body>");
-          if (typeof window !== "undefined") {
-            console.warn("[WelcomeHeader] fetchProfile: non-ok response ->", {
-              status: res.status,
-              body: text,
-            });
-          }
           return;
         }
 
@@ -127,31 +65,13 @@ const WelcomeHeaderSection = () => {
         if (contentType.includes("application/json")) {
           data = await res.json();
         } else {
-          const text = await res.text().catch(() => "<no-body>");
-          if (typeof window !== "undefined") {
-            console.warn(
-              "[WelcomeHeader] fetchProfile: expected JSON but got ->",
-              text.slice(0, 400)
-            );
-          }
           return;
         }
-        if (typeof window !== "undefined") {
-          console.debug("[WelcomeHeader] fetchProfile: json ->", data);
-        }
         if (data?.name) {
-          if (typeof window !== "undefined") {
-            console.debug(
-              "[WelcomeHeader] fetchProfile: setting name ->",
-              data.name
-            );
-          }
           setName(data.name);
         }
       } catch (e) {
-        if (typeof window !== "undefined") {
-          console.error("[WelcomeHeader] fetchProfile error ->", e);
-        }
+        console.error("Failed to fetch profile:", e);
       }
     };
     fetchProfile();

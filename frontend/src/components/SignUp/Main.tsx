@@ -17,11 +17,8 @@ const Main = () => {
 
   const handleSignup = async (e: Event) => {
     e.preventDefault();
-
-    // Reset error
     setError("");
 
-    // Validate inputs
     if (!name || !email || !password || !confirmPassword) {
       setError("All fields are required");
       return;
@@ -37,7 +34,6 @@ const Main = () => {
       return;
     }
 
-    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       setError("Please enter a valid email address");
@@ -47,8 +43,6 @@ const Main = () => {
     setLoading(true);
 
     try {
-      console.log("[SignUp] Attempting registration...", { name, email });
-
       const response = await fetch(`${BACKEND_ORIGIN}/v1/user/register`, {
         method: "POST",
         headers: {
@@ -61,40 +55,16 @@ const Main = () => {
         }),
       });
 
-      console.log(
-        "[SignUp] Response status:",
-        response.status,
-        response.statusText
-      );
-      console.log(
-        "[SignUp] Response headers:",
-        Object.fromEntries(response.headers.entries())
-      );
-
       const data = await response.json();
-      console.log("[SignUp] Response data:", data);
 
       if (!response.ok) {
-        console.error("[SignUp] Registration failed:", data);
         setError(data.error || data.message || "Registration failed");
         setLoading(false);
         return;
       }
 
-      console.log("[SignUp] Registration successful, checking for token...");
-      console.log("[SignUp] data.access_token exists?", !!data.access_token);
-      console.log("[SignUp] data keys:", Object.keys(data));
-
-      // Save token to localStorage
       if (data.access_token) {
-        console.log(
-          "[SignUp] Found access_token, length:",
-          data.access_token.length
-        );
         saveToken(data.access_token);
-        console.log("[SignUp] Token saved, redirecting to dashboard...");
-
-        // Redirect to dashboard
         setTimeout(() => {
           redirect("/dashboard");
         }, 100);
@@ -103,7 +73,6 @@ const Main = () => {
         setLoading(false);
       }
     } catch (err) {
-      console.error("[SignUp] Error during registration:", err);
       setError("Network error. Please try again.");
       setLoading(false);
     }

@@ -10,12 +10,10 @@ const BACKEND_ORIGIN =
   (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3000";
 
 function openGooglePopup() {
-  console.log("Opening Google popup...");
   const w = 520;
   const h = 640;
   const left = window.screenX + (window.innerWidth - w) / 2;
   const top = window.screenY + (window.innerHeight - h) / 2;
-  // Use real Google OAuth endpoint
   const authEndpoint = `${BACKEND_ORIGIN}/v1/auth/google`;
   const popup = window.open(
     authEndpoint,
@@ -24,35 +22,19 @@ function openGooglePopup() {
   );
 
   function handleMessage(e: MessageEvent) {
-    console.log("[Google OAuth] Received message:", e.origin, e.data);
     if (!e.origin.startsWith(new URL(BACKEND_ORIGIN).origin)) {
-      console.warn(
-        "[Google OAuth] Message origin mismatch:",
-        e.origin,
-        "vs",
-        BACKEND_ORIGIN
-      );
       return;
     }
     const data = e.data as any;
-    // Backend sends 'access_token', not 'token'
     if (data && data.access_token) {
-      console.log(
-        "[Google OAuth] Received access_token, length:",
-        data.access_token.length
-      );
       saveToken(data.access_token);
-      console.log("[Google OAuth] Token saved, redirecting to dashboard...");
       try {
         window.removeEventListener("message", handleMessage);
         if (popup && !popup.closed) {
           popup.close();
         }
       } catch (e) {}
-      // Use router redirect instead of full page reload
       redirect("/dashboard");
-    } else {
-      console.warn("[Google OAuth] No access_token in message data:", data);
     }
   }
 
@@ -60,12 +42,10 @@ function openGooglePopup() {
 }
 
 function openFacebookPopup() {
-  console.log("Opening Facebook popup...");
   const w = 520;
   const h = 640;
   const left = window.screenX + (window.innerWidth - w) / 2;
   const top = window.screenY + (window.innerHeight - h) / 2;
-  // Use real Facebook OAuth endpoint
   const authEndpoint = `${BACKEND_ORIGIN}/v1/auth/facebook`;
   const popup = window.open(
     authEndpoint,
@@ -74,15 +54,11 @@ function openFacebookPopup() {
   );
 
   function handleMessage(e: MessageEvent) {
-    console.log("[Facebook OAuth] Received message:", e.origin, e.data);
     if (!e.origin.startsWith(new URL(BACKEND_ORIGIN).origin)) {
-      console.warn("[Facebook OAuth] Message origin mismatch");
       return;
     }
     const data = e.data as any;
-    // Backend sends 'access_token', not 'token'
     if (data && data.access_token) {
-      console.log("[Facebook OAuth] Received access_token, saving...");
       saveToken(data.access_token);
       try {
         window.removeEventListener("message", handleMessage);
@@ -98,12 +74,10 @@ function openFacebookPopup() {
 }
 
 function open42IntraPopup() {
-  console.log("Opening 42 Intra popup...");
   const w = 520;
   const h = 640;
   const left = window.screenX + (window.innerWidth - w) / 2;
   const top = window.screenY + (window.innerHeight - h) / 2;
-  // Use real 42 Intra OAuth endpoint
   const authEndpoint = `${BACKEND_ORIGIN}/v1/auth/intra42`;
   const popup = window.open(
     authEndpoint,
@@ -112,15 +86,11 @@ function open42IntraPopup() {
   );
 
   function handleMessage(e: MessageEvent) {
-    console.log("[42 Intra OAuth] Received message:", e.origin, e.data);
     if (!e.origin.startsWith(new URL(BACKEND_ORIGIN).origin)) {
-      console.warn("[42 Intra OAuth] Message origin mismatch");
       return;
     }
     const data = e.data as any;
-    // Backend sends 'access_token', not 'token'
     if (data && data.access_token) {
-      console.log("[42 Intra OAuth] Received access_token, saving...");
       saveToken(data.access_token);
       try {
         window.removeEventListener("message", handleMessage);
