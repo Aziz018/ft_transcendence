@@ -72,11 +72,15 @@ export const Game = () => {
         }
         return;
       }
-      keysPressed.current.add(e.key.toLowerCase());
+      if (e.key) {
+        keysPressed.current.add(e.key.toLowerCase());
+      }
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      keysPressed.current.delete(e.key.toLowerCase());
+      if (e.key) {
+        keysPressed.current.delete(e.key.toLowerCase());
+      }
     };
 
     window.addEventListener("keydown", handleKeyDown);

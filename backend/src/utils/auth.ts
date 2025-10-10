@@ -62,6 +62,8 @@ export const authHelper = async (
       token = req.jwt.sign(
         {
           uid: user.id!,
+          name: user.name!,
+          email: user.email!,
           createdAt: user.createdAt!,
           mfa_required: true,
         },

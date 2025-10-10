@@ -151,27 +151,22 @@ const Dashboard = () => {
             <button
               onClick={async () => {
                 try {
-                  // ask backend to clear cookies / server session
                   const backend =
                     (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
                     "http://localhost:3000";
-                  // eslint-disable-next-line no-console
-                  console.debug(
-                    "[Dashboard] logout: POST ->",
-                    `${backend}/v1/user/logout`
-                  );
+                  const token = getToken();
+
                   await fetch(`${backend}/v1/user/logout`, {
                     method: "POST",
                     credentials: "include",
-                    headers: { "Content-Type": "application/json" },
+                    headers: {
+                      ...(token && { Authorization: `Bearer ${token}` }),
+                    },
                   });
                 } catch (e) {
-                  // ignore network errors but proceed to clear client state
-                  // eslint-disable-next-line no-console
                   console.warn("logout request failed", e);
                 }
 
-                // clear client token and redirect home
                 clearToken();
                 redirect("/");
               }}

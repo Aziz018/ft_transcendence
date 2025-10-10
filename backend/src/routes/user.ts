@@ -1,21 +1,20 @@
 import {
-    userRegisterController,
-    userUploadHandler,
-    userLoginController,
-    userProfileUpdateController,
-    userProfileController,
-    userLogoutController, userRefreshTokController
+  userRegisterController,
+  userUploadHandler,
+  userLoginController,
+  userProfileUpdateController,
+  userProfileController,
+  userLogoutController,
+  userRefreshTokController,
 } from "../controllers/user.js";
 import type { FastifyInstance, FastifyPluginOptions } from "fastify";
 import {
-    userRegisterSchema,
-    userLoginSchema,
-    userProfileSchema,
-    userProfileUpdateSchema,
-    userLogoutSchema
+  userRegisterSchema,
+  userLoginSchema,
+  userProfileSchema,
+  userProfileUpdateSchema,
+  userLogoutSchema,
 } from "schemas/user.js";
-
-
 
 /**
  * Fastify plugin for user-related routes.
@@ -28,45 +27,44 @@ import {
  * @param {FastifyPluginOptions} options - Plugin options passed when registering this route.
  * @returns {Promise<void>} Registers routes asynchronously.
  */
-export default async (fastify: FastifyInstance, options: FastifyPluginOptions): Promise<void> => {
+export default async (
+  fastify: FastifyInstance,
+  options: FastifyPluginOptions
+): Promise<void> => {
+  fastify.post("/register", {
+    schema: userRegisterSchema,
+    handler: userRegisterController,
+  });
 
-    fastify.post('/register', {
-        schema: userRegisterSchema,
-        handler: userRegisterController
-    });
+  fastify.post("/avatar", {
+    schema: { tags: ["users"] },
+    preHandler: [fastify.authentication_jwt],
+    handler: userUploadHandler,
+  });
 
-    fastify.post('/avatar', {
-        schema: { tags: [ "users" ] },
-        preHandler: [fastify.authentication_jwt],
-        handler: userUploadHandler
-    });
+  fastify.post("/login", {
+    schema: userLoginSchema,
+    handler: userLoginController,
+  });
 
-    fastify.post('/login', {
-        schema: userLoginSchema,
-        handler: userLoginController
-    });
+  fastify.get("/profile", {
+    schema: userProfileSchema,
+    handler: userProfileController,
+    preHandler: [fastify.authentication_jwt],
+  });
 
-    fastify.get('/profile', {
-        schema: userProfileSchema,
-        handler: userProfileController,
-        preHandler: [fastify.authentication_jwt]
-    });
+  fastify.put("/profile", {
+    schema: userProfileUpdateSchema,
+    handler: userProfileUpdateController,
+    preHandler: [fastify.authentication_jwt],
+  });
 
-    fastify.put('/profile', {
-        schema: userProfileUpdateSchema,
-        handler: userProfileUpdateController,
-        preHandler: [fastify.authentication_jwt]
-    });
+  fastify.post("/logout", {
+    schema: userLogoutSchema,
+    handler: userLogoutController,
+  });
 
-    fastify.post('/logout', {
-        schema: userLogoutSchema,
-        handler: userLogoutController,
-        preHandler: [fastify.authentication_jwt]
-    });
-
-    fastify.get('/refresh', {
-        handler: userRefreshTokController
-    });
-
+  fastify.get("/refresh", {
+    handler: userRefreshTokController,
+  });
 };
-
