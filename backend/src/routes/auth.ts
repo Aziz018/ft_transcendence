@@ -1,13 +1,9 @@
-import type {
-    FastifyInstance,
-    FastifyPluginOptions
-} from "fastify";
+import type { FastifyInstance, FastifyPluginOptions } from "fastify";
 import {
-    facebookOAuthCallbackController,
-    googleOAuthCallbackController
+  facebookOAuthCallbackController,
+  googleOAuthCallbackController,
 } from "../controllers/auth.js";
-
-
+import { intra42OAuthCallbackController } from "../controllers/intra42.js";
 
 /**
  * Fastify plugin for OAuth callback routes.
@@ -20,16 +16,22 @@ import {
  * @param {FastifyPluginOptions} opts - Plugin options passed when registering this plugin.
  * @returns {Promise<void>} Registers OAuth callback routes asynchronously.
  */
-export default async (fastify: FastifyInstance, opts: FastifyPluginOptions): Promise<void> => {
+export default async (
+  fastify: FastifyInstance,
+  opts: FastifyPluginOptions
+): Promise<void> => {
+  fastify.get("/google/callback", {
+    schema: { tags: ["oauth"] },
+    handler: googleOAuthCallbackController,
+  });
 
-    fastify.get('/google/callback', {
-        schema: { tags: [ "oauth" ] },
-        handler: googleOAuthCallbackController
-    });
+  fastify.get("/facebook/callback", {
+    schema: { tags: ["oauth"] },
+    handler: facebookOAuthCallbackController,
+  });
 
-    fastify.get('/facebook/callback', {
-        schema: { tags: [ "oauth" ] },
-        handler: facebookOAuthCallbackController
-    });
-
+  fastify.get("/intra42/callback", {
+    schema: { tags: ["oauth"] },
+    handler: intra42OAuthCallbackController,
+  });
 };

@@ -15,10 +15,10 @@ const Main = () => {
         Master the Game with Just One Swing
       </h5>
       <h1 className="text-light text-[45px] leading-[90px] w-[580px] pb-[45px] font-family[Questrial] animate-[fadeInUp_0.8s_ease-out_0.4s_both]">
-        One Swing to Rule the Table  A Power Move to Conquer Every Rally.
+        One Swing to Rule the Table A Power Move to Conquer Every Rally.
       </h1>
       <div className="animate-[fadeInUp_0.8s_ease-out_0.6s_both]">
-        <Link to="/secondary-login">
+        <Link to="/login">
           <PrimaryButton data="Get Started" />
         </Link>
       </div>

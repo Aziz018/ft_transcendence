@@ -10,6 +10,9 @@ const SignUpFormContainer = ({
   setEmail,
   setPassword,
   setConfirmPassword,
+  onSubmit,
+  error,
+  loading,
 }) => {
   return (
     <>
@@ -25,8 +28,17 @@ const SignUpFormContainer = ({
             </p>
           </div>
 
+          {/* Error message */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/50 rounded-lg">
+              <p className="text-red-500 text-sm [font-family:'Questrial',Helvetica]">
+                {error}
+              </p>
+            </div>
+          )}
+
           {/* Sign up form */}
-          <form className="space-y-6">
+          <form className="space-y-6" onSubmit={onSubmit}>
             {/* Name fields */}
             <div className="">
               <div className="space-y-2">
@@ -37,8 +49,10 @@ const SignUpFormContainer = ({
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full h-12 px-4 bg-[#2a2c2e] border border-[#444] rounded-lg text-light placeholder-[#ffffff60] focus:outline-none focus:border-[#dda15e] transition-colors [font-family:'Questrial',Helvetica]"
+                  disabled={loading}
+                  className="w-full h-12 px-4 bg-[#2a2c2e] border border-[#444] rounded-lg text-light placeholder-[#ffffff60] focus:outline-none focus:border-[#dda15e] transition-colors [font-family:'Questrial',Helvetica] disabled:opacity-50"
                   placeholder="First name"
+                  required
                 />
               </div>
             </div>
@@ -52,8 +66,10 @@ const SignUpFormContainer = ({
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full h-12 px-4 bg-[#2a2c2e] border border-[#444] rounded-lg text-light placeholder-[#ffffff60] focus:outline-none focus:border-[#dda15e] transition-colors [font-family:'Questrial',Helvetica]"
+                disabled={loading}
+                className="w-full h-12 px-4 bg-[#2a2c2e] border border-[#444] rounded-lg text-light placeholder-[#ffffff60] focus:outline-none focus:border-[#dda15e] transition-colors [font-family:'Questrial',Helvetica] disabled:opacity-50"
                 placeholder="Enter your email"
+                required
               />
             </div>
 
@@ -66,8 +82,26 @@ const SignUpFormContainer = ({
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full h-12 px-4 bg-[#2a2c2e] border border-[#444] rounded-lg text-light placeholder-[#ffffff60] focus:outline-none focus:border-[#dda15e] transition-colors [font-family:'Questrial',Helvetica]"
+                disabled={loading}
+                className="w-full h-12 px-4 bg-[#2a2c2e] border border-[#444] rounded-lg text-light placeholder-[#ffffff60] focus:outline-none focus:border-[#dda15e] transition-colors [font-family:'Questrial',Helvetica] disabled:opacity-50"
                 placeholder="Create a password"
+                required
+              />
+            </div>
+
+            {/* Confirm Password field */}
+            <div className="space-y-2">
+              <label className="[font-family:'Questrial',Helvetica] font-normal text-light text-sm block">
+                Confirm Password
+              </label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                disabled={loading}
+                className="w-full h-12 px-4 bg-[#2a2c2e] border border-[#444] rounded-lg text-light placeholder-[#ffffff60] focus:outline-none focus:border-[#dda15e] transition-colors [font-family:'Questrial',Helvetica] disabled:opacity-50"
+                placeholder="Confirm your password"
+                required
               />
             </div>
 
@@ -92,8 +126,9 @@ const SignUpFormContainer = ({
             {/* Sign up button */}
             <button
               type="submit"
-              className="w-full h-12 bg-[#dda15e] hover:bg-[#cc9455] text-[#141517] rounded-lg [font-family:'Questrial',Helvetica] font-normal text-base transition-colors">
-              Create Account
+              disabled={loading}
+              className="w-full h-12 bg-[#dda15e] hover:bg-[#cc9455] text-[#141517] rounded-lg [font-family:'Questrial',Helvetica] font-normal text-base transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+              {loading ? "Creating Account..." : "Create Account"}
             </button>
 
             {/* Divider */}

@@ -1,14 +1,11 @@
-
-
-
-const baseURL: string = 'http://localhost:3000';
+const baseURL: string = "http://localhost:3000";
 
 /**
  * Type definition for OAuth redirect options.
  */
 type clientOauthOpts = {
-    redirectPath: string;
-    callbackUri: string;
+  redirectPath: string;
+  callbackUri: string;
 };
 
 /**
@@ -20,8 +17,8 @@ type clientOauthOpts = {
  * Defines the start path and callback URI for Google OAuth2 authentication.
  */
 export const googleOauthRedirectOpts: clientOauthOpts = {
-    redirectPath: '/v1/auth/google',
-    callbackUri: `${baseURL}/v1/auth/google/callback`,
+  redirectPath: "/v1/auth/google",
+  callbackUri: `${baseURL}/v1/auth/google/callback`,
 };
 
 /**
@@ -33,6 +30,19 @@ export const googleOauthRedirectOpts: clientOauthOpts = {
  * Defines the start path and callback URI for Facebook OAuth2 authentication.
  */
 export const facebookOauthRedirectOpts: clientOauthOpts = {
-    redirectPath: '/v1/auth/facebook',
-    callbackUri: `${baseURL}/v1/auth/facebook/callback`,
+  redirectPath: "/v1/auth/facebook",
+  callbackUri: `${baseURL}/v1/auth/facebook/callback`,
+};
+
+/**
+ * 42 Intra OAuth redirect options.
+ *
+ * @constant
+ * @type {clientOauthOpts}
+ * @description
+ * Defines the start path and callback URI for 42 Intra OAuth2 authentication.
+ */
+export const intra42OauthRedirectOpts: clientOauthOpts = {
+  redirectPath: "/v1/auth/intra42",
+  callbackUri: `${baseURL}/v1/auth/intra42/callback`,
 };

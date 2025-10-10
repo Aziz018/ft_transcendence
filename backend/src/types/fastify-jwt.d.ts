@@ -1,5 +1,5 @@
 import "@fastify/jwt";
-import type {UserJWTPayload} from "../models/user.js";
+import type {UserJWTPayload} from "../models/user.ts";
 
 
 

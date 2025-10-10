@@ -87,8 +87,15 @@ const WelcomeHeaderSection = () => {
         if (typeof window !== "undefined") {
           console.debug(
             "[WelcomeHeader] fetchProfile: token from getToken() ->",
-            token
+            token ? `${token.slice(0, 20)}...` : "NULL/UNDEFINED"
           );
+        }
+
+        if (!token) {
+          console.warn("[WelcomeHeader] No token found! User needs to login.");
+          // Redirect to login page
+          redirect("/");
+          return;
         }
 
         const backend =
@@ -97,6 +104,16 @@ const WelcomeHeaderSection = () => {
 
         const headers: any = { "Content-Type": "application/json" };
         if (token) headers["Authorization"] = `Bearer ${token}`;
+
+        if (typeof window !== "undefined") {
+          console.debug("[WelcomeHeader] Making request with headers ->", {
+            backend,
+            hasAuthHeader: !!headers["Authorization"],
+            authHeaderPreview: headers["Authorization"]
+              ? headers["Authorization"].slice(0, 30) + "..."
+              : "none",
+          });
+        }
 
         const res = await fetch(`${backend}/v1/user/profile`, {
           method: "GET",

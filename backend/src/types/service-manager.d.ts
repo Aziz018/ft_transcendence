@@ -1,7 +1,7 @@
 import type UserService from "../services/user.ts";
-import type FriendService from "../services/friend.js";
-import type AuthService from "../services/auth.js";
-import type TOTPService from "../services/totp.js";
+import type FriendService from "../services/friend.ts";
+import type AuthService from "../services/auth.ts";
+import type TOTPService from "../services/totp.ts";
 
 
 
