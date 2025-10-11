@@ -1,11 +1,14 @@
 networks:
   elk:
+    name: elk-stack_elk
     driver: bridge
 
 volumes:
   esdata:
+    name: elk-stack_esdata
     driver: local
   certs:
+    name: elk-stack_certs
     driver: local
 
 services:
@@ -20,7 +23,6 @@ services:
     environment:
       - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
       - KIBANA_SYSTEM_PASSWORD=${KIBANA_SYSTEM_PASSWORD}
-  
     volumes:
       - certs:/certs
     networks:
@@ -94,3 +96,26 @@ services:
         condition: service_healthy
     networks:
       - elk
+  logstash:
+    image: logstash:latest
+    build: logstash
+    container_name: logstash
+    environment:
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+    volumes:
+      - certs:${CERTS_PATH}:rw
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - elk
+  filebeat:
+    image: filebeat:latest
+    container_name: filebeat
+    build: filebeat
+    networks:
+      - elk
+    depends_on:
+      logstash:
+        condition: service_started
+
