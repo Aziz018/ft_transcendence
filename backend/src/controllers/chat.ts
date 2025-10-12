@@ -2487,9 +2487,9 @@ export const websocketHandler = async (
   // Store the authenticated user
   connection.authenticatedUser = authResult.user;
 
-  // Add connection to userConnections
-  const userId = authResult.user.id;
+  const userId = authResult.user.uid;
   const userName = authResult.user.name || "Unknown";
+
   if (!userConnections.has(userId)) {
     userConnections.set(userId, new Set());
   }
@@ -2498,12 +2498,6 @@ export const websocketHandler = async (
   console.log(
     `[WEBSOCKET] User ${userName} (${userId}) connected to WebSocket`
   );
-  console.log(
-    `[WEBSOCKET] Total connections for this user: ${
-      userConnections.get(userId)!.size
-    }`
-  );
-  console.log(`[WEBSOCKET] Total users connected: ${userConnections.size}`);
 
   connection.on("message", async (rawMessage) => {
     let msg: WSMessage;
@@ -2702,7 +2696,7 @@ export const websocketHandler = async (
   });
 
   connection.on("close", () => {
-    const userId = connection.authenticatedUser?.id;
+    const userId = connection.authenticatedUser?.uid;
     const userName = connection.authenticatedUser?.name || "Unknown";
 
     console.log(
@@ -2737,12 +2731,12 @@ export const websocketHandler = async (
     }
 
     // Step 2: Clean up userConnections
-    if (connection.authenticatedUser?.id) {
-      const userConns = userConnections.get(connection.authenticatedUser.id);
+    if (connection.authenticatedUser?.uid) {
+      const userConns = userConnections.get(connection.authenticatedUser.uid);
       if (userConns) {
         userConns.delete(connection);
         if (userConns.size === 0) {
-          userConnections.delete(connection.authenticatedUser.id);
+          userConnections.delete(connection.authenticatedUser.uid);
         }
       }
     }
@@ -2782,18 +2776,6 @@ export const notifyFriendRequest = async (
   senderEmail: string,
   senderAvatar: string
 ) => {
-  console.log(
-    `[NOTIFICATION] Attempting to notify user ${receiverId} of friend request from ${senderName}`
-  );
-  console.log(
-    `[NOTIFICATION] User connections map size: ${userConnections.size}`
-  );
-  console.log(
-    `[NOTIFICATION] Connections for receiver: ${
-      userConnections.get(receiverId)?.size || 0
-    }`
-  );
-
   const connections = userConnections.get(receiverId);
   if (!connections || connections.size === 0) {
     console.log(
@@ -2814,15 +2796,10 @@ export const notifyFriendRequest = async (
     },
   };
 
-  console.log(
-    `[NOTIFICATION] Sending notification to ${connections.size} connection(s)`
-  );
   connections.forEach((conn) => {
     try {
       conn.send(JSON.stringify(notification));
-      console.log(
-        `[NOTIFICATION] Successfully sent notification to user ${receiverId}`
-      );
+      // Notification sent
     } catch (error) {
       console.error("Error sending friend request notification:", error);
     }
