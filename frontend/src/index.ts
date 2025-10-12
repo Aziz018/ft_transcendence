@@ -2,6 +2,7 @@ import { createElement, render, Fragment } from "./library/Factory/Factory";
 import { useState } from "./library/hooks/useState";
 import { useEffect } from "./library/hooks/useEffect";
 import { useRef } from "./library/hooks/useRef";
+import { useCallback } from "./library/hooks/useCallback";
 import useRender from "./library/hooks/useRender";
 import { workLoop } from "./library/render/render";
 
@@ -39,6 +40,7 @@ const Fuego = {
   useRender,
   useEffect,
   useRef,
+  useCallback,
   workLoop,
 };
 export {
@@ -47,6 +49,7 @@ export {
   useState,
   useEffect,
   useRef,
+  useCallback,
   useRender,
   workLoop,
 };

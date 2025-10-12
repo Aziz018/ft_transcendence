@@ -4,7 +4,6 @@ import Fuego from "../../../../index";
 const SignUpLink = () => {
   return (
     <>
-      {/* Sign up link */}
       <div className="text-center mt-6">
         <p className="[font-family:'Questrial',Helvetica] font-normal text-[#ffffff80] text-sm">
           Don't have an account?{" "}

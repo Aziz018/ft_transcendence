@@ -1,0 +1,21 @@
+// import { Button } from "../../components/ui/button";
+import Fuego from "../../index";
+import Footer from "../../components/Home/Footer";
+import Header from "../../components/Home/Header";
+import Main from "../../components/Home/Main";
+import BackgroundBlurEffect from "../../components/ui/BlurEffect/BackgroundBlurEffect";  
+
+const LoginNewversion = () => {
+  return (
+    <div className="bg-[#141517] overflow-hidden w-full min-h-screen relative">
+      <BackgroundBlurEffect />
+      <div className="max-w-layout m-auto">
+        <Header />
+        {/* <Main /> */}
+        {/* <Footer /> */}
+      </div>
+    </div>
+  );
+};
+
+export default LoginNewversion;

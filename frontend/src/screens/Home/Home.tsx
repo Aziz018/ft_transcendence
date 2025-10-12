@@ -1,8 +1,8 @@
+import Fuego from "../../index";
 import Footer from "../../components/Home/Footer";
 import Header from "../../components/Home/Header";
 import Main from "../../components/Home/Main";
-import BackgroundBlurEffect from "../../components/ui/BackgroundBlurEffect";
-import Fuego from "../../index";
+import BackgroundBlurEffect from "../../components/ui/BlurEffect/BackgroundBlurEffect";
 
 const Home = () => {
   return (

@@ -1,5 +1,5 @@
 import Main from "../../components/Login/Main";
-import BackgroundBlurEffect from "../../components/ui/BackgroundBlurEffect";
+import BackgroundBlurEffect from "../../components/ui/BlurEffect/BackgroundBlurEffect";
 import Fuego from "../../index";
 
 const Login = () => {

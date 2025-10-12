@@ -16,15 +16,13 @@ export default {
       },
       maxWidth: {
         layout: "1135px",
+        layoutLg: "1662px",
       },
       fontFamily: {
         questrial: ["Questrial", "sans-serif"],
       },
       spacing: {
         layout: "2rem",
-      },
-      fontFamily: {
-        questridl: ["Questridl", "sans-serif"],
       },
     },
   },
