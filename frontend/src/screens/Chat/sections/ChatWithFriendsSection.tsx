@@ -8,6 +8,8 @@ import ViewProfileIcon from "../../../assets/view-profile.svg";
 import InviteIcon from "../../../assets/invite-icon.svg";
 import UnfriendIcon from "../../../assets/unfriend-icon.svg";
 import BlockUserIcon from "../../../assets/block-icon.svg";
+import { getToken } from "../../../lib/auth";
+import { useEffect } from "../../../library/hooks/useEffect";
 
 const chatUsers = [
   {
@@ -64,18 +66,183 @@ const chatMessages = [
   },
 ];
 
-const menuOptions = [
-  { label: "View Profile", icon: ViewProfileIcon, color: "#ddf247" },
-  { label: "Invite", icon: InviteIcon, color: "#ffffff" },
-  { label: "Unfriend", icon: UnfriendIcon, color: "#ffffff" },
-  { label: "Block User", icon: BlockUserIcon, color: "#ff4141" },
-];
-
 const ChatWithFriendsSection = () => {
   const [isMenuOpen, setIsMenuOpen] = Fuego.useState(false);
+  const [friends, setFriends] = Fuego.useState([]);
+  const [selectedFriend, setSelectedFriend] = Fuego.useState(null);
+  const [incomingRequests, setIncomingRequests] = Fuego.useState([]);
+
+  const backend =
+    (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3000";
+
+  useEffect(() => {
+    fetchFriends();
+    fetchIncomingRequests();
+  }, []);
+
+  const fetchFriends = async () => {
+    try {
+      const token = getToken();
+      const response = await fetch(`${backend}/v1/friend/friends`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setFriends(data || []);
+      }
+    } catch (error) {
+      console.error("Error fetching friends:", error);
+    }
+  };
+
+  const fetchIncomingRequests = async () => {
+    try {
+      const token = getToken();
+      const response = await fetch(`${backend}/v1/friend/incoming`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setIncomingRequests(data || []);
+      }
+    } catch (error) {
+      console.error("Error fetching incoming requests:", error);
+    }
+  };
+
+  const respondToFriendRequest = async (requestId: string, accept: boolean) => {
+    try {
+      const token = getToken();
+      const response = await fetch(`${backend}/v1/friend/respond`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          request_id: requestId,
+          action: accept,
+        }),
+      });
+
+      if (response.ok) {
+        alert(accept ? "Friend request accepted!" : "Friend request declined!");
+        fetchFriends();
+        fetchIncomingRequests();
+      } else {
+        const error = await response.json();
+        alert(error.message || "Failed to respond to friend request");
+      }
+    } catch (error) {
+      console.error("Error responding to friend request:", error);
+      alert("Failed to respond to friend request");
+    }
+  };
+
+  const unfriendUser = async (userId: string, userName: string) => {
+    if (!confirm(`Are you sure you want to unfriend ${userName}?`)) {
+      return;
+    }
+
+    try {
+      const token = getToken();
+      const response = await fetch(`${backend}/v1/friend/unfriend`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        credentials: "include",
+        body: JSON.stringify({ requested_uid: userId }),
+      });
+
+      if (response.ok) {
+        alert(`Unfriended ${userName}`);
+        fetchFriends();
+        setSelectedFriend(null);
+      } else {
+        alert("Failed to unfriend user");
+      }
+    } catch (error) {
+      console.error("Error unfriending user:", error);
+      alert("Failed to unfriend user");
+    }
+  };
+
+  const blockUser = async (userId: string, userName: string) => {
+    if (!confirm(`Are you sure you want to block ${userName}?`)) {
+      return;
+    }
+
+    try {
+      const token = getToken();
+      const response = await fetch(`${backend}/v1/friend/block`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        credentials: "include",
+        body: JSON.stringify({ blocked_uid: userId }),
+      });
+
+      if (response.ok) {
+        alert(`Blocked ${userName}`);
+        fetchFriends();
+        setSelectedFriend(null);
+      } else {
+        const error = await response.json();
+        alert(error.message || "Failed to block user");
+      }
+    } catch (error) {
+      console.error("Error blocking user:", error);
+      alert("Failed to block user");
+    }
+  };
+
+  const handleMenuAction = (action: string) => {
+    if (!selectedFriend) return;
+
+    setIsMenuOpen(false);
+
+    switch (action) {
+      case "View Profile":
+        console.log("View profile:", selectedFriend);
+        break;
+      case "Invite":
+        console.log("Invite to game:", selectedFriend);
+        break;
+      case "Unfriend":
+        unfriendUser(selectedFriend.id, selectedFriend.name);
+        break;
+      case "Block User":
+        blockUser(selectedFriend.id, selectedFriend.name);
+        break;
+    }
+  };
+
+  const menuOptions = [
+    { label: "View Profile", icon: ViewProfileIcon, color: "#ddf247" },
+    { label: "Invite", icon: InviteIcon, color: "#ffffff" },
+    { label: "Unfriend", icon: UnfriendIcon, color: "#ffffff" },
+    { label: "Block User", icon: BlockUserIcon, color: "#ff4141" },
+  ];
 
   return (
-    <div className="mt-[20px] w-full h-[650px] rounded-[30px] border border-[#f9f9f9] border-opacity-[0.1] relative bg -[#0a0a0a]">
+    <div className="mt-[20px] w-full h-[650px] rounded-[30px] border border-[#f9f9f9] border-opacity-[0.1] relative bg-[#0a0a0a]">
       {/* Left Sidebar - User List */}
       <div className="absolute top-0 left-0 w-[326px] h-full border-r border-[#f9f9f9] border-opacity-[0.1] p-[25px]">
         {/* Search Input */}
@@ -99,43 +266,45 @@ const ChatWithFriendsSection = () => {
 
         {/* User List */}
         <div className="flex flex-col gap-2.5 overflow-y-auto h-[calc(100%-85px)]">
-          {chatUsers.map((user, index) => (
-            <button
-              key={user.id}
-              className={`w-full h-[65px] rounded-[14px] flex items-center px-[19px] gap-[8px] hover:bg-[#87878733] transition-colors ${
-                index === 0 ? "bg-[#8787871a]" : "bg-transparent"
-              }`}>
-              <div className="relative w-[35px] h-[35px]">
-                <img
-                  src={user.avatar}
-                  alt={user.name}
-                  className="w-full h-full rounded-full object-cover"
-                />
-              </div>
+          {friends.length > 0 ? (
+            friends.map((friend: any, index: number) => (
+              <button
+                key={friend.id}
+                onClick={() => setSelectedFriend(friend)}
+                className={`w-full h-[65px] rounded-[14px] flex items-center px-[19px] gap-[8px] hover:bg-[#87878733] transition-colors ${
+                  selectedFriend?.id === friend.id
+                    ? "bg-[#8787871a]"
+                    : "bg-transparent"
+                }`}>
+                <div className="relative w-[35px] h-[35px]">
+                  <img
+                    src={friend.avatar || Mason}
+                    alt={friend.name}
+                    className="w-full h-full rounded-full object-cover"
+                  />
+                </div>
 
-              <div className="flex-1 flex flex-col gap-0.5 items-start">
-                <span className="[font-family:'Poppins',Helvetica] font-medium text-white text-sm tracking-[0] leading-[15px]">
-                  {user.name}
-                </span>
-                <span className="[font-family:'Poppins',Helvetica] font-medium text-[#878787] text-[10px] leading-[15px] tracking-[0] truncate max-w-[126px]">
-                  {user.message}
-                </span>
-              </div>
+                <div className="flex-1 flex flex-col gap-0.5 items-start">
+                  <span className="[font-family:'Poppins',Helvetica] font-medium text-white text-sm tracking-[0] leading-[15px]">
+                    {friend.name}
+                  </span>
+                  <span className="[font-family:'Poppins',Helvetica] font-medium text-[#878787] text-[10px] leading-[15px] tracking-[0] truncate max-w-[126px]">
+                    {friend.status || "online"}
+                  </span>
+                </div>
 
-              <div className="flex flex-col items-end gap-1">
-                <span className="[font-family:'Poppins',Helvetica] font-medium text-[#878787] text-[10px] tracking-[0] leading-[15px]">
-                  {user.time}
-                </span>
-                {user.notifications > 0 && (
-                  <div className="min-w-[18px] h-[18px] bg-[#ddf247] rounded-full flex items-center justify-center px-1">
-                    <span className="[font-family:'Poppins',Helvetica] font-semibold text-[#0a0a0a] text-[10px] leading-none">
-                      {user.notifications}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </button>
-          ))}
+                <div className="flex flex-col items-end gap-1">
+                  <span className="[font-family:'Poppins',Helvetica] font-medium text-[#878787] text-[10px] tracking-[0] leading-[15px]">
+                    {friend.time || "now"}
+                  </span>
+                </div>
+              </button>
+            ))
+          ) : (
+            <div className="text-center text-[#878787] mt-4">
+              No friends yet. Search for users to add friends!
+            </div>
+          )}
         </div>
       </div>
 
@@ -145,56 +314,55 @@ const ChatWithFriendsSection = () => {
         <div className="flex items-center justify-between mb-[20px] pb-[20px] border-b border-[#f9f9f9] border-opacity-[0.1]">
           <div className="flex flex-col gap-1">
             <h3 className="[font-family:'Poppins',Helvetica] font-medium text-white text-2xl tracking-[0] leading-[15px]">
-              Mason
+              {selectedFriend?.name || "Select a friend"}
             </h3>
             <span className="[font-family:'Questrial',Helvetica] font-normal text-[#878787] text-sm tracking-[0] leading-[15px] pt-2">
-              online
+              {selectedFriend?.status || "offline"}
             </span>
           </div>
 
-          <div className="flex items-center gap- 2">
-            {/* Let's Play Button */}
-            <button className=" flex items-center justify-center gap-[5px] border-solid px-8 py-2 rounded-[14px] border border-white hover:opacity-80 transition-colors">
-              <img src={PlayIcon} alt="Mason" className="w-4 h-4" />
-              <span className="[font-family:'Questrial',Helvetica] font-normal text-white text-xs tracking-[0] leading-[15px]">
-                Let's play
-              </span>
-            </button>
-            {/* Menu Button */}
-            <div className="relative">
-              <button
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="w-10 h-10 flex items-center justify-center hover:opacity-80 rounded-full transition-colors">
-                <img src={MenuIcon} alt="Menu" className="w-4 h-4" />
+          {selectedFriend && (
+            <div className="flex items-center gap-2">
+              {/* Let's Play Button */}
+              <button className="flex items-center justify-center gap-[5px] border-solid px-8 py-2 rounded-[14px] border border-white hover:opacity-80 transition-colors">
+                <img src={PlayIcon} alt="Mason" className="w-4 h-4" />
+                <span className="[font-family:'Questrial',Helvetica] font-normal text-white text-xs tracking-[0] leading-[15px]">
+                  Let's play
+                </span>
               </button>
+              {/* Menu Button */}
+              <div className="relative">
+                <button
+                  onClick={() => setIsMenuOpen(!isMenuOpen)}
+                  className="w-10 h-10 flex items-center justify-center hover:opacity-80 rounded-full transition-colors">
+                  <img src={MenuIcon} alt="Menu" className="w-4 h-4" />
+                </button>
 
-              {/* Dropdown Menu */}
-              {isMenuOpen && (
-                <div className="absolute right-0 top-12 w-[124px] bg-[#232323] border-0 rounded-[14px] p-[13px] z-10 shadow-lg">
-                  {menuOptions.map((option, index) => (
-                    <button
-                      key={index}
-                      onClick={() => {
-                        console.log(`Clicked: ${option.label}`);
-                        setIsMenuOpen(false);
-                      }}
-                      className="flex items-center gap-[7px] p-0 mb-[9px] last:mb-0 cursor-pointer hover:opacity-80 transition-opacity w-full">
-                      <img
-                        src={option.icon}
-                        alt={option.label}
-                        className="w-[14px] h-[14px]"
-                      />
-                      <span
-                        style={{ color: option.color }}
-                        className="[font-family:'Questrial',Helvetica] font-normal text-[11px] text-center tracking-[0] leading-[17px]">
-                        {option.label}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              )}
+                {/* Dropdown Menu */}
+                {isMenuOpen && (
+                  <div className="absolute right-0 top-12 w-[124px] bg-[#232323] border-0 rounded-[14px] p-[13px] z-10 shadow-lg">
+                    {menuOptions.map((option, index) => (
+                      <button
+                        key={index}
+                        onClick={() => handleMenuAction(option.label)}
+                        className="flex items-center gap-[7px] p-0 mb-[9px] last:mb-0 cursor-pointer hover:opacity-80 transition-opacity w-full">
+                        <img
+                          src={option.icon}
+                          alt={option.label}
+                          className="w-[14px] h-[14px]"
+                        />
+                        <span
+                          style={{ color: option.color }}
+                          className="[font-family:'Questrial',Helvetica] font-normal text-[11px] text-center tracking-[0] leading-[17px]">
+                          {option.label}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Messages Area */}

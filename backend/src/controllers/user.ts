@@ -288,6 +288,59 @@ export const userProfileController = async (
   }
 };
 
+export const userSearchController = async (
+  req: FastifyRequest<{ Querystring: { q: string } }>,
+  rep: FastifyReply
+): Promise<void> => {
+  const query = req.query.q;
+
+  if (!query || query.trim().length < 2) {
+    return rep.code(400).send({
+      statusCode: 400,
+      error: "Bad Request",
+      message: "Search query must be at least 2 characters",
+    });
+  }
+
+  try {
+    const currentUserId = req.user?.uid;
+
+    const users = await prisma.user.findMany({
+      where: {
+        AND: [
+          {
+            OR: [{ name: { contains: query } }, { email: { contains: query } }],
+          },
+          currentUserId ? { id: { not: currentUserId } } : {},
+        ],
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        avatar: true,
+      },
+      take: 10,
+    });
+
+    rep.code(200).send({
+      users: users.map((user) => ({
+        uid: user.id,
+        name: user.name,
+        email: user.email,
+        avatar: user.avatar,
+      })),
+    });
+  } catch (error) {
+    req.log.error({ error }, "User search error");
+    rep.code(500).send({
+      statusCode: 500,
+      error: "Internal Server Error",
+      message: "Failed to search users",
+    });
+  }
+};
+
 export const userProfileUpdateController = async (
   req: FastifyRequest<{ Body: UserUpdateInput }>,
   rep: FastifyReply

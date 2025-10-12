@@ -1,29 +1,26 @@
 import {
-    blockUserController,
-    getBlockedUsersController,
-    getFriendsController,
-    getIncomingRequestsController,
-    getPendingRequestsController,
-    resolveFriendRequestController,
-    sendFriendRequestController,
-    unblockUserController
+  blockUserController,
+  getBlockedUsersController,
+  getFriendsController,
+  getIncomingRequestsController,
+  getPendingRequestsController,
+  resolveFriendRequestController,
+  sendFriendRequestController,
+  unblockUserController,
+  unfriendController,
 } from "../controllers/friend.js";
 import {
-    blockUserSchema,
-    getBlockedUsersSchema,
-    getFriendsSchema,
-    getIncomingRequestsSchema,
-    getPendingRequestsSchema,
-    resolveFriendRequestSchema,
-    sendFriendRequestSchema,
-    unblockUserSchema
+  blockUserSchema,
+  getBlockedUsersSchema,
+  getFriendsSchema,
+  getIncomingRequestsSchema,
+  getPendingRequestsSchema,
+  resolveFriendRequestSchema,
+  sendFriendRequestSchema,
+  unblockUserSchema,
+  unfriendSchema,
 } from "../schemas/friend.js";
-import type {
-    FastifyInstance,
-    FastifyPluginOptions
-} from "fastify";
-
-
+import type { FastifyInstance, FastifyPluginOptions } from "fastify";
 
 /**
  * Fastify plugin for friend request and friendship-related routes.
@@ -38,54 +35,61 @@ import type {
  * @param {FastifyPluginOptions} options - Plugin options passed when registering this plugin.
  * @returns {Promise<void>} Registers routes asynchronously.
  */
-export default async (fastify: FastifyInstance, options: FastifyPluginOptions): Promise<void> => {
+export default async (
+  fastify: FastifyInstance,
+  options: FastifyPluginOptions
+): Promise<void> => {
+  fastify.post("/request", {
+    schema: sendFriendRequestSchema,
+    handler: sendFriendRequestController,
+    preHandler: [fastify.authentication_jwt],
+  });
 
-    fastify.post('/request', {
-        schema: sendFriendRequestSchema,
-        handler: sendFriendRequestController,
-        preHandler: [fastify.authentication_jwt]
-    });
+  fastify.put("/respond", {
+    schema: resolveFriendRequestSchema,
+    handler: resolveFriendRequestController,
+    preHandler: [fastify.authentication_jwt],
+  });
 
-    fastify.put('/respond', {
-        schema: resolveFriendRequestSchema,
-        handler: resolveFriendRequestController,
-        preHandler: [fastify.authentication_jwt]
-    });
+  fastify.get("/friends", {
+    schema: getFriendsSchema,
+    handler: getFriendsController,
+    preHandler: [fastify.authentication_jwt],
+  });
 
-    fastify.get('/friends', {
-        schema: getFriendsSchema,
-        handler: getFriendsController,
-        preHandler: [fastify.authentication_jwt]
-    });
+  fastify.get("/pending", {
+    schema: getPendingRequestsSchema,
+    handler: getPendingRequestsController,
+    preHandler: [fastify.authentication_jwt],
+  });
 
-    fastify.get('/pending', {
-        schema: getPendingRequestsSchema,
-        handler: getPendingRequestsController,
-        preHandler: [fastify.authentication_jwt]
-    });
+  fastify.get("/incoming", {
+    schema: getIncomingRequestsSchema,
+    handler: getIncomingRequestsController,
+    preHandler: [fastify.authentication_jwt],
+  });
 
-    fastify.get('/incoming', {
-        schema: getIncomingRequestsSchema,
-        handler: getIncomingRequestsController,
-        preHandler: [fastify.authentication_jwt]
-    });
+  fastify.post("/block", {
+    schema: blockUserSchema,
+    handler: blockUserController,
+    preHandler: [fastify.authentication_jwt],
+  });
 
-    fastify.post('/block', {
-        schema: blockUserSchema,
-        handler: blockUserController,
-        preHandler: [fastify.authentication_jwt] 
-    });
+  fastify.post("/unblock", {
+    schema: unblockUserSchema,
+    handler: unblockUserController,
+    preHandler: [fastify.authentication_jwt],
+  });
 
-    fastify.post('/unblock', {
-        schema: unblockUserSchema,
-        handler: unblockUserController,
-        preHandler: [fastify.authentication_jwt] 
-    });
+  fastify.get("/blocked", {
+    schema: getBlockedUsersSchema,
+    handler: getBlockedUsersController,
+    preHandler: [fastify.authentication_jwt],
+  });
 
-    fastify.get('/blocked', {
-        schema: getBlockedUsersSchema,
-        handler: getBlockedUsersController,
-        preHandler: [fastify.authentication_jwt] 
-    });
-
+  fastify.delete("/unfriend", {
+    schema: unfriendSchema,
+    handler: unfriendController,
+    preHandler: [fastify.authentication_jwt],
+  });
 };

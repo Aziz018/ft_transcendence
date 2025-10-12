@@ -23,8 +23,8 @@ import ServiceManagerPlugin from "./plugins/service.js";
 
 const rateLimitingOpts = {
   global: true,
-  max: 4,
-  timeWindow: 10 * 1000,
+  max: 100, // Increased from 4 to 100 requests
+  timeWindow: 10 * 1000, // Per 10 seconds
   allowList: [],
   addHeaders: true,
 };
@@ -48,7 +48,7 @@ const routes = [
   },
   {
     pcb: ChatRoutes,
-    opt: { prefix: "/v1" },
+    opt: { prefix: "/v1/chat" },
   },
 ];
 

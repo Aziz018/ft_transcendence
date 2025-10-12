@@ -6,6 +6,7 @@ import {
   userProfileController,
   userLogoutController,
   userRefreshTokController,
+  userSearchController,
 } from "../controllers/user.js";
 import type { FastifyInstance, FastifyPluginOptions } from "fastify";
 import {
@@ -50,6 +51,12 @@ export default async (
   fastify.get("/profile", {
     schema: userProfileSchema,
     handler: userProfileController,
+    preHandler: [fastify.authentication_jwt],
+  });
+
+  fastify.get("/search", {
+    schema: { tags: ["users"] },
+    handler: userSearchController,
     preHandler: [fastify.authentication_jwt],
   });
 
