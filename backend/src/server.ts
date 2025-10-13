@@ -108,7 +108,7 @@ export default class Server {
     this.swaggerOpts = {
       openapi: {
         info: {
-          title: "My API",
+          title: "Heisernberg API",
           description: "API documentation",
           version: "1.0.0",
         },

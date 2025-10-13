@@ -1,0 +1,57 @@
+
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma-chat"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("CHAT_DATABASE_URL")
+}
+
+enum RoomType {
+  DIRECT
+  GROUP
+}
+
+enum MemberRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+model Room {
+  id        String   @id @default(uuid())
+  name      String?
+  type      RoomType @default(GROUP)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages Message[]
+  members  RoomMember[]
+}
+
+model RoomMember {
+  id       String     @id @default(uuid())
+  userId   String
+  roomId   String
+  role     MemberRole @default(MEMBER)
+  joinedAt DateTime   @default(now())
+
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, roomId])
+}
+
+model Message {
+  id         String   @id @default(uuid())
+  content    String
+  senderId   String
+  receiverId String?
+  roomId     String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  room Room? @relation(fields: [roomId], references: [id], onDelete: Cascade)
+}

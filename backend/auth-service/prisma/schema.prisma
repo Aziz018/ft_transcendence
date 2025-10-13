@@ -1,0 +1,52 @@
+
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma-auth"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("AUTH_DATABASE_URL")
+}
+
+enum UserStatus {
+  IN_GAME
+  OFFLINE
+  ONLINE
+  BUSY
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  avatar    String   @default("../public/images/default-avatar.jpg")
+  secret    String?
+  status    UserStatus @default(OFFLINE)
+  lastSeen  DateTime   @default(now())
+
+  refreshTokens RefreshToken[]
+  
+  @@index([name, email])
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  token     String   @unique
+  isValid   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  expiredAt DateTime
+}
+
+model BlacklistedToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
