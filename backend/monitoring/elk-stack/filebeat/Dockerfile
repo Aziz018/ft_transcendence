@@ -8,4 +8,6 @@ RUN tar xzvf filebeat-9.1.5-linux-x86_64.tar.gz && mv filebeat-9.1.5-linux-x86_6
 
 COPY conf/filebeat.yml /filebeat/filebeat.yml
 
+RUN chmod go-w /filebeat/filebeat.yml
+
 CMD [ "/filebeat/filebeat", "-e", "-c", "/filebeat/filebeat.yml", "-d", "*" ]
