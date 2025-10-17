@@ -10,7 +10,9 @@ volumes:
   certs:
     name: elk-stack_certs
     driver: local
-
+  logs:
+    name: app-logs
+    driver: local
 services:
   init_certs:
     build: setupSSL
@@ -113,9 +115,20 @@ services:
     image: filebeat:latest
     container_name: filebeat
     build: filebeat
+    volumes:
+      - logs:/var/log/:rw
     networks:
       - elk
     depends_on:
       logstash:
         condition: service_started
-
+  nginx:
+    image: nginx:bookworm
+    container_name: nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/conf/:/etc/nginx/conf.d:ro
+      - logs:/var/log/:rw
+    networks:
+      - elk
