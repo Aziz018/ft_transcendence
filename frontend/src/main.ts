@@ -30,15 +30,6 @@ window.history.replaceState(
   window.location.pathname
 );
 
-// Also handle the beforeunload event for additional protection
-window.addEventListener("beforeunload", (event) => {
-  // This will show a confirmation dialog when user tries to leave/refresh
-  // You can remove this if you don't want the confirmation dialog
-  const confirmationMessage = "Are you sure you want to leave?";
-  event.returnValue = confirmationMessage;
-  return confirmationMessage;
-});
-
 requestIdleCallback(Fuego.workLoop);
 
 const appElement = document.querySelector<HTMLDivElement>("#app")!;

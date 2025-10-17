@@ -4,7 +4,13 @@ import { useEffect } from "../../library/hooks/useEffect";
 
 interface Notification {
   id: string;
-  type: "friend_request" | "friend_accepted" | "friend_declined" | "message";
+  type:
+    | "friend_request"
+    | "friend_accepted"
+    | "friend_declined"
+    | "message"
+    | "info"
+    | "error";
   title: string;
   message: string;
   timestamp: Date;
@@ -42,6 +48,12 @@ const NotificationToast = ({
                 )}
                 {notification.type === "message" && (
                   <span className="text-2xl">💬</span>
+                )}
+                {notification.type === "info" && (
+                  <span className="text-2xl">ℹ️</span>
+                )}
+                {notification.type === "error" && (
+                  <span className="text-2xl">⚠️</span>
                 )}
                 <h4 className="text-[#f9f9f9] font-semibold text-sm">
                   {notification.title}

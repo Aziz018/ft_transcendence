@@ -10,7 +10,7 @@ import { useEffect } from "../../../library/hooks/useEffect";
 import { useState } from "../../../library/hooks/useState";
 import ArrowReturn from "../../../assets/arrow-return.svg";
 import { redirect } from "../../../library/Router/Router";
-import { wsService } from "../../../services/websocket";
+import { wsService } from "../../../services/wsService";
 import NotificationToast from "../../../components/ui/NotificationToast";
 
 const WelcomeHeaderSection = () => {
@@ -124,7 +124,21 @@ const WelcomeHeaderSection = () => {
         "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZUQ8PVKvi7q5aGAg+ltryxnMpBSh+zPLaizsIGGS57OihUQ0NTKXi8LJZHAY7k9jyyHkwBSuBzvLaizYIGWi78OScTgwNU6zk77BdGwc7ltjyxnQpBSiAzPDaizsIGmW57OihUQ0PU6ri7q5aGAhAl9vyxnMpBSh/zPLajDsJGWS56+mjUg4PUqri7qxbGAhAltvyxnMpBSh+zPPaizsIG2W56+mjUg4PUqvj7axbGAg/ltrzxnMpBSh+zPPajDsJG2S46+mjUg4PUqvi7axaGAg+ltrzxnQoBSh+zPPajDsJGmW46+mjUg4PUqvi7axaGAg+ltvzxnMoBSh+zPPajTsJGmW46+mjUg4PUqvi7axaGAg+ltvzxnMoBSh+zPPajTsJGmW46+mjUg4PUqvi7axaGAg+ltvzxnMoBSh+zPPajTsJGmW46+mjUg4PUqvi7axaGAg+ltvzxnMoBSh+zPPajTsJGmW46+mjUg4PUqvi7axaGAg+ltvzxnMoBSh+zPPajTsJGmW46+mjUg4PUqvi7axaGAg+ltvzxnMoBSh+zPPajTsJGmW46+mjUg4PUqvi7axaGAg+ltvzxnMoBSh+zPPajTsJGmW46+mjUg4PUqvi7axaGAg+ltvzxnMoBSh+zPPajTsJGmW46+mjUg4PUqvi7axaGAg+ltvzxnMoBSh+zPPajTsJGmW46+mjUg4PUqvi7axaGAg+ltvzxnMoBSh+zPPajTsJGmW46+mjUg4PUqvi7axaGAg+ltvzxnMoBSh+zPPajTsJGmW46+mjUg4PUqvi7axaGAg+ltvzxnMoBSh+zPPajTsJGmW46+mjUg4PUqvi7axaGAg+ltvzxnMoBSh+zPPajTsJGmW46+mjUg4PUqvi7axaGAg+ltvzxnMoBSh+zPPajTsJGmW46+mjUg4PUqvi7axaGAg+ltvzxnMoBSh+zPPajTsJGmW46+mjUg4PUqvi7axaGAg+ltvzxnMoBSh+zPPajTsJGmW46+mjUg4P"
       );
       audio.volume = 0.3;
-      audio.play();
+      // Try to play the audio
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            // Audio played successfully
+          })
+          .catch((error) => {
+            // Autoplay was prevented or another error occurred
+            console.log(
+              "Notification sound muted (user interaction required):",
+              error.message
+            );
+          });
+      }
     } catch (e) {
       console.log("Could not play notification sound");
     }
@@ -319,42 +333,82 @@ const WelcomeHeaderSection = () => {
       });
 
       if (response.ok) {
-        alert(
-          `Friend request sent to ${userName}! They will receive a notification.`
-        );
+        const notification = {
+          id: `toast-${Date.now()}`,
+          type: "friend_accepted" as const,
+          title: "Friend Request Sent",
+          message: `Your request has been sent to ${userName}!`,
+          timestamp: new Date(),
+        };
+        setToastNotifications((prev) => [...prev, notification]);
+
+        // Auto-dismiss after 3 seconds
+        setTimeout(() => {
+          setToastNotifications((prev) =>
+            prev.filter((n) => n.id !== notification.id)
+          );
+        }, 3000);
+
         setShowSearchDropdown(false);
         setSearchQuery("");
         setSearchResults([]);
-        // Refresh notifications for the receiver (they'll see it on their next load/refresh)
       } else {
         const error = await response.json();
+        let message = "Failed to send friend request";
 
         // Handle specific error cases with user-friendly messages
         if (response.status === 409) {
           if (error.message.includes("already friends")) {
-            alert(`You're already friends with ${userName}!`);
+            message = `You're already friends with ${userName}!`;
           } else if (error.message.includes("already sent")) {
-            alert(`You already sent a friend request to ${userName}!`);
+            message = `You already sent a friend request to ${userName}!`;
           } else if (error.message.includes("already sent you")) {
-            alert(
-              `${userName} already sent you a friend request! Check your notifications.`
-            );
+            message = `${userName} already sent you a friend request! Check your notifications.`;
           } else {
-            alert(
-              `You already sent a friend request to ${userName} or you're already friends!`
-            );
+            message = `You already sent a friend request to ${userName} or you're already friends!`;
           }
         } else if (response.status === 400) {
-          alert(error.message || "Invalid request");
+          message = error.message || "Invalid request";
         } else if (response.status === 403) {
-          alert(error.message || "Cannot send friend request");
+          message = error.message || "Cannot send friend request";
         } else {
-          alert(error.message || "Failed to send friend request");
+          message = error.message || "Failed to send friend request";
         }
+
+        const notification = {
+          id: `toast-${Date.now()}`,
+          type:
+            response.status === 409 ? ("info" as const) : ("error" as const),
+          title: response.status === 409 ? "Request Already Sent" : "Error",
+          message,
+          timestamp: new Date(),
+        };
+        setToastNotifications((prev) => [...prev, notification]);
+
+        // Auto-dismiss after 4 seconds
+        setTimeout(() => {
+          setToastNotifications((prev) =>
+            prev.filter((n) => n.id !== notification.id)
+          );
+        }, 4000);
       }
     } catch (error) {
       console.error("Friend request error:", error);
-      alert("Failed to send friend request");
+      const notification = {
+        id: `toast-${Date.now()}`,
+        type: "error" as const,
+        title: "Error",
+        message: "Failed to send friend request",
+        timestamp: new Date(),
+      };
+      setToastNotifications((prev) => [...prev, notification]);
+
+      // Auto-dismiss after 4 seconds
+      setTimeout(() => {
+        setToastNotifications((prev) =>
+          prev.filter((n) => n.id !== notification.id)
+        );
+      }, 4000);
     }
   };
 

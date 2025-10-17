@@ -72,7 +72,17 @@ export const getIncomingRequestsSchema = {
   response: {
     200: {
       type: "array",
-      items: { type: "string" },
+      items: {
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          requesterId: { type: "string" },
+          requesterName: { type: "string" },
+          requesterEmail: { type: "string" },
+          requesterAvatar: { type: "string" },
+          timestamp: { type: "string" },
+        },
+      },
     },
   },
 };

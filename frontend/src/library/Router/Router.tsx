@@ -10,6 +10,21 @@ export function Router({
   Component: FunctionComponent;
   [key: string]: any;
 }) {
+  const setRender = Fuego.useRender();
+  const [currentPath, setCurrentPath] = Fuego.useState(
+    window.location.pathname
+  );
+
+  Fuego.useEffect(() => {
+    const handlePopState = () => {
+      setCurrentPath(window.location.pathname);
+      setRender((prev: any) => !prev); // Toggle to force re-render
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
   const url = new URL(window.location.href);
   const slugs = path.split("/");
   const currentSlugs = url.pathname.split("/");
@@ -29,8 +44,14 @@ export function Link({ to, children, ...rest }: Props) {
   const setRender = Fuego.useRender();
   const handleClick = (event: any) => {
     event.preventDefault();
-    window.history.pushState({}, "", to);
-    setRender(null);
+    const currentPath = window.location.pathname;
+
+    // Only navigate if the path is different
+    if (currentPath !== to) {
+      window.history.pushState({}, "", to);
+      // Trigger a re-render by calling setRender with a toggle value
+      setRender((prev: any) => !prev);
+    }
   };
 
   return (
@@ -41,6 +62,10 @@ export function Link({ to, children, ...rest }: Props) {
 }
 
 export function redirect(to: string) {
-  window.history.pushState({}, "", to);
-  Fuego.useRender()(null);
+  const currentPath = window.location.pathname;
+  if (currentPath !== to) {
+    window.history.pushState({}, "", to);
+    const setRender = Fuego.useRender();
+    setRender((prev: any) => !prev);
+  }
 }

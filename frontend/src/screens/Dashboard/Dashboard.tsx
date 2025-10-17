@@ -15,6 +15,7 @@ import DashboardSection from "./sections/DashboardSection";
 import TopRightBlurEffect from "../../components/ui/BlurEffect/TopRightBlurEffect";
 import { getToken, decodeTokenPayload, clearToken } from "../../lib/auth";
 import { Link, redirect } from "../../library/Router/Router";
+import { useEffect } from "../../library/hooks/useEffect";
 // import { Button } from "../../components/ui/button";
 
 const navigationItems = [
@@ -27,6 +28,22 @@ const navigationItems = [
 ];
 
 const Dashboard = () => {
+  const [isAuthenticated, setIsAuthenticated] = Fuego.useState(true); // Default to true to avoid flash redirect
+
+  // Check if user is authenticated
+  useEffect(() => {
+    const token = getToken();
+    if (!token) {
+      setIsAuthenticated(false);
+      redirect("/");
+    }
+  }, []);
+
+  // Only show content if authenticated
+  if (!isAuthenticated) {
+    return null; // Don't render until we know user is authenticated
+  }
+
   const UserName = () => {
     try {
       const t = getToken();

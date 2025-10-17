@@ -8,6 +8,8 @@ import Fuego, { useState, useEffect, useRef } from "../../index";
 // import { Badge } from "../../components/ui/badge";
 // import { Button } from "../../components/ui/button";
 import Avatar from "../../assets/Ellipse 46.svg";
+import { getToken } from "../../lib/auth";
+import { redirect } from "../../library/Router/Router";
 
 const navigationItems = [
   { label: "Dashboard", active: false },
@@ -40,6 +42,22 @@ function normalizeVel(vx: number, vy: number) {
 }
 
 export const Game = () => {
+  const [isAuthenticated, setIsAuthenticated] = Fuego.useState(true); // Default to true to avoid flash redirect
+
+  // Check if user is authenticated
+  useEffect(() => {
+    const token = getToken();
+    if (!token) {
+      setIsAuthenticated(false);
+      redirect("/");
+    }
+  }, []);
+
+  // Only show content if authenticated
+  if (!isAuthenticated) {
+    return null; // Don't render until we know user is authenticated
+  }
+
   const [leftPaddleY, setLeftPaddleY] = useState(
     GAME_HEIGHT / 2 - PADDLE_HEIGHT / 2
   );

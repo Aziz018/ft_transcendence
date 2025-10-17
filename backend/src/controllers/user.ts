@@ -509,3 +509,44 @@ export const userRefreshTokController = async (
     });
   }
 };
+
+export const getUserByIdController = async (
+  req: FastifyRequest<{ Params: { userId: string } }>,
+  rep: FastifyReply
+): Promise<void> => {
+  const { userId } = req.params;
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        avatar: true,
+      },
+    });
+
+    if (!user) {
+      return rep.code(404).send({
+        statusCode: 404,
+        error: "Not Found",
+        message: "User not found",
+      });
+    }
+
+    rep.code(200).send({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      avatar: user.avatar,
+    });
+  } catch (error) {
+    req.log.error({ error }, "Error fetching user by ID");
+    rep.code(500).send({
+      statusCode: 500,
+      error: "Internal Server Error",
+      message: "Failed to fetch user",
+    });
+  }
+};

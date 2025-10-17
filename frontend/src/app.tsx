@@ -8,6 +8,7 @@ import Dashboard from "./screens/Dashboard/Dashboard";
 import Game from "./screens/Game/Game";
 import Chat from "./screens/Chat/Chat";
 import SecondaryLogin from "./screens/SecondaryLogin/SecondaryLogin";
+import ToastContainer from "./components/Toast/ToastContainer";
 
 const App: FunctionComponent = () => {
   return (
@@ -21,6 +22,7 @@ const App: FunctionComponent = () => {
         <Router path="/chat" Component={Chat} />
         <Router path="/secondary-login" Component={SecondaryLogin} />
       </main>
+      <ToastContainer />
     </div>
   );
 };

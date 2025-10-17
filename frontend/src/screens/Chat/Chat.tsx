@@ -15,6 +15,9 @@ import { Link, redirect } from "../../library/Router/Router";
 import ChatShowcaseSection from "./sections/ChatShowcaseSection";
 import ChatWithFriendsSection from "./sections/ChatWithFriendsSection";
 import { getToken, clearToken } from "../../lib/auth";
+import { useWebSocket } from "../../lib/useWebSocket";
+import { wsService } from "../../services/wsService";
+import { useEffect } from "../../library/hooks/useEffect";
 
 const navigationItems = [
   { label: "Dashboard", active: false, icon: DashboardIcon },
@@ -26,6 +29,25 @@ const navigationItems = [
 ];
 
 const Chat = () => {
+  const [isAuthenticated, setIsAuthenticated] = Fuego.useState(true); // Default to true to avoid flash redirect
+
+  // Check if user is authenticated
+  useEffect(() => {
+    const token = getToken();
+    if (!token) {
+      setIsAuthenticated(false);
+      redirect("/");
+    }
+  }, []);
+
+  // Only show content if authenticated
+  if (!isAuthenticated) {
+    return null; // Don't render until we know user is authenticated
+  }
+
+  // Initialize WebSocket connection for real-time notifications
+  useWebSocket();
+
   return (
     <div className="bg-[#141517] overflow-hidden w-full min-w-[1431px] min-h-[1024px] relative flex">
       {/* Background decorative elements */}
@@ -119,6 +141,8 @@ const Chat = () => {
                   console.warn("logout request failed", e);
                 }
 
+                // Disconnect WebSocket before clearing token
+                wsService.disconnect();
                 clearToken();
                 redirect("/");
               }}
