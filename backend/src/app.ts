@@ -70,7 +70,7 @@ const secrets = {
 
 const app: Server = new Server(
   "0.0.0.0",
-  3000,
+  parseInt(process.env.PORT || "3000"),
   [googleOAuthOpts, facebookOAuthOpts, intra42OAuthOpts],
   rateLimitingOpts,
   routes,
