@@ -21,7 +21,7 @@ const LoginForm = () => {
     if (!email || !password) return;
 
     const backend =
-      (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3000";
+      (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3001";
 
     try {
       // Try login first
@@ -43,32 +43,45 @@ const LoginForm = () => {
       }
 
       // If login failed with 401 or 404, try register
-      const regRes = await fetch(`${backend}/v1/user/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, name: email.split("@")[0] }),
-      });
+      if (res.status === 401 || res.status === 404) {
+        const regRes = await fetch(`${backend}/v1/user/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password, name: email.split("@")[0] }),
+        });
 
-      if (regRes.ok) {
-        const regData = await regRes.json();
-        const token =
-          regData?.access_token || regData?.accessToken || regData?.token;
-        if (token) {
-          saveToken(token);
-          redirect("/dashboard");
-          return;
+        if (regRes.ok) {
+          const regData = await regRes.json();
+          const token =
+            regData?.access_token || regData?.accessToken || regData?.token;
+          if (token) {
+            saveToken(token);
+            redirect("/dashboard");
+            return;
+          }
         }
+
+        // If registration also failed, show error from registration response
+        try {
+          const err = await regRes.json();
+          alert(
+            err?.message ||
+              "Unable to login or register. Please check your credentials."
+          );
+        } catch (_) {
+          alert("Unable to login or register. Please check your credentials.");
+        }
+        return;
       }
 
-      // If still failed, show a simple alert with server message when available
+      // For other status codes, show error
       try {
         const err = await res.json();
         alert(
-          err?.message ||
-            "Unable to login or register. Please check your credentials."
+          err?.message || "Unable to login. Please check your credentials."
         );
       } catch (_) {
-        alert("Unable to login or register. Please check your credentials.");
+        alert("Unable to login. Please check your credentials.");
       }
     } catch (err) {
       console.error(err);

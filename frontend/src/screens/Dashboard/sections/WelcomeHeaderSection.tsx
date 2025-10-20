@@ -45,7 +45,7 @@ const WelcomeHeaderSection = () => {
 
         const backend =
           (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-          "http://localhost:3000";
+          "http://localhost:3001";
 
         const headers: any = { "Content-Type": "application/json" };
         if (token) headers["Authorization"] = `Bearer ${token}`;

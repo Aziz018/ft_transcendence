@@ -15,10 +15,10 @@ class WebSocketService {
   private messageListeners: Map<string, (payload: any) => void> = new Map();
 
   constructor() {
-    // Determine WebSocket URL - backend is on port 3000
+    // Determine WebSocket URL - backend is on port 3001
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const hostname = window.location.hostname;
-    const backendUrl = `${hostname}:3000`;
+    const backendUrl = `${hostname}:3001`;
     this.url = `${protocol}//${backendUrl}/v1/chat/ws`;
   }
 

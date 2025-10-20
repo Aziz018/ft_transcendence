@@ -25,7 +25,7 @@ const ChatWithFriendsSection = () => {
   const [isSearching, setIsSearching] = Fuego.useState(false);
 
   const backend =
-    (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3000";
+    (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3001";
 
   useEffect(() => {
     fetchFriends();
@@ -210,8 +210,25 @@ const ChatWithFriendsSection = () => {
 
     const messageContent = content.trim();
 
+    // Get current user info for optimistic update
+    const token = getToken();
+    const userPayload = decodeTokenPayload(token);
+
+    // Optimistic update - show message immediately
+    const optimisticMessage = {
+      id: Math.random().toString(36).substr(2, 9),
+      sender_id: userPayload?.uid || "current-user",
+      receiver_id: selectedFriend.id,
+      content: messageContent,
+      created_at: new Date().toISOString(),
+      is_sender: true,
+    };
+
+    // Add message to UI instantly
+    setMessages((prev: any[]) => [...prev, optimisticMessage]);
+
+    // Send API request in background (don't wait for response)
     try {
-      const token = getToken();
       const response = await fetch(`${backend}/v1/message/send`, {
         method: "POST",
         headers: {
@@ -226,16 +243,26 @@ const ChatWithFriendsSection = () => {
       });
 
       if (response.ok) {
-        // Fetch messages to show the sent message
-        await fetchMessages(selectedFriend.id);
+        // Message sent successfully, refresh to sync with server
+        setTimeout(() => {
+          fetchMessages(selectedFriend.id);
+        }, 500);
       } else {
+        // On error, remove the optimistic message
         const error = await response.json();
         console.error("Error sending message:", error);
+        setMessages((prev: any[]) =>
+          prev.filter((m) => m.id !== optimisticMessage.id)
+        );
         // Restore input on error
         setMessageInput(messageContent);
       }
     } catch (error) {
       console.error("Error sending message:", error);
+      // Remove optimistic message on error
+      setMessages((prev: any[]) =>
+        prev.filter((m) => m.id !== optimisticMessage.id)
+      );
       // Restore input on error
       setMessageInput(messageContent);
     }
