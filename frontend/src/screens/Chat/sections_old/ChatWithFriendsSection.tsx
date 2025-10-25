@@ -36,10 +36,10 @@ const ChatWithFriendsSection = () => {
   useEffect(() => {
     if (selectedFriend) {
       fetchMessages(selectedFriend.id);
-      // Poll for messages every 2 seconds
+      // Poll for messages every 1 second (faster updates)
       const interval = setInterval(() => {
         fetchMessages(selectedFriend.id);
-      }, 2000);
+      }, 1000);
       return () => clearInterval(interval);
     }
   }, [selectedFriend]);
@@ -167,6 +167,10 @@ const ChatWithFriendsSection = () => {
     }
 
     try {
+      // Use AbortController for faster cancellation if needed
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+
       const response = await fetch(
         `${backend}/v1/message/direct?friend_uid=${friendId}&limit=100`,
         {
@@ -176,8 +180,11 @@ const ChatWithFriendsSection = () => {
             ...(token && { Authorization: `Bearer ${token}` }),
           },
           credentials: "include",
+          signal: controller.signal,
         }
       );
+
+      clearTimeout(timeoutId);
 
       if (response.status === 401) {
         // Token expired, stop making requests
@@ -187,10 +194,11 @@ const ChatWithFriendsSection = () => {
 
       if (response.ok) {
         const data = await response.json();
-        const formattedMessages = data.messages.map((msg: any) => ({
+        // Format messages only when needed (lazy formatting)
+        const formattedMessages = (data.messages || []).map((msg: any) => ({
           id: msg.id,
           sender: msg.senderName,
-          avatar: msg.senderAvatar || Mason, // Use Mason as fallback
+          avatar: msg.senderAvatar || Mason,
           text: msg.content,
           time: new Date(msg.createdAt).toLocaleTimeString([], {
             hour: "2-digit",
@@ -198,10 +206,21 @@ const ChatWithFriendsSection = () => {
           }),
           isOwn: msg.isOwn,
         }));
-        setMessages(formattedMessages);
+
+        // Only update if messages actually changed (prevent unnecessary re-renders)
+        setMessages((prevMessages) => {
+          const prevIds = prevMessages.map((m: any) => m.id).join(",");
+          const newIds = formattedMessages.map((m: any) => m.id).join(",");
+          if (prevIds !== newIds) {
+            return formattedMessages;
+          }
+          return prevMessages;
+        });
       }
     } catch (error) {
-      console.error("Error fetching messages:", error);
+      if ((error as any).name !== "AbortError") {
+        console.error("Error fetching messages:", error);
+      }
     }
   };
 
@@ -214,7 +233,7 @@ const ChatWithFriendsSection = () => {
     const token = getToken();
     const userPayload = decodeTokenPayload(token);
 
-    // Optimistic update - show message immediately
+    // Optimistic update - show message immediately (0ms latency)
     const optimisticMessage = {
       id: Math.random().toString(36).substr(2, 9),
       sender_id: userPayload?.uid || "current-user",
@@ -222,50 +241,64 @@ const ChatWithFriendsSection = () => {
       content: messageContent,
       created_at: new Date().toISOString(),
       is_sender: true,
+      sender: userPayload?.name || "You",
+      avatar: userPayload?.avatar || Mason,
+      text: messageContent,
+      time: new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      isOwn: true,
     };
 
     // Add message to UI instantly
     setMessages((prev: any[]) => [...prev, optimisticMessage]);
 
-    // Send API request in background (don't wait for response)
-    try {
-      const response = await fetch(`${backend}/v1/message/send`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token && { Authorization: `Bearer ${token}` }),
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          receiver_uid: selectedFriend.id,
-          content: messageContent,
-        }),
-      });
+    // Scroll to bottom instantly
+    const messagesContainer = document.querySelector(
+      "[data-messages-container]"
+    );
+    if (messagesContainer) {
+      setTimeout(() => {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      }, 0);
+    }
 
-      if (response.ok) {
-        // Message sent successfully, refresh to sync with server
-        setTimeout(() => {
-          fetchMessages(selectedFriend.id);
-        }, 500);
-      } else {
-        // On error, remove the optimistic message
-        const error = await response.json();
+    // Send API request in background without waiting (fire and forget)
+    fetch(`${backend}/v1/message/send`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      credentials: "include",
+      body: JSON.stringify({
+        receiver_uid: selectedFriend.id,
+        content: messageContent,
+      }),
+    })
+      .then((response) => {
+        if (response.ok) {
+          // Message sent successfully, refresh immediately to sync with server
+          setTimeout(() => {
+            fetchMessages(selectedFriend.id);
+          }, 300); // Reduced from 800ms to 300ms for faster refresh
+          return;
+        }
+        // On error response, reject the promise
+        return response.json().then((error) => {
+          throw new Error(error?.message || "Failed to send message");
+        });
+      })
+      .catch((error) => {
         console.error("Error sending message:", error);
+        // Remove optimistic message on error ONLY
         setMessages((prev: any[]) =>
           prev.filter((m) => m.id !== optimisticMessage.id)
         );
-        // Restore input on error
-        setMessageInput(messageContent);
-      }
-    } catch (error) {
-      console.error("Error sending message:", error);
-      // Remove optimistic message on error
-      setMessages((prev: any[]) =>
-        prev.filter((m) => m.id !== optimisticMessage.id)
-      );
-      // Restore input on error
-      setMessageInput(messageContent);
-    }
+        // DO NOT restore input - keep it cleared for user
+        // Optionally show error toast/alert here
+      });
   };
 
   const fetchFriends = async () => {
@@ -742,7 +775,9 @@ const ChatWithFriendsSection = () => {
         </div>
 
         {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto mb-[20px] flex flex-col gap-[29px] items-center justify-center">
+        <div
+          data-messages-container
+          className="flex-1 overflow-y-auto mb-[20px] flex flex-col gap-[29px] items-center justify-center">
           {!selectedFriend ? (
             <div className="text-center">
               <p className="[font-family:'Questrial',Helvetica] font-normal text-[#878787] text-xl tracking-[0] leading-[15px]">
@@ -824,8 +859,12 @@ const ChatWithFriendsSection = () => {
               if (e.key === "Enter" && messageInput.trim() && selectedFriend) {
                 e.preventDefault();
                 const content = messageInput;
-                setMessageInput(""); // Clear input immediately
-                sendMessage(content); // Then send the message
+                // Clear input first
+                setMessageInput("");
+                // Then send with a slight delay to ensure state update
+                setTimeout(() => {
+                  sendMessage(content);
+                }, 0);
               }
             }}
             disabled={!selectedFriend}
@@ -833,11 +872,16 @@ const ChatWithFriendsSection = () => {
           />
           <button
             disabled={!selectedFriend || !messageInput.trim()}
-            onClick={() => {
+            onClick={(e: any) => {
+              e.preventDefault();
               if (messageInput.trim()) {
                 const content = messageInput;
-                setMessageInput(""); // Clear input immediately
-                sendMessage(content); // Then send the message
+                // Clear input first
+                setMessageInput("");
+                // Then send with a slight delay to ensure state update
+                setTimeout(() => {
+                  sendMessage(content);
+                }, 0);
               }
             }}
             className="absolute right-2 top-1/2 -translate-y-1/2 w-[34px] h-[34px] flex items-center justify-center hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed">

@@ -8,17 +8,27 @@ import GoogleBtn from "../../../ui/SocialLoginButtons/GoogleBtn";
 import IntraBtn from "../../../ui/SocialLoginButtons/IntraBtn";
 
 import { saveToken } from "../../../../lib/auth";
-import { redirect } from "../../../../library/Router/Router";
+import { redirect, Link } from "../../../../library/Router/Router";
+import { useState } from "../../../../index";
 
 const LoginForm = () => {
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
   const handleSubmit = async (e: Event) => {
     e.preventDefault();
+    setError(""); // Clear previous errors
+    setLoading(true);
+
     const form = e.target as HTMLFormElement;
     const formData = new FormData(form);
     const email = String(formData.get("email") || "").trim();
     const password = String(formData.get("password") || "");
 
-    if (!email || !password) return;
+    if (!email || !password) {
+      setLoading(false);
+      return;
+    }
 
     const backend =
       (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3001";
@@ -42,60 +52,89 @@ const LoginForm = () => {
         }
       }
 
-      // If login failed with 401 or 404, try register
-      if (res.status === 401 || res.status === 404) {
-        const regRes = await fetch(`${backend}/v1/user/register`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password, name: email.split("@")[0] }),
-        });
-
-        if (regRes.ok) {
-          const regData = await regRes.json();
-          const token =
-            regData?.access_token || regData?.accessToken || regData?.token;
-          if (token) {
-            saveToken(token);
-            redirect("/dashboard");
-            return;
-          }
-        }
-
-        // If registration also failed, show error from registration response
-        try {
-          const err = await regRes.json();
-          alert(
-            err?.message ||
-              "Unable to login or register. Please check your credentials."
-          );
-        } catch (_) {
-          alert("Unable to login or register. Please check your credentials.");
-        }
+      // Handle 404 - User not found
+      if (res.status === 404) {
+        setError("user_not_found");
+        setLoading(false);
         return;
       }
 
-      // For other status codes, show error
+      // Handle 401 - Invalid credentials
+      if (res.status === 401) {
+        setError("invalid_credentials");
+        setLoading(false);
+        return;
+      }
+
+      // For other status codes, show error from response
       try {
         const err = await res.json();
-        alert(
-          err?.message || "Unable to login. Please check your credentials."
-        );
+        setError(err?.message || "Unable to login. Please try again.");
       } catch (_) {
-        alert("Unable to login. Please check your credentials.");
+        setError("Unable to login. Please try again.");
       }
     } catch (err) {
-      console.error(err);
-      alert("An error occurred while trying to authenticate.");
+      console.error("Login error:", err);
+      setError(
+        "An error occurred. Please check your connection and try again."
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <>
       <form onSubmit={handleSubmit as any} className="space-y-6">
+        {/* Error Messages */}
+        {error === "user_not_found" && (
+          <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-4">
+            <p className="text-red-400 text-sm font-medium mb-3">
+              📋 User not found
+            </p>
+            <p className="text-red-300 text-xs mb-4">
+              No account exists with this email. Please create an account to get
+              started.
+            </p>
+            <Link to="/signup">
+              <button
+                type="button"
+                className="w-full bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm">
+                Create Account →
+              </button>
+            </Link>
+          </div>
+        )}
+
+        {error === "invalid_credentials" && (
+          <div className="bg-orange-500/20 border border-orange-500/50 rounded-lg p-4">
+            <p className="text-orange-400 text-sm font-medium mb-2">
+              🔐 Invalid credentials
+            </p>
+            <p className="text-orange-300 text-xs">
+              The email or password you entered is incorrect. Please try again.
+            </p>
+          </div>
+        )}
+
+        {error &&
+          error !== "user_not_found" &&
+          error !== "invalid_credentials" && (
+            <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-4">
+              <p className="text-yellow-400 text-sm font-medium mb-2">
+                ⚠️ Login failed
+              </p>
+              <p className="text-yellow-300 text-xs">{error}</p>
+            </div>
+          )}
+
         <EmailField />
         <PasswordField />
         <ForgotPassword />
-        <LoginButton />
+        <LoginButton
+          disabled={loading}
+          text={loading ? "Logging in..." : "Login"}
+        />
         <Divider />
         <div className="grid grid-cols-2 gap-3">
           <GoogleBtn />

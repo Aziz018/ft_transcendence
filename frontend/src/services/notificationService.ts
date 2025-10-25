@@ -86,6 +86,7 @@ class NotificationService {
     requesterName: string;
     requesterId: string;
     requesterAvatar: string;
+    requesterEmail?: string;
   }) {
     return this.notify({
       type: "friend-request",

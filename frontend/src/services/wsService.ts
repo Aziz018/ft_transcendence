@@ -97,27 +97,26 @@ class WebSocketService {
   }
 
   private handleFriendRequestNotification(payload: any) {
+    console.log("[WebSocket] Friend request received:", payload);
     notificationService.friendRequest({
       requestId: payload.requestId,
       requesterName: payload.senderName,
       requesterId: payload.senderId,
       requesterAvatar: payload.senderAvatar || "",
+      requesterEmail: payload.senderEmail || "",
     });
-
-    // Refresh the page to update friend requests list
-    setTimeout(() => {
-      window.location.reload();
-    }, 500);
   }
 
   private handleFriendRequestAccepted(payload: any) {
+    console.log("[WebSocket] Friend request accepted:", payload);
     notificationService.success(
-      `${payload.acceptedByName} accepted your friend request!`,
+      `${payload.friendName} accepted your friend request!`,
       4000
     );
   }
 
   private handleFriendRequestDeclined(payload: any) {
+    console.log("[WebSocket] Friend request declined:", payload);
     notificationService.info(`Your friend request was declined`, 4000);
   }
 

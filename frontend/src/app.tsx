@@ -12,8 +12,8 @@ import ToastContainer from "./components/Toast/ToastContainer";
 
 const App: FunctionComponent = () => {
   return (
-    <div className="">
-      <main>
+    <div className="h-screen w-full overflow-hidden">
+      <main className="h-full w-full">
         <Router path="/" Component={Home} />
         <Router path="/login" Component={Login} />
         <Router path="/signup" Component={SignUp} />
