@@ -7,11 +7,7 @@ import Fuego from "../../../index";
 import { useState } from "../../../library/hooks/useState";
 import { useEffect } from "../../../library/hooks/useEffect";
 import { useCallback } from "../../../library/hooks/useCallback";
-import {
-  chatService,
-  type Friend,
-  type FriendRequest,
-} from "../../../services/chatService";
+import { chatService, type Friend } from "../../../services/chatService";
 import { getToken } from "../../../lib/auth";
 import { wsService } from "../../../services/wsService";
 

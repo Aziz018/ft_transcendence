@@ -44,6 +44,8 @@ const Settings = () => {
   const [showTwoFactorModal, setShowTwoFactorModal] = useState(false);
   const [qrCode, setQrCode] = useState("");
   const [isDarkMode, setIsDarkMode] = useState(true);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const fileInputRef = Fuego.useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const token = getToken();
@@ -88,23 +90,85 @@ const Settings = () => {
         "http://localhost:3001";
       const token = getToken();
 
-      const res = await fetch(`${backend}/v1/user/profile`, {
+      // Update name if changed
+      const nameRes = await fetch(`${backend}/v1/user/profile`, {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          name: userName,
-          email: userEmail,
+          field: "name",
+          value: userName,
         }),
       });
 
-      if (res.ok) {
+      if (nameRes.ok) {
         setIsEditing(false);
+        await fetchUserProfile();
+      } else {
+        const error = await nameRes.json();
+        console.error("Failed to update profile:", error);
+        alert(error.message || "Failed to update profile");
       }
     } catch (error) {
       console.error("Failed to update profile:", error);
+      alert("Failed to update profile. Please try again.");
+    }
+  };
+
+  const handleAvatarClick = () => {
+    if (isEditing && fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleAvatarChange = async (e: any) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      alert("Please select an image file");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Image size should be less than 5MB");
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+
+    try {
+      const backend =
+        (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
+        "http://localhost:3001";
+      const token = getToken();
+
+      const formData = new FormData();
+      formData.append("avatar", file);
+
+      const res = await fetch(`${backend}/v1/user/avatar`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setUserAvatar(data.avatar || data.avatarUrl || "");
+        await fetchUserProfile();
+      } else {
+        const errorData = await res.json();
+        alert(errorData.message || "Failed to upload avatar");
+      }
+    } catch (error) {
+      console.error("Failed to upload avatar:", error);
+      alert("Failed to upload avatar. Please try again.");
+    } finally {
+      setIsUploadingAvatar(false);
     }
   };
 
@@ -247,11 +311,53 @@ const Settings = () => {
               </div>
 
               <div className="flex items-start gap-6">
-                <div className="flex-shrink-0">
+                <div className="flex-shrink-0 relative group">
                   <img
                     src={getAvatarUrl(userAvatar)}
                     alt="Avatar"
                     className="w-24 h-24 rounded-full object-cover border-2 border-accent-green/50"
+                  />
+                  {isEditing && (
+                    <div
+                      onClick={handleAvatarClick}
+                      className="absolute inset-0 bg-black/60 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                      <div className="text-center">
+                        {isUploadingAvatar ? (
+                          <div className="w-6 h-6 border-2 border-light border-t-transparent rounded-full animate-spin mx-auto" />
+                        ) : (
+                          <>
+                            <svg
+                              className="w-6 h-6 text-light mx-auto mb-1"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24">
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+                              />
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
+                              />
+                            </svg>
+                            <span className="text-xs text-light font-questrial">
+                              Change
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarChange}
+                    className="hidden"
                   />
                 </div>
 

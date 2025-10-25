@@ -1,8 +1,6 @@
 import Fuego from "../../../index";
 
 import { BellIcon, SearchIcon } from "lucide-react";
-// import { Button } from "../../../../components/ui/button";
-// import { Input } from "../../../components/ui/input";
 import NotificationBell from "../../../assets/notification.svg";
 import SecondaryButton from "../../../components/ui/SecondaryButton";
 import { getToken, decodeTokenPayload } from "../../../lib/auth";
@@ -11,8 +9,11 @@ import { useState } from "../../../library/hooks/useState";
 import { useCallback } from "../../../library/hooks/useCallback";
 import { notificationService } from "../../../services/notificationService";
 import FriendRequestNotifications from "../../../components/Dashboard/FriendRequestNotifications";
+import { useTheme } from "../../../context/ThemeContext";
 
 const WelcomeHeaderSection = () => {
+  const { theme, toggleTheme } = useTheme();
+
   const getAvatarUrl = (avatarPath: string | null | undefined): string => {
     const backend =
       (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3001";
@@ -349,8 +350,11 @@ const WelcomeHeaderSection = () => {
           />
         </div>
 
-        <button className="h-10 px-[18px] bg-[#dda15e] rounded-[14px] border border-solid border-[#f9f9f933] [font-family:'Questrial',Helvetica] font-normal text-[#f9f9f9] text-sm tracking-[0] leading-[15px] hover:bg-[#dda15e]/90">
-          Switch Mode
+        <button
+          onClick={toggleTheme}
+          className="h-10 px-[18px] bg-accent-orange hover:bg-accent-orange/90 rounded-[14px] border border-solid border-[#f9f9f933] font-questrial font-normal text-light text-sm tracking-[0] leading-[15px] transition-all duration-300 flex items-center gap-2">
+          <span className="text-lg">{theme === "dark" ? "☀️" : "🌙"}</span>
+          {theme === "dark" ? "Light Mode" : "Dark Mode"}
         </button>
       </div>
     </header>

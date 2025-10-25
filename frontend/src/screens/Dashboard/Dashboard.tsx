@@ -28,21 +28,57 @@ const navigationItems = [
 ];
 
 const Dashboard = () => {
-  const [isAuthenticated, setIsAuthenticated] = Fuego.useState(true); // Default to true to avoid flash redirect
+  const [isAuthenticated, setIsAuthenticated] = Fuego.useState(true);
+  const [userAvatar, setUserAvatar] = Fuego.useState("");
 
-  // Check if user is authenticated
+  // Check if user is authenticated and fetch profile
   useEffect(() => {
     const token = getToken();
     if (!token) {
       setIsAuthenticated(false);
       redirect("/");
+    } else {
+      fetchUserProfile();
     }
   }, []);
 
+  const fetchUserProfile = async () => {
+    try {
+      const backend =
+        (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
+        "http://localhost:3001";
+      const token = getToken();
+
+      const res = await fetch(`${backend}/v1/user/profile`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setUserAvatar(data.avatar || "");
+      }
+    } catch (error) {
+      console.error("Failed to fetch profile:", error);
+    }
+  };
+
   // Only show content if authenticated
   if (!isAuthenticated) {
-    return null; // Don't render until we know user is authenticated
+    return null;
   }
+
+  const getAvatarUrl = (path: string | null | undefined): string => {
+    const backend =
+      (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3001";
+    if (!path || !path.trim()) return `${backend}/images/default-avatar.png`;
+    if (path.startsWith("/public/"))
+      return `${backend}${path.replace("/public", "")}`;
+    if (path.startsWith("/")) return `${backend}${path}`;
+    if (path.startsWith("http")) return path;
+    return `${backend}/images/default-avatar.png`;
+  };
 
   const UserName = () => {
     try {
@@ -56,41 +92,19 @@ const Dashboard = () => {
   };
 
   const TokenAvatar = () => {
-    try {
-      const t = getToken();
-      if (!t)
-        return (
-          <img
-            className="w -[150px]  object -cover rounded -full"
-            alt="Ellipse"
-            src={Avatar}
-          />
-        );
-      const p = decodeTokenPayload(t);
-      if (p?.picture)
-        return (
-          <img
-            className="w- [150px]  object -cover rounded -full"
-            alt={p?.name || "avatar"}
-            src={p.picture}
-          />
-        );
-      return (
-        <img
-          className="w- [150px]  object -cover rounded -full"
-          alt="Ellipse"
-          src={Avatar}
-        />
-      );
-    } catch (e) {
-      return (
-        <img
-          className="w- [150px]  object -cover rounded -full"
-          alt="Ellipse"
-          src={Avatar}
-        />
-      );
-    }
+    return (
+      <img
+        className="w-[150px] object-cover rounded-full"
+        alt="User Avatar"
+        src={getAvatarUrl(userAvatar)}
+        onError={(e: any) => {
+          const backend =
+            (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
+            "http://localhost:3001";
+          e.currentTarget.src = `${backend}/images/default-avatar.png`;
+        }}
+      />
+    );
   };
 
   return (

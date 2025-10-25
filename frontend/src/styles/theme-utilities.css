@@ -1,0 +1,41 @@
+@layer utilities {
+  .bg-theme-primary {
+    @apply bg-lightTheme-bg dark:bg-dark-950;
+  }
+
+  .bg-theme-secondary {
+    @apply bg-lightTheme-card dark:bg-dark-900;
+  }
+
+  .bg-theme-card {
+    @apply bg-lightTheme-card dark:bg-white/5;
+  }
+
+  .bg-theme-card-hover {
+    @apply hover:bg-lightTheme-cardHover dark:hover:bg-white/10;
+  }
+
+  .border-theme {
+    @apply border-lightTheme-border dark:border-white/10;
+  }
+
+  .text-theme-primary {
+    @apply text-lightTheme-text dark:text-light;
+  }
+
+  .text-theme-secondary {
+    @apply text-lightTheme-textSecondary dark:text-light/60;
+  }
+
+  .accent-theme {
+    @apply text-lightTheme-accentBlue dark:text-accent-green;
+  }
+
+  .bg-accent-theme {
+    @apply bg-lightTheme-accentBlue dark:bg-accent-green;
+  }
+
+  .border-accent-theme {
+    @apply border-lightTheme-accentBlue dark:border-accent-green;
+  }
+}

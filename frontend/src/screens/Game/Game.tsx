@@ -42,20 +42,80 @@ function normalizeVel(vx: number, vy: number) {
 }
 
 export const Game = () => {
-  const [isAuthenticated, setIsAuthenticated] = Fuego.useState(true); // Default to true to avoid flash redirect
+  const [isAuthenticated, setIsAuthenticated] = Fuego.useState(true);
+  const [userAvatar, setUserAvatar] = Fuego.useState("");
+  const [userName, setUserName] = Fuego.useState("You");
+  const [opponent, setOpponent] = Fuego.useState<{
+    name: string;
+    avatar: string;
+  } | null>(null);
 
-  // Check if user is authenticated
+  // Check if user is authenticated and fetch profile
   useEffect(() => {
     const token = getToken();
     if (!token) {
       setIsAuthenticated(false);
       redirect("/");
+    } else {
+      fetchUserProfile();
+      loadGameInvitation();
     }
   }, []);
 
+  const loadGameInvitation = () => {
+    try {
+      const inviteData = localStorage.getItem("pendingGameInvite");
+      if (inviteData) {
+        const invite = JSON.parse(inviteData);
+        setOpponent({
+          name: invite.opponentName || "Opponent",
+          avatar: invite.opponentAvatar || "",
+        });
+        // Clear the invitation after loading
+        localStorage.removeItem("pendingGameInvite");
+      }
+    } catch (error) {
+      console.error("Failed to load game invitation:", error);
+    }
+  };
+
+  const fetchUserProfile = async () => {
+    try {
+      const backend =
+        (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
+        "http://localhost:3001";
+      const token = getToken();
+
+      const res = await fetch(`${backend}/v1/user/profile`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setUserAvatar(data.avatar || "");
+        setUserName(data.name || "You");
+      }
+    } catch (error) {
+      console.error("Failed to fetch profile:", error);
+    }
+  };
+
+  const getAvatarUrl = (path: string | null | undefined): string => {
+    const backend =
+      (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3001";
+    if (!path || !path.trim()) return `${backend}/images/default-avatar.png`;
+    if (path.startsWith("/public/"))
+      return `${backend}${path.replace("/public", "")}`;
+    if (path.startsWith("/")) return `${backend}${path}`;
+    if (path.startsWith("http")) return path;
+    return `${backend}/images/default-avatar.png`;
+  };
+
   // Only show content if authenticated
   if (!isAuthenticated) {
-    return null; // Don't render until we know user is authenticated
+    return null;
   }
 
   const [leftPaddleY, setLeftPaddleY] = useState(
@@ -75,6 +135,7 @@ export const Game = () => {
   const [gameEnded, setGameEnded] = useState(false);
   const [showPauseMenu, setShowPauseMenu] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const [displayedXP, setDisplayedXP] = useState(0);
 
   const keysPressed = useRef<Set<string>>(new Set());
 
@@ -126,6 +187,76 @@ export const Game = () => {
 
     return () => clearInterval(timer);
   }, [gameStarted, gameEnded, isPaused]);
+
+  // XP Counter Animation
+  useEffect(() => {
+    if (!gameEnded || leftScore <= rightScore) {
+      setDisplayedXP(0);
+      return;
+    }
+
+    const targetXP = leftScore * 26;
+    const duration = 2000; // 2 seconds animation
+    const steps = 60; // 60 frames
+    const increment = targetXP / steps;
+    let currentStep = 0;
+
+    setDisplayedXP(0);
+
+    // Save XP to backend
+    saveXPToBackend(targetXP);
+
+    const counter = setInterval(() => {
+      currentStep++;
+      if (currentStep >= steps) {
+        setDisplayedXP(targetXP);
+        clearInterval(counter);
+      } else {
+        setDisplayedXP(Math.floor(increment * currentStep));
+      }
+    }, duration / steps);
+
+    return () => clearInterval(counter);
+  }, [gameEnded, leftScore, rightScore]);
+
+  const saveXPToBackend = async (earnedXP: number) => {
+    try {
+      const backend =
+        (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
+        "http://localhost:3001";
+      const token = getToken();
+
+      if (!token) {
+        console.error("[Game] No token found");
+        return;
+      }
+
+      const response = await fetch(`${backend}/v1/user/profile`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          field: "xp",
+          value: earnedXP.toString(),
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(
+          `[Game] Failed to save XP. Status: ${response.status}, Error: ${errorText}`
+        );
+        return;
+      }
+
+      const result = await response.json();
+      console.log(`[Game] Saved ${earnedXP} XP to backend. Response:`, result);
+    } catch (error) {
+      console.error("[Game] Failed to save XP:", error);
+    }
+  };
 
   useEffect(() => {
     if (!gameStarted || isPaused || gameEnded) return;
@@ -227,6 +358,7 @@ export const Game = () => {
     setGameStarted(false);
     setShowPauseMenu(false);
     setIsPaused(false);
+    setDisplayedXP(0);
     resetBall();
     setLeftPaddleY(GAME_HEIGHT / 2 - PADDLE_HEIGHT / 2);
     setRightPaddleY(GAME_HEIGHT / 2 - PADDLE_HEIGHT / 2);
@@ -241,6 +373,17 @@ export const Game = () => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  const calculateXP = () => {
+    if (leftScore > rightScore) {
+      return leftScore * 26;
+    }
+    return 0;
+  };
+
+  const formatXP = (xp: number) => {
+    return xp.toLocaleString();
   };
 
   return (
@@ -259,13 +402,19 @@ export const Game = () => {
           <div className="flex gap-[15px] items-center">
             <div className="w-[60px] h-[60px] rounded-full border-2 border-accent-green/50 overflow-hidden">
               <img
-                alt="Eva"
-                src={Avatar}
+                alt={userName}
+                src={getAvatarUrl(userAvatar)}
                 className="w-full h-full object-cover"
+                onError={(e: any) => {
+                  const backend =
+                    (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
+                    "http://localhost:3001";
+                  e.currentTarget.src = `${backend}/images/default-avatar.png`;
+                }}
               />
             </div>
             <span className="font-questrial font-normal text-light text-xl tracking-[0] leading-[27px] whitespace-nowrap">
-              Eva
+              {userName}
             </span>
           </div>
 
@@ -290,13 +439,19 @@ export const Game = () => {
 
           <div className="flex gap-[17px] items-center">
             <span className="font-questrial font-normal text-light text-xl tracking-[0] leading-[27px] whitespace-nowrap">
-              Renata
+              {opponent ? opponent.name : "Opponent"}
             </span>
             <div className="w-[60px] h-[60px] rounded-full border-2 border-accent-green/50 overflow-hidden">
               <img
-                alt="Renata"
-                src={Avatar}
+                alt={opponent ? opponent.name : "Opponent"}
+                src={getAvatarUrl(opponent ? opponent.avatar : "")}
                 className="w-full h-full object-cover"
+                onError={(e: any) => {
+                  const backend =
+                    (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
+                    "http://localhost:3001";
+                  e.currentTarget.src = `${backend}/images/default-avatar.png`;
+                }}
               />
             </div>
           </div>
@@ -350,7 +505,29 @@ export const Game = () => {
         </div>
       </div>
 
-      <footer className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10">
+      <footer className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-4">
+        <div className="flex items-center gap-6">
+          <button
+            onClick={() => redirect("/dashboard")}
+            className="font-questrial font-normal text-light/60 hover:text-accent-green text-sm tracking-[0] leading-[15px] transition-colors">
+            Dashboard
+          </button>
+          <button
+            onClick={() => redirect("/tournament")}
+            className="font-questrial font-normal text-light/60 hover:text-accent-green text-sm tracking-[0] leading-[15px] transition-colors">
+            Tournament
+          </button>
+          <button
+            onClick={() => redirect("/leaderboard")}
+            className="font-questrial font-normal text-light/60 hover:text-accent-green text-sm tracking-[0] leading-[15px] transition-colors">
+            Leaderboard
+          </button>
+          <button
+            onClick={() => redirect("/chat")}
+            className="font-questrial font-normal text-light/60 hover:text-accent-green text-sm tracking-[0] leading-[15px] transition-colors">
+            Chat
+          </button>
+        </div>
         <p className="font-questrial font-normal text-light/40 text-[10px] tracking-[0] leading-[15px] text-center">
           © 2025 — Built with passion by Ibnoukhalkane
         </p>
@@ -392,13 +569,19 @@ export const Game = () => {
               <div className="flex flex-col items-center gap-2">
                 <div className="w-[80px] h-[80px] rounded-full border-2 border-accent-green/50 overflow-hidden">
                   <img
-                    alt="Eva"
-                    src={Avatar}
+                    alt={userName}
+                    src={getAvatarUrl(userAvatar)}
                     className="w-full h-full object-cover"
+                    onError={(e: any) => {
+                      const backend =
+                        (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
+                        "http://localhost:3001";
+                      e.currentTarget.src = `${backend}/images/default-avatar.png`;
+                    }}
                   />
                 </div>
                 <span className="font-questrial font-normal text-light text-xl">
-                  Eva
+                  {userName}
                 </span>
                 <span className="font-questrial font-normal text-accent-green text-3xl">
                   {leftScore}
@@ -412,13 +595,19 @@ export const Game = () => {
               <div className="flex flex-col items-center gap-2">
                 <div className="w-[80px] h-[80px] rounded-full border-2 border-accent-green/50 overflow-hidden">
                   <img
-                    alt="Renata"
-                    src={Avatar}
+                    alt={opponent ? opponent.name : "Opponent"}
+                    src={getAvatarUrl(opponent ? opponent.avatar : "")}
                     className="w-full h-full object-cover"
+                    onError={(e: any) => {
+                      const backend =
+                        (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
+                        "http://localhost:3001";
+                      e.currentTarget.src = `${backend}/images/default-avatar.png`;
+                    }}
                   />
                 </div>
                 <span className="font-questrial font-normal text-light text-xl">
-                  Renata
+                  {opponent ? opponent.name : "Opponent"}
                 </span>
                 <span className="font-questrial font-normal text-accent-green text-3xl">
                   {rightScore}
@@ -429,21 +618,55 @@ export const Game = () => {
             <div className="flex flex-col items-center gap-2 mt-4">
               <span className="font-questrial font-normal text-light text-2xl">
                 {leftScore > rightScore
-                  ? "🏆 Eva Wins!"
+                  ? `🏆 ${userName} Wins!`
                   : rightScore > leftScore
-                  ? "🏆 Renata Wins!"
+                  ? `🏆 ${opponent ? opponent.name : "Opponent"} Wins!`
                   : "🤝 It's a Tie!"}
               </span>
             </div>
 
-            <button
-              onClick={resetGame}
-              className="w-[300px] h-12 bg-accent-green hover:bg-accent-green/90 text-dark-950 rounded-lg font-questrial font-semibold text-lg mt-4 transition-all shadow-[0_0_20px_rgba(183,242,114,0.3)] hover:shadow-[0_0_30px_rgba(183,242,114,0.5)]">
-              Play Again
-            </button>
+            {leftScore > rightScore && (
+              <div className="flex flex-col items-center gap-2 mt-4 px-8 py-4 bg-accent-green/10 rounded-lg border border-accent-green/30 animate-fadeIn">
+                <span className="font-questrial font-normal text-light/70 text-sm">
+                  You've earned – keep going!
+                </span>
+                <span className="font-questrial font-bold text-accent-green text-3xl transition-all duration-100">
+                  {formatXP(displayedXP)}xp
+                </span>
+              </div>
+            )}
+
+            <div className="flex flex-col gap-3 w-[300px] mt-4">
+              <button
+                onClick={resetGame}
+                className="w-full h-12 bg-accent-green hover:bg-accent-green/90 text-dark-950 rounded-lg font-questrial font-semibold text-lg transition-all shadow-[0_0_20px_rgba(183,242,114,0.3)] hover:shadow-[0_0_30px_rgba(183,242,114,0.5)] hover:scale-105">
+                Play Again
+              </button>
+              <button
+                onClick={() => redirect("/dashboard")}
+                className="w-full h-12 bg-transparent hover:bg-accent-green/20 text-accent-green border-2 border-accent-green/50 rounded-lg font-questrial font-semibold text-lg transition-all hover:shadow-[0_0_20px_rgba(183,242,114,0.2)] hover:scale-105 animate-fadeIn">
+                Exit to Dashboard
+              </button>
+            </div>
           </div>
         </div>
       )}
+
+      <style>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-fadeIn {
+          animation: fadeIn 0.5s ease-out;
+        }
+      `}</style>
     </div>
   );
 };

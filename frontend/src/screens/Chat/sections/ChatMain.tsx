@@ -9,6 +9,7 @@ import {
   type Friend,
 } from "../../../services/chatService";
 import { getToken } from "../../../lib/auth";
+import { redirect } from "../../../library/Router/Router";
 
 const defaultAvatar = `${
   (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3001"
@@ -46,9 +47,11 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
   const [newMessage, setNewMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const messageContainerRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = useCallback(() => {
     if (messagesEndRef.current) {
@@ -135,6 +138,122 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
     }
   }, [selectedFriend, newMessage, isSending, scrollToBottom]);
 
+  const handlePlayInvite = useCallback(async () => {
+    if (!selectedFriend) return;
+
+    try {
+      const token = getToken();
+      if (!token) {
+        console.error("[ChatMain] No auth token found");
+        return;
+      }
+
+      // Send invitation message through chat
+      const inviteMessage = `🎮 Game Invitation: Let's play Pong!`;
+      await chatService.sendMessage(selectedFriend.id, inviteMessage, token);
+
+      // Store game invitation in localStorage for the game page to pick up
+      localStorage.setItem(
+        "pendingGameInvite",
+        JSON.stringify({
+          opponentId: selectedFriend.id,
+          opponentName: selectedFriend.name,
+          opponentAvatar: selectedFriend.avatar,
+          timestamp: Date.now(),
+        })
+      );
+
+      // Redirect to game page
+      redirect("/game");
+    } catch (error) {
+      console.error("[ChatMain] Failed to send game invitation:", error);
+      alert("Failed to send game invitation. Please try again.");
+    }
+  }, [selectedFriend]);
+
+  const handleBlockUser = useCallback(async () => {
+    if (!selectedFriend) return;
+
+    try {
+      const backend =
+        (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
+        "http://localhost:3001";
+      const token = getToken();
+
+      if (!token) {
+        console.error("[ChatMain] No auth token found");
+        return;
+      }
+
+      const response = await fetch(`${backend}/v1/friend/block`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          blocked_uid: selectedFriend.id,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to block user");
+      }
+
+      alert(`Blocked ${selectedFriend.name}`);
+      setShowMenu(false);
+      // Reload the page to refresh the friends list
+      window.location.reload();
+    } catch (error) {
+      console.error("[ChatMain] Failed to block user:", error);
+      alert("Failed to block user. Please try again.");
+    }
+  }, [selectedFriend]);
+
+  const handleUnfriend = useCallback(async () => {
+    if (!selectedFriend) return;
+
+    const confirmed = confirm(
+      `Are you sure you want to unfriend ${selectedFriend.name}?`
+    );
+    if (!confirmed) return;
+
+    try {
+      const backend =
+        (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
+        "http://localhost:3001";
+      const token = getToken();
+
+      if (!token) {
+        console.error("[ChatMain] No auth token found");
+        return;
+      }
+
+      const response = await fetch(`${backend}/v1/friend/unfriend`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          requested_uid: selectedFriend.id,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to unfriend");
+      }
+
+      alert(`Unfriended ${selectedFriend.name}`);
+      setShowMenu(false);
+      // Reload the page to refresh the friends list
+      window.location.reload();
+    } catch (error) {
+      console.error("[ChatMain] Failed to unfriend:", error);
+      alert("Failed to unfriend. Please try again.");
+    }
+  }, [selectedFriend]);
+
   const handleKeyPress = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === "Enter" && !e.shiftKey) {
@@ -184,6 +303,23 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
   useEffect(() => {
     scrollToBottom();
   }, [messages.length, scrollToBottom]);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowMenu(false);
+      }
+    };
+
+    if (showMenu) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showMenu]);
 
   const formatTime = (timestamp: string): string => {
     const date = new Date(timestamp);
@@ -241,6 +377,43 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
               "Offline"
             )}
           </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handlePlayInvite}
+            className="px-6 py-2.5 bg-accent-green hover:bg-accent-green/90 text-dark-950 rounded-lg font-[Questrial] font-semibold text-sm transition-all shadow-[0_0_20px_rgba(183,242,114,0.3)] hover:shadow-[0_0_30px_rgba(183,242,114,0.5)] flex items-center gap-2">
+            <span className="text-lg">🎮</span>
+            Let's Play
+          </button>
+
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={() => setShowMenu(!showMenu)}
+              className="p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-all border border-white/10 hover:border-white/20 flex items-center justify-center">
+              <div className="flex flex-col gap-1">
+                <span className="w-1 h-1 bg-white rounded-full"></span>
+                <span className="w-1 h-1 bg-white rounded-full"></span>
+                <span className="w-1 h-1 bg-white rounded-full"></span>
+              </div>
+            </button>
+
+            {showMenu && (
+              <div className="absolute right-0 top-full mt-2 w-48 bg-dark-900 border border-white/10 rounded-lg shadow-[0_0_30px_rgba(0,0,0,0.5)] overflow-hidden z-50 animate-fadeIn">
+                <button
+                  onClick={handleBlockUser}
+                  className="w-full px-4 py-3 text-left text-white hover:bg-white/10 transition-colors font-[Questrial] text-sm flex items-center gap-3 border-b border-white/5">
+                  <span className="text-lg">🚫</span>
+                  Block User
+                </button>
+                <button
+                  onClick={handleUnfriend}
+                  className="w-full px-4 py-3 text-left text-red-400 hover:bg-red-500/10 transition-colors font-[Questrial] text-sm flex items-center gap-3">
+                  <span className="text-lg">💔</span>
+                  Unfriend
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
