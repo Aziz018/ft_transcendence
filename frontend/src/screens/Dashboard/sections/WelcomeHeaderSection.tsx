@@ -13,34 +13,26 @@ import { notificationService } from "../../../services/notificationService";
 import FriendRequestNotifications from "../../../components/Dashboard/FriendRequestNotifications";
 
 const WelcomeHeaderSection = () => {
-  /**
-   * Get proper avatar URL - handles both backend URLs and fixes incorrect paths
-   */
   const getAvatarUrl = (avatarPath: string | null | undefined): string => {
     const backend =
       (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3001";
 
-    // No avatar or empty string
     if (!avatarPath || !avatarPath.trim()) {
       return `${backend}/images/default-avatar.png`;
     }
 
-    // Fix incorrect paths like /public/images/... to /images/...
     if (avatarPath.startsWith("/public/")) {
       return `${backend}${avatarPath.replace("/public", "")}`;
     }
 
-    // If it's a relative path, prepend backend URL
     if (avatarPath.startsWith("/")) {
       return `${backend}${avatarPath}`;
     }
 
-    // If it's already a full URL, return as is
     if (avatarPath.startsWith("http://") || avatarPath.startsWith("https://")) {
       return avatarPath;
     }
 
-    // Default fallback
     return `${backend}/images/default-avatar.png`;
   };
 
@@ -117,13 +109,9 @@ const WelcomeHeaderSection = () => {
     fetchProfile();
   }, []);
 
-  /**
-   * Search for users
-   */
   const handleSearch = useCallback(async () => {
     const trimmedQuery = searchQuery.trim();
 
-    // Backend requires at least 2 characters
     if (!trimmedQuery || trimmedQuery.length < 2) {
       setSearchResults([]);
       setShowResults(false);
@@ -137,7 +125,6 @@ const WelcomeHeaderSection = () => {
         (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
         "http://localhost:3001";
 
-      // Backend expects 'q' parameter, not 'query'
       const res = await fetch(
         `${backend}/v1/user/search?q=${encodeURIComponent(trimmedQuery)}`,
         {
@@ -164,9 +151,6 @@ const WelcomeHeaderSection = () => {
     }
   }, [searchQuery]);
 
-  /**
-   * Send friend request
-   */
   const handleAddFriend = useCallback(async (userId: string) => {
     try {
       const token = getToken();
@@ -188,24 +172,19 @@ const WelcomeHeaderSection = () => {
       if (!res.ok) {
         const error = await res.json();
 
-        // Handle different error cases with clean messages
         if (res.status === 409) {
-          // 409 Conflict - Various conflict scenarios
           notificationService.warning(
             error.message || "Friend request already sent",
             4000
           );
         } else if (res.status === 403) {
-          // 403 Forbidden - User blocked
           notificationService.error(
             error.message || "Cannot send friend request",
             4000
           );
         } else if (res.status === 400) {
-          // 400 Bad Request - Invalid user
           notificationService.error(error.message || "Invalid user", 3000);
         } else {
-          // Other errors
           notificationService.error(
             error.message || "Failed to send friend request",
             4000
@@ -214,10 +193,8 @@ const WelcomeHeaderSection = () => {
         return;
       }
 
-      // Success
       notificationService.success("Friend request sent successfully!", 3000);
 
-      // Remove from search results (backend returns uid, not id)
       setSearchResults((prev) => prev.filter((u) => u.uid !== userId));
     } catch (error) {
       console.error("[AddFriend] Failed:", error);
@@ -225,20 +202,14 @@ const WelcomeHeaderSection = () => {
     }
   }, []);
 
-  /**
-   * Handle search input change
-   */
   useEffect(() => {
     const timer = setTimeout(() => {
       handleSearch();
-    }, 300); // Debounce 300ms
+    }, 300);
 
     return () => clearTimeout(timer);
   }, [searchQuery, handleSearch]);
 
-  /**
-   * Fetch notification count on mount and when notifications change
-   */
   useEffect(() => {
     const fetchNotificationCount = async () => {
       try {
@@ -264,7 +235,6 @@ const WelcomeHeaderSection = () => {
 
     fetchNotificationCount();
 
-    // Subscribe to new friend request notifications
     const unsubscribe = notificationService.subscribe((notification) => {
       if (
         notification.type === "friend-request" &&
@@ -290,7 +260,6 @@ const WelcomeHeaderSection = () => {
       </div>
 
       <div className="flex items-center gap-[10px]">
-        {/* Search Bar */}
         <div className="relative w-[300px]">
           <input
             type="text"
@@ -302,7 +271,6 @@ const WelcomeHeaderSection = () => {
             className="flex h-10 w-full rounded-md border border-[#f9f9f933] bg-[#1a1a1a] px-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-blue-600"
           />
 
-          {/* Search Results Dropdown */}
           {showResults && searchResults.length > 0 && (
             <div className="absolute top-full mt-2 w-full bg-[#1f1f1f] border border-[#f9f9f933] rounded-md shadow-lg max-h-[300px] overflow-y-auto z-50">
               {searchResults.map((user) => (
@@ -340,7 +308,6 @@ const WelcomeHeaderSection = () => {
             </div>
           )}
 
-          {/* No Results */}
           {showResults &&
             !isSearching &&
             searchQuery &&
@@ -350,7 +317,6 @@ const WelcomeHeaderSection = () => {
               </div>
             )}
 
-          {/* Loading */}
           {isSearching && (
             <div className="absolute top-full mt-2 w-full bg-[#1f1f1f] border border-[#f9f9f933] rounded-md shadow-lg p-4 z-50">
               <p className="text-white/50 text-center">Searching...</p>
@@ -358,7 +324,6 @@ const WelcomeHeaderSection = () => {
           )}
         </div>
 
-        {/* Notification Bell */}
         <div className="relative">
           <button
             onClick={() => setShowNotifications(!showNotifications)}
@@ -370,7 +335,6 @@ const WelcomeHeaderSection = () => {
               alt="bell icon"
               className="w-[22px] h-[22px]"
             />
-            {/* Notification badge */}
             {notificationCount > 0 && (
               <span className="absolute top-[6px] right-[9px] z-[1] min-w-[16px] h-[16px] bg-[#ef4444] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
                 {notificationCount > 9 ? "9+" : notificationCount}
@@ -378,7 +342,6 @@ const WelcomeHeaderSection = () => {
             )}
           </button>
 
-          {/* Friend Request Notifications Dropdown */}
           <FriendRequestNotifications
             isOpen={showNotifications}
             onClose={() => setShowNotifications(false)}

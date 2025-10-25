@@ -1,8 +1,3 @@
-/**
- * Chat Screen - Modern & Clean Implementation
- * Real-time messaging with smooth UI/UX
- */
-
 import Fuego from "../../index";
 import { useState } from "../../library/hooks/useState";
 import { useEffect } from "../../library/hooks/useEffect";
@@ -13,8 +8,6 @@ import { chatService, type Friend } from "../../services/chatService";
 import TopRightBlurEffect from "../../components/ui/BlurEffect/TopRightBlurEffect";
 import FriendsList from "./sections/FriendsList";
 import ChatMain from "./sections/ChatMain";
-
-// Icons
 import DashboardIcon from "../../assets/dd.svg";
 import LeaderboardIcon from "../../assets/Leaderboard.svg";
 import Game from "../../assets/game-icon.svg";
@@ -47,24 +40,17 @@ const Chat = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(true);
   const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
 
-  /**
-   * Check authentication
-   */
   useEffect(() => {
     const token = getToken();
     if (!token) {
       setIsAuthenticated(false);
       redirect("/");
     } else {
-      // Initialize WebSocket for real-time features
       wsService.connect();
       chatService.connectWebSocket(token);
     }
   }, []);
 
-  /**
-   * Handle logout
-   */
   const handleLogout = async () => {
     try {
       const backend =
@@ -83,21 +69,18 @@ const Chat = () => {
       console.warn("Logout request failed", e);
     }
 
-    // Disconnect services
     wsService.disconnect();
     chatService.disconnectWebSocket();
     clearToken();
     redirect("/");
   };
 
-  // Don't render until authenticated
   if (!isAuthenticated) {
     return null;
   }
 
   return (
     <div className="bg-[#141517] w-full h-screen flex overflow-hidden">
-      {/* Background Effects */}
       <TopRightBlurEffect />
       <div className="absolute top-[991px] left-[-285px] w-[900px] h-[900px] bg-[#f9f9f980] rounded-[450px] blur-[153px] pointer-events-none" />
       <img
@@ -107,16 +90,13 @@ const Chat = () => {
       />
       <div className="absolute top-[721px] left-[-512px] w-[700px] h-[700px] bg-[#dda15e80] rounded-[350px] blur-[153px] pointer-events-none" />
 
-      {/* Left Sidebar */}
       <aside className="w-[300px] border-r-[1px] border-[#F9F9F9] border-opacity-[0.05] h-screen flex flex-col relative z-10 flex-shrink-0">
-        {/* Logo */}
         <Link to="/">
           <div className="pt-[47px] pl-[43px] pb-[50px] flex items-center gap-3">
             <img className="w-[200px]" alt="Logo" src={Logo} />
           </div>
         </Link>
 
-        {/* Navigation Menu */}
         <nav className="flex flex-col gap-[18px] px-[60px] relative flex-1">
           {navigationItems.map((item, index) => (
             <Link key={index} to={`/${item.path}`}>
@@ -146,7 +126,6 @@ const Chat = () => {
           ))}
         </nav>
 
-        {/* Logout Button */}
         <div className="mt-auto mb-[50px] px-[60px]">
           <button
             onClick={handleLogout}
@@ -157,15 +136,12 @@ const Chat = () => {
         </div>
       </aside>
 
-      {/* Main Chat Area */}
       <div className="flex-1 flex h-full relative z-10">
-        {/* Friends List */}
         <FriendsList
           selectedFriend={selectedFriend}
           onSelectFriend={setSelectedFriend}
         />
 
-        {/* Chat Messages */}
         <ChatMain selectedFriend={selectedFriend} />
       </div>
     </div>

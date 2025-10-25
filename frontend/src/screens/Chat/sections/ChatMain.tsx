@@ -1,8 +1,3 @@
-/**
- * Modern Chat Component - Clean Implementation
- * Real-time messaging with smooth UI/UX
- */
-
 import Fuego from "../../../index";
 import { useState } from "../../../library/hooks/useState";
 import { useEffect } from "../../../library/hooks/useEffect";
@@ -15,39 +10,30 @@ import {
 } from "../../../services/chatService";
 import { getToken } from "../../../lib/auth";
 
-// Default avatar from backend
 const defaultAvatar = `${
   (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3001"
 }/images/default-avatar.png`;
 
-/**
- * Get proper avatar URL - handles both backend URLs and fixes incorrect paths
- */
 const getAvatarUrl = (avatarPath: string | null | undefined): string => {
   const backend =
     (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3001";
 
-  // No avatar or empty string
   if (!avatarPath || !avatarPath.trim()) {
     return defaultAvatar;
   }
 
-  // Fix incorrect paths like /public/images/... to /images/...
   if (avatarPath.startsWith("/public/")) {
     return `${backend}${avatarPath.replace("/public", "")}`;
   }
 
-  // If it's a relative path, prepend backend URL
   if (avatarPath.startsWith("/")) {
     return `${backend}${avatarPath}`;
   }
 
-  // If it's already a full URL, return as is
   if (avatarPath.startsWith("http://") || avatarPath.startsWith("https://")) {
     return avatarPath;
   }
 
-  // Default fallback
   return defaultAvatar;
 };
 
@@ -64,18 +50,12 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const messageContainerRef = useRef<HTMLDivElement>(null);
 
-  /**
-   * Scroll to bottom smoothly
-   */
   const scrollToBottom = useCallback(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, []);
 
-  /**
-   * Load messages for selected friend
-   */
   const loadMessages = useCallback(async () => {
     if (!selectedFriend) return;
 
@@ -93,7 +73,6 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
       );
       setMessages(fetchedMessages);
 
-      // Scroll to bottom after messages load
       setTimeout(scrollToBottom, 100);
     } catch (error) {
       console.error("[ChatMain] Failed to load messages:", error);
@@ -102,14 +81,11 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
     }
   }, [selectedFriend, scrollToBottom]);
 
-  /**
-   * Send a new message
-   */
   const handleSendMessage = useCallback(async () => {
     if (!selectedFriend || !newMessage.trim() || isSending) return;
 
     const messageContent = newMessage.trim();
-    setNewMessage(""); // Clear input immediately for responsive feel
+    setNewMessage("");
 
     setIsSending(true);
     try {
@@ -119,11 +95,10 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
         return;
       }
 
-      // Optimistic update - show message immediately
       const optimisticMessage: Message = {
         id: `temp-${Date.now()}`,
         content: messageContent,
-        senderId: "me", // Will be replaced by actual sender ID from backend
+        senderId: "me",
         receiverId: selectedFriend.id,
         createdAt: new Date().toISOString(),
         sender: {
@@ -135,11 +110,9 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
       setMessages((prev) => [...prev, optimisticMessage]);
       scrollToBottom();
 
-      // Send to backend (fire and forget for speed)
       chatService
         .sendMessage(selectedFriend.id, messageContent, token)
         .then((sentMessage) => {
-          // Replace optimistic message with real one
           setMessages((prev) =>
             prev.map((msg) =>
               msg.id === optimisticMessage.id ? sentMessage : msg
@@ -148,11 +121,9 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
         })
         .catch((error) => {
           console.error("[ChatMain] Failed to send message:", error);
-          // Remove optimistic message on error
           setMessages((prev) =>
             prev.filter((msg) => msg.id !== optimisticMessage.id)
           );
-          // Restore input
           setNewMessage(messageContent);
         })
         .finally(() => {
@@ -164,9 +135,6 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
     }
   }, [selectedFriend, newMessage, isSending, scrollToBottom]);
 
-  /**
-   * Handle Enter key press
-   */
   const handleKeyPress = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === "Enter" && !e.shiftKey) {
@@ -177,19 +145,14 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
     [handleSendMessage]
   );
 
-  /**
-   * Handle incoming real-time messages
-   */
   const handleNewMessage = useCallback(
     (message: Message) => {
-      // Only add messages related to selected friend
       if (
         selectedFriend &&
         (message.senderId === selectedFriend.id ||
           message.receiverId === selectedFriend.id)
       ) {
         setMessages((prev) => {
-          // Avoid duplicates
           if (prev.some((msg) => msg.id === message.id)) {
             return prev;
           }
@@ -201,40 +164,27 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
     [selectedFriend, scrollToBottom]
   );
 
-  /**
-   * Initialize: Load messages and subscribe to real-time updates
-   */
   useEffect(() => {
     if (!selectedFriend) return;
 
-    // Load initial messages
     loadMessages();
 
-    // Subscribe to real-time messages
     const unsubscribe = chatService.onMessage(handleNewMessage);
 
-    // Connect WebSocket if not connected
     const token = getToken();
     if (token) {
       chatService.connectWebSocket(token);
     }
 
-    // Cleanup
     return () => {
       unsubscribe();
     };
   }, [selectedFriend, loadMessages, handleNewMessage]);
 
-  /**
-   * Auto-scroll when new messages arrive
-   */
   useEffect(() => {
     scrollToBottom();
   }, [messages.length, scrollToBottom]);
 
-  /**
-   * Format timestamp
-   */
   const formatTime = (timestamp: string): string => {
     const date = new Date(timestamp);
     const now = new Date();
@@ -253,7 +203,6 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
     return date.toLocaleDateString();
   };
 
-  // Show empty state if no friend selected
   if (!selectedFriend) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -269,7 +218,6 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
 
   return (
     <div className="flex-1 flex flex-col h-full max-h-full overflow-hidden">
-      {/* Chat Header */}
       <div className="bg-white/5 border-b border-white/10 px-6 py-4 flex items-center gap-4 flex-shrink-0">
         <img
           src={getAvatarUrl(selectedFriend.avatar)}
@@ -296,7 +244,6 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
         </div>
       </div>
 
-      {/* Messages Container */}
       <div
         ref={messageContainerRef}
         className="flex-1 overflow-y-auto p-6 space-y-4 scroll-smooth min-h-0"
@@ -327,7 +274,6 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
                   className={`flex gap-3 max-w-[70%] ${
                     isMe ? "flex-row-reverse" : "flex-row"
                   }`}>
-                  {/* Avatar */}
                   {!isMe && (
                     <img
                       src={getAvatarUrl(selectedFriend.avatar)}
@@ -339,7 +285,6 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
                     />
                   )}
 
-                  {/* Message Bubble */}
                   <div
                     className={`flex flex-col ${
                       isMe ? "items-end" : "items-start"
@@ -366,7 +311,6 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Message Input */}
       <div className="bg-white/5 border-t border-white/10 px-6 py-4 flex-shrink-0">
         <div className="flex items-center gap-3">
           <input
@@ -392,7 +336,6 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
         </div>
       </div>
 
-      {/* Add CSS for fade-in animation */}
       <style>{`
         @keyframes fadeIn {
           from {
