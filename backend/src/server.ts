@@ -20,6 +20,9 @@ import multipart from "@fastify/multipart";
 import websocket from "@fastify/websocket";
 import rateLimit from "@fastify/rate-limit";
 import oauth2, { type FastifyOAuth2Options } from "@fastify/oauth2";
+import fastifyStatic from "@fastify/static";
+import { fileURLToPath } from "url";
+import path from "path";
 
 import addErrors from "ajv-errors";
 import addFormats from "ajv-formats";
@@ -143,6 +146,14 @@ export default class Server {
   }
 
   private async registerPlugs(): Promise<void> {
+    // Register static file serving for public directory
+    const __dirname = path.dirname(fileURLToPath(import.meta.url));
+    const publicDir = path.join(__dirname, "..", "public");
+    await this.fastify.register(fastifyStatic, {
+      root: publicDir,
+      prefix: "/",
+    });
+
     await this.fastify.register(fastifySwagger, this.swaggerOpts);
     await this.fastify.register(fastifySwaggerUi, this.swaggerUIOpts);
     await this.fastify.register(jwt, { secret: this.secrets.jwt });

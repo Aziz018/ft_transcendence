@@ -1,7 +1,5 @@
 import type FriendRequest from "./friend.js";
 
-
-
 /**
  * Payload stored inside JWT for a user.
  *
@@ -9,10 +7,10 @@ import type FriendRequest from "./friend.js";
  * @property {string} createdAt - User creation timestamp
  */
 export type UserJWTPayload = {
-    uid: string;
-    createdAt: string;
-    mfa_required: boolean;
-}
+  uid: string;
+  createdAt: string;
+  mfa_required: boolean;
+};
 
 /**
  * Input for updating a user field.
@@ -21,8 +19,8 @@ export type UserJWTPayload = {
  * @property {string} value - The new value for the field
  */
 export interface UserUpdateInput {
-    field: string;
-    value: string;
+  field: string;
+  value: string;
 }
 
 /**
@@ -32,8 +30,8 @@ export interface UserUpdateInput {
  * @property {string} password - User's password
  */
 export interface UserLoginInput {
-    email: string;
-    password: string;
+  email: string;
+  password: string;
 }
 
 /**
@@ -44,9 +42,9 @@ export interface UserLoginInput {
  * @property {string} password - User's password
  */
 export interface UserRegisterInput {
-    name: string;
-    email: string;
-    password: string;
+  name: string;
+  email: string;
+  password: string;
 }
 
 /**
@@ -61,13 +59,13 @@ export interface UserRegisterInput {
  * @property {string} picture - Profile picture URL
  */
 export interface OAuthUserInfo {
-    id: string;
-    email: string;
-    verfied_email: boolean;
-    name: string;
-    given_name: string;
-    family_name: string;
-    picture: string;
+  id: string;
+  email: string;
+  verfied_email: boolean;
+  name: string;
+  given_name: string;
+  family_name: string;
+  picture: string;
 }
 
 /**
@@ -84,16 +82,17 @@ export interface OAuthUserInfo {
  * @property {FriendRequest[]} [receivedRequests] - Friend requests received by the user
  */
 export default interface UserModel {
-    id?: string;
-    name: string;
-    email: string;
-    password: string;
-    createdAt?: Date;
-    updatedAt?: Date;
-    avatar?: string;
+  id?: string;
+  name: string;
+  email: string;
+  password: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+  avatar?: string;
+  xp?: number;
 
-    sentRequests?: FriendRequest[];
-    receivedRequests?: FriendRequest[];
+  sentRequests?: FriendRequest[];
+  receivedRequests?: FriendRequest[];
 
-    secret?: string | null;
+  secret?: string | null;
 }

@@ -3,8 +3,6 @@ import { globalState } from "../globals/globals";
 import { FiberNode, Maybe, Props, TextVNode, VNode } from "../types/types";
 import { isEventListener, isTextNode, setAttributes } from "../utils/utils";
 
-// Convert React-style element objects (e.g., returned by lucide-react components)
-// into the VNode shape expected by this renderer.
 function reactElementToVNode(el: any): any {
   if (el == null) return null;
   if (
@@ -15,28 +13,20 @@ function reactElementToVNode(el: any): any {
   )
     return el;
 
-  // React elements usually have a $$typeof property
   if (typeof el === "object" && el.$$typeof) {
     let type = el.type;
     let props = { ...(el.props || {}) };
 
-    // Unwrap common React wrappers like memo() or forwardRef()
-    // These return an object whose `.type` property is the inner component.
     if (typeof type === "object" && type !== null && (type as any).type) {
       type = (type as any).type;
     }
-    // If the element's type is a function (a component), invoke it to get
-    // the rendered element and convert that result instead. This handles
-    // icon components (lucide-react) which are function components that
-    // return React element objects.
+
     if (typeof type === "function") {
       try {
         const rendered = type(props || {});
         return reactElementToVNode(rendered);
       } catch (e) {
-        // If invoking fails, fall back to returning the raw shape so the
-        // renderer can decide how to handle it (may still error).
-        // eslint-disable-next-line no-console
+
         console.warn("Error rendering react element component:", e);
       }
     }
@@ -106,9 +96,9 @@ function findNextSibling(fiber: FiberNode): Maybe<FiberNode> {
   return null;
 }
 export function createDom(fiber: FiberNode) {
-  // Defensive: if fiber.type is not a string for host components, log details
+
   if (!isTextNode(fiber) && typeof fiber.type !== "string") {
-    // eslint-disable-next-line no-console
+
     console.error("createDom received non-string fiber.type", {
       type: fiber.type,
       props: fiber.props,
@@ -225,11 +215,7 @@ function recouncilChildren(elements: VNode[], wipFiber: FiberNode) {
 }
 
 export function render(elm: VNode | TextVNode, container: Element) {
-  // Normalize the root element so React-style element objects are converted
-  // into our renderer's VNode shape before the work loop starts. This
-  // prevents object-like types (e.g. memo/forwardRef wrappers) from being
-  // used directly as fiber.type which would later cause
-  // document.createElement to receive an object.
+
   const normalized = reactElementToVNode(elm);
   globalState.wipRoot = {
     dom: container,
@@ -280,7 +266,6 @@ function commitRoot() {
   globalState.wipRoot = null;
 }
 
-// NEW HELPER FUNCTIONS FOR DOM INSERTION
 function findNextSiblingDomNode(fiber: FiberNode): Element | Text | null {
   let sibling = fiber.sibling;
 
@@ -369,8 +354,7 @@ function commitDeletion(fiber: Maybe<FiberNode>, domParent: Element | Text) {
 }
 
 function updateDom(dom: Element | Text, oldProps: Props, newProps: Props) {
-  // console.log("Updating DOM", oldProps, newProps)
-  // Only handle non-event attributes here
+
   for (const key in oldProps) {
     if (!(key in newProps)) {
       if (key == "children") continue;
@@ -394,7 +378,7 @@ function updateFunctionComponent(fiber: FiberNode) {
   }
   fiber.hooks ??= [];
   globalState.currentFiber = fiber;
-  // Call the function component and normalize its returned element(s)
+
   const raw = fiber.type(fiber.props);
   const normalized = reactElementToVNode(raw);
   const children = (
@@ -407,7 +391,6 @@ function updateHostComponent(fiber: FiberNode) {
   if (!fiber.dom) {
     fiber.dom = fiber.type !== "frag" ? createDom(fiber) : fiber.parent?.dom;
   }
-  //  console.warn("Amount of children", (fiber.props.children || []).length)
 
   const children = Array.isArray(fiber.props.children)
     ? (fiber.props.children

@@ -5,7 +5,7 @@ import { saveToken } from "../../lib/auth";
 import SignUpFormContainer from "./components/SignUpFormContainer";
 
 const BACKEND_ORIGIN =
-  (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3000";
+  (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3001";
 
 const Main = () => {
   const [name, setName] = useState("");

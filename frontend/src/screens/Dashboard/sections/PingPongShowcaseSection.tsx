@@ -1,14 +1,80 @@
-// import { ArrowRightIcon } from "lucide-react";
 import Fuego from "../../../index";
-// import { Separator } from "../../../../components/ui/separator";
+import { useState } from "../../../library/hooks/useState";
+import { useEffect } from "../../../library/hooks/useEffect";
 import StarsFilled from "../../../assets/stars_filled.svg";
 import Logo from "../../../assets/secondLogo.svg";
 import ArrowSvg from "../../../assets/arrow.svg";
+import { getToken } from "../../../lib/auth";
 
 import React from "react";
 import { Link } from "../../../library/Router/Router";
 
 const PingPongShowcaseSection = () => {
+  const [userXP, setUserXP] = useState(0);
+  const [displayedXP, setDisplayedXP] = useState(0);
+
+  useEffect(() => {
+    fetchUserXP();
+  }, []);
+
+  const fetchUserXP = async () => {
+    try {
+      const backend =
+        (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
+        "http://localhost:3001";
+      const token = getToken();
+
+      if (!token) {
+        console.log("[Dashboard] No token found");
+        return;
+      }
+
+      const res = await fetch(`${backend}/v1/user/profile`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        console.log("[Dashboard] User profile data:", data);
+        const xp = data.xp || 0;
+        console.log("[Dashboard] User XP:", xp);
+        setUserXP(xp);
+        animateXP(xp);
+      } else {
+        console.error(
+          "[Dashboard] Failed to fetch profile. Status:",
+          res.status
+        );
+      }
+    } catch (error) {
+      console.error("[Dashboard] Failed to fetch user XP:", error);
+    }
+  };
+
+  const animateXP = (targetXP: number) => {
+    const duration = 1500;
+    const steps = 50;
+    const increment = targetXP / steps;
+    let currentStep = 0;
+
+    setDisplayedXP(0);
+
+    const counter = setInterval(() => {
+      currentStep++;
+      if (currentStep >= steps) {
+        setDisplayedXP(targetXP);
+        clearInterval(counter);
+      } else {
+        setDisplayedXP(Math.floor(increment * currentStep));
+      }
+    }, duration / steps);
+  };
+
+  const formatXP = (xp: number) => {
+    return xp.toLocaleString();
+  };
   return (
     <div>
       <section className="w-full relative pt-[100px]">
@@ -31,7 +97,7 @@ const PingPongShowcaseSection = () => {
               You&apos;ve earned – keep going!
             </p>
             <p className="pt-3 font-family:'Questrial',Helvetica] font-normal text-[#f9f9f9] text-5xl tracking-[0] leading-[15px] whitespace-nowrap">
-              1,255xp
+              {formatXP(displayedXP)}xp
             </p>
           </div>
 

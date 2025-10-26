@@ -65,6 +65,7 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   avatar    String   @default("../public/images/default-avatar.jpg")
+  xp        Int      @default(0)
 
   sentRequests     FriendRequest[] @relation("RequestSent")
   receivedRequests FriendRequest[] @relation("RequestReceived")
