@@ -33,8 +33,18 @@ export const userUploadHandler = async (
   request.log.debug(`filename: ${data.filename}`);
   request.log.debug(`mimetype: ${data.mimetype}`);
 
-  if (!["image/png", "image/jpeg"].includes(data.mimetype)) {
-    return reply.code(400).send({ error: "Invalid file type" });
+  if (
+    ![
+      "image/png",
+      "image/jpeg",
+      "image/jpg",
+      "image/gif",
+      "image/webp",
+    ].includes(data.mimetype)
+  ) {
+    return reply
+      .code(400)
+      .send({ error: "Invalid file type. Only images are allowed." });
   }
 
   const timestamp = Date.now();
@@ -51,14 +61,30 @@ export const userUploadHandler = async (
       data.file.on("end", resolve);
       data.file.on("error", reject);
     });
-  } catch (e) {
-    request.log.error("something happened!");
-  }
 
-  return {
-    success: true,
-    filename: data.filename,
-  };
+    // Update user's avatar in database
+    const userId = request.user?.uid;
+    if (userId) {
+      const avatarUrl = `/images/${filename}`;
+      await prisma.user.update({
+        where: { id: userId },
+        data: { avatar: avatarUrl },
+      });
+
+      return reply.code(200).send({
+        success: true,
+        filename: data.filename,
+        avatar: avatarUrl,
+        avatarUrl: avatarUrl,
+        message: "Avatar uploaded successfully",
+      });
+    } else {
+      return reply.code(401).send({ error: "User not authenticated" });
+    }
+  } catch (e) {
+    request.log.error({ error: e }, "Error uploading avatar");
+    return reply.code(500).send({ error: "Failed to upload avatar" });
+  }
 };
 
 export const userRegisterController = async (
@@ -94,7 +120,7 @@ export const userRegisterController = async (
       mfa_required: false,
     },
     {
-      expiresIn: "1h",
+      expiresIn: "24h",
     }
   );
 
@@ -221,7 +247,7 @@ export const userLoginController = async (
         mfa_required: false,
       };
       token = req.jwt.sign(payload, {
-        expiresIn: "15m",
+        expiresIn: "24h",
       });
 
       const refresh_token = uuid();
@@ -282,7 +308,9 @@ export const userProfileController = async (
     rep.code(200).send({
       uid: user.id,
       name: user.name,
+      email: user.email,
       avatar: user.avatar,
+      xp: user.xp || 0,
       createdAt: user.createdAt,
     });
   }
@@ -360,6 +388,17 @@ export const userProfileUpdateController = async (
 
     case "avatar": {
       update_data = { avatar: req.body.value };
+      break;
+    }
+
+    case "xp": {
+      // For XP, we add to existing XP instead of replacing
+      const currentUser = await req.server.service.user.fetchBy({
+        id: req.user.uid,
+      });
+      const currentXP = currentUser?.xp || 0;
+      const addXP = parseInt(req.body.value, 10) || 0;
+      update_data = { xp: currentXP + addXP };
       break;
     }
 
