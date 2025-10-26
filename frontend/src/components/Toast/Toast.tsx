@@ -56,7 +56,7 @@ const Toast = ({ notification, onRemove }: ToastProps) => {
         <div className="flex gap-2 ml-2">
           <button
             onClick={() => {
-              // Handle accept - will be connected to friend service
+
               onRemove(notification.id);
             }}
             className="bg-white/20 hover:bg-white/30 px-2 py-1 rounded text-xs font-medium transition-colors">
@@ -64,7 +64,7 @@ const Toast = ({ notification, onRemove }: ToastProps) => {
           </button>
           <button
             onClick={() => {
-              // Handle reject
+
               onRemove(notification.id);
             }}
             className="bg-white/20 hover:bg-white/30 px-2 py-1 rounded text-xs font-medium transition-colors">

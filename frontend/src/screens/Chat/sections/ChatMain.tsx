@@ -54,8 +54,9 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
   const menuRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = useCallback(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    if (messageContainerRef.current) {
+      messageContainerRef.current.scrollTop =
+        messageContainerRef.current.scrollHeight;
     }
   }, []);
 
@@ -89,6 +90,10 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
 
     const messageContent = newMessage.trim();
     setNewMessage("");
+
+    if (inputRef.current) {
+      inputRef.current.value = "";
+    }
 
     setIsSending(true);
     try {
@@ -148,11 +153,9 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
         return;
       }
 
-      // Send invitation message through chat
       const inviteMessage = `🎮 Game Invitation: Let's play Pong!`;
       await chatService.sendMessage(selectedFriend.id, inviteMessage, token);
 
-      // Store game invitation in localStorage for the game page to pick up
       localStorage.setItem(
         "pendingGameInvite",
         JSON.stringify({
@@ -163,7 +166,6 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
         })
       );
 
-      // Redirect to game page
       redirect("/game");
     } catch (error) {
       console.error("[ChatMain] Failed to send game invitation:", error);
@@ -202,7 +204,7 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
 
       alert(`Blocked ${selectedFriend.name}`);
       setShowMenu(false);
-      // Reload the page to refresh the friends list
+
       window.location.reload();
     } catch (error) {
       console.error("[ChatMain] Failed to block user:", error);
@@ -246,7 +248,7 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
 
       alert(`Unfriended ${selectedFriend.name}`);
       setShowMenu(false);
-      // Reload the page to refresh the friends list
+
       window.location.reload();
     } catch (error) {
       console.error("[ChatMain] Failed to unfriend:", error);
@@ -304,7 +306,6 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
     scrollToBottom();
   }, [messages.length, scrollToBottom]);
 
-  // Close menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -353,7 +354,7 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full max-h-full overflow-hidden">
+    <div className="flex-1 flex flex-col h-full max-h-full overflow-hidden bg-[#141517]">
       <div className="bg-white/5 border-b border-white/10 px-6 py-4 flex items-center gap-4 flex-shrink-0">
         <img
           src={getAvatarUrl(selectedFriend.avatar)}
@@ -491,7 +492,7 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
             type="text"
             value={newMessage}
             onChange={(e: any) => setNewMessage(e.target.value)}
-            onKeyPress={handleKeyPress as any}
+            onKeyDown={handleKeyPress as any}
             placeholder="Type a message..."
             disabled={isSending}
             className="flex-1 bg-white/10 text-white placeholder-white/40 rounded-full px-6 py-3 font-[Questrial] text-sm border border-white/10 focus:outline-none focus:border-blue-500/50 transition-colors disabled:opacity-50"

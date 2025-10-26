@@ -85,7 +85,6 @@ const FriendRequestNotifications = ({
       const data = await res.json();
       setRequests(Array.isArray(data) ? data : []);
 
-      // Notify parent of count change
       if (onCountChange) {
         onCountChange(Array.isArray(data) ? data.length : 0);
       }
@@ -125,25 +124,21 @@ const FriendRequestNotifications = ({
           throw new Error("Failed to accept friend request");
         }
 
-        // Remove from local state
         setRequests((prev) => {
           const newRequests = prev.filter((req) => req.id !== requestId);
-          // Notify parent of count change
+
           if (onCountChange) {
             onCountChange(newRequests.length);
           }
           return newRequests;
         });
 
-        // Emit event to notify other components (e.g., chat friends list)
-        // This allows the chat to update immediately when accepting a request
         window.dispatchEvent(
           new CustomEvent("friendRequestAccepted", {
             detail: { requesterId, requesterName },
           })
         );
 
-        // Show success notification
         notificationService.success(
           `You are now friends with ${requesterName}!`,
           3000
@@ -190,17 +185,15 @@ const FriendRequestNotifications = ({
           throw new Error("Failed to reject friend request");
         }
 
-        // Remove from local state
         setRequests((prev) => {
           const newRequests = prev.filter((req) => req.id !== requestId);
-          // Notify parent of count change
+
           if (onCountChange) {
             onCountChange(newRequests.length);
           }
           return newRequests;
         });
 
-        // Show info notification
         notificationService.info(
           `Declined request from ${requesterName}`,
           3000
@@ -232,14 +225,14 @@ const FriendRequestNotifications = ({
    * Listen for new friend requests via WebSocket/notification service
    */
   useEffect(() => {
-    // Subscribe to friend request notifications
+
     const unsubscribe = notificationService.subscribe((notification) => {
       if (
         notification.type === "friend-request" &&
         notification.data &&
         notification.title !== "removed"
       ) {
-        // Add new request to the list
+
         const newRequest: FriendRequest = {
           id: notification.data.requestId,
           requesterId: notification.data.requesterId,
@@ -250,7 +243,7 @@ const FriendRequestNotifications = ({
         };
 
         setRequests((prev) => {
-          // Avoid duplicates
+
           if (prev.some((req) => req.id === newRequest.id)) {
             return prev;
           }

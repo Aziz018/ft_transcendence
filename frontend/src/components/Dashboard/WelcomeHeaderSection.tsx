@@ -1,7 +1,5 @@
-// import { BellIcon, SearchIcon } from "lucide-react";
+
 import Fuego from "../../index";
-// import { Button } from "../../../../components/ui/button";
-// import { Input } from "../../../../components/ui/input";
 
 const WelcomeHeaderSection = () => {
   return (

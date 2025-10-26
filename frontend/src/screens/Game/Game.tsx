@@ -1,12 +1,6 @@
-// import { Bell as BellIcon, Search as SearchIcon } from "lucide-react";
+
 import Fuego, { useState, useEffect, useRef } from "../../index";
-// import {
-//   Avatar,
-//   AvatarFallback,
-//   AvatarImage,
-// } from "../../components/ui/avatar";
-// import { Badge } from "../../components/ui/badge";
-// import { Button } from "../../components/ui/button";
+
 import Avatar from "../../assets/Ellipse 46.svg";
 import { getToken } from "../../lib/auth";
 import { redirect } from "../../library/Router/Router";
@@ -50,7 +44,6 @@ export const Game = () => {
     avatar: string;
   } | null>(null);
 
-  // Check if user is authenticated and fetch profile
   useEffect(() => {
     const token = getToken();
     if (!token) {
@@ -71,7 +64,7 @@ export const Game = () => {
           name: invite.opponentName || "Opponent",
           avatar: invite.opponentAvatar || "",
         });
-        // Clear the invitation after loading
+
         localStorage.removeItem("pendingGameInvite");
       }
     } catch (error) {
@@ -113,7 +106,6 @@ export const Game = () => {
     return `${backend}/images/default-avatar.png`;
   };
 
-  // Only show content if authenticated
   if (!isAuthenticated) {
     return null;
   }
@@ -188,7 +180,6 @@ export const Game = () => {
     return () => clearInterval(timer);
   }, [gameStarted, gameEnded, isPaused]);
 
-  // XP Counter Animation
   useEffect(() => {
     if (!gameEnded || leftScore <= rightScore) {
       setDisplayedXP(0);
@@ -203,7 +194,6 @@ export const Game = () => {
 
     setDisplayedXP(0);
 
-    // Save XP to backend
     saveXPToBackend(targetXP);
 
     const counter = setInterval(() => {

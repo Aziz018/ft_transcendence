@@ -34,7 +34,7 @@ const LoginForm = () => {
       (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3001";
 
     try {
-      // Try login first
+
       const res = await fetch(`${backend}/v1/user/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -43,7 +43,7 @@ const LoginForm = () => {
 
       if (res.ok) {
         const data = await res.json();
-        // backend may return access_token, accessToken or token
+
         const token = data?.access_token || data?.accessToken || data?.token;
         if (token) {
           saveToken(token);
@@ -52,21 +52,18 @@ const LoginForm = () => {
         }
       }
 
-      // Handle 404 - User not found
       if (res.status === 404) {
         setError("user_not_found");
         setLoading(false);
         return;
       }
 
-      // Handle 401 - Invalid credentials
       if (res.status === 401) {
         setError("invalid_credentials");
         setLoading(false);
         return;
       }
 
-      // For other status codes, show error from response
       try {
         const err = await res.json();
         setError(err?.message || "Unable to login. Please try again.");

@@ -1,7 +1,6 @@
 import SecondaryButton from "../../../components/ui/SecondaryButton";
 import Fuego from "../../../index";
 import { Link } from "../../../library/Router/Router";
-// import { Button } from "../../../../components/ui/button";
 
 const sections = [
   {

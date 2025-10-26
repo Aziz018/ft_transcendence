@@ -5,7 +5,6 @@ import { useNotifications } from "../../lib/useNotifications";
 const ToastContainer = () => {
   const { notifications, remove } = useNotifications();
 
-  // Ensure notifications is an array
   const notificationList = Array.isArray(notifications) ? notifications : [];
 
   return (

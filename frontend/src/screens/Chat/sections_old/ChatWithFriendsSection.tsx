@@ -36,7 +36,7 @@ const ChatWithFriendsSection = () => {
   useEffect(() => {
     if (selectedFriend) {
       fetchMessages(selectedFriend.id);
-      // Poll for messages every 1 second (faster updates)
+
       const interval = setInterval(() => {
         fetchMessages(selectedFriend.id);
       }, 1000);
@@ -44,14 +44,13 @@ const ChatWithFriendsSection = () => {
     }
   }, [selectedFriend]);
 
-  // Listen for friend request acceptance notifications
   useEffect(() => {
-    // Listen for when other users accept our friend requests
+
     const unsubscribeFriendRequestAccepted = wsService.on(
       "friend_request_accepted",
       (payload: any) => {
         console.log("Friend request accepted by:", payload);
-        // Refresh friends list to show the new friend
+
         fetchFriends();
         fetchIncomingRequests();
       }
@@ -87,7 +86,7 @@ const ChatWithFriendsSection = () => {
 
       if (response.ok) {
         const data = await response.json();
-        // Extract users array from the response and normalize keys
+
         const usersList = (data.users || []).map((user: any) => ({
           ...user,
           id: user.uid || user.id, // Use uid from API as id
@@ -104,19 +103,17 @@ const ChatWithFriendsSection = () => {
 
   const sendFriendRequest = async (userId: string, userName: string) => {
     try {
-      // Check if already friends
+
       if (friends.some((f: any) => f.id === userId)) {
         alert(`You are already friends with ${userName}!`);
         return;
       }
 
-      // Check if request already sent (pending)
       if (pendingRequests.some((r: any) => r.requestedId === userId)) {
         alert(`Friend request already sent to ${userName}!`);
         return;
       }
 
-      // Check if already have incoming request from this user
       if (incomingRequests.some((r: any) => r.requesterId === userId)) {
         alert(
           `${userName} already sent you a friend request! Accept it from the requests section.`
@@ -167,7 +164,7 @@ const ChatWithFriendsSection = () => {
     }
 
     try {
-      // Use AbortController for faster cancellation if needed
+
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
 
@@ -187,14 +184,14 @@ const ChatWithFriendsSection = () => {
       clearTimeout(timeoutId);
 
       if (response.status === 401) {
-        // Token expired, stop making requests
+
         console.warn("Unauthorized: Token expired");
         return;
       }
 
       if (response.ok) {
         const data = await response.json();
-        // Format messages only when needed (lazy formatting)
+
         const formattedMessages = (data.messages || []).map((msg: any) => ({
           id: msg.id,
           sender: msg.senderName,
@@ -207,7 +204,6 @@ const ChatWithFriendsSection = () => {
           isOwn: msg.isOwn,
         }));
 
-        // Only update if messages actually changed (prevent unnecessary re-renders)
         setMessages((prevMessages) => {
           const prevIds = prevMessages.map((m: any) => m.id).join(",");
           const newIds = formattedMessages.map((m: any) => m.id).join(",");
@@ -229,11 +225,9 @@ const ChatWithFriendsSection = () => {
 
     const messageContent = content.trim();
 
-    // Get current user info for optimistic update
     const token = getToken();
     const userPayload = decodeTokenPayload(token);
 
-    // Optimistic update - show message immediately (0ms latency)
     const optimisticMessage = {
       id: Math.random().toString(36).substr(2, 9),
       sender_id: userPayload?.uid || "current-user",
@@ -251,10 +245,8 @@ const ChatWithFriendsSection = () => {
       isOwn: true,
     };
 
-    // Add message to UI instantly
     setMessages((prev: any[]) => [...prev, optimisticMessage]);
 
-    // Scroll to bottom instantly
     const messagesContainer = document.querySelector(
       "[data-messages-container]"
     );
@@ -264,7 +256,6 @@ const ChatWithFriendsSection = () => {
       }, 0);
     }
 
-    // Send API request in background without waiting (fire and forget)
     fetch(`${backend}/v1/message/send`, {
       method: "POST",
       headers: {
@@ -279,25 +270,24 @@ const ChatWithFriendsSection = () => {
     })
       .then((response) => {
         if (response.ok) {
-          // Message sent successfully, refresh immediately to sync with server
+
           setTimeout(() => {
             fetchMessages(selectedFriend.id);
           }, 300); // Reduced from 800ms to 300ms for faster refresh
           return;
         }
-        // On error response, reject the promise
+
         return response.json().then((error) => {
           throw new Error(error?.message || "Failed to send message");
         });
       })
       .catch((error) => {
         console.error("Error sending message:", error);
-        // Remove optimistic message on error ONLY
+
         setMessages((prev: any[]) =>
           prev.filter((m) => m.id !== optimisticMessage.id)
         );
-        // DO NOT restore input - keep it cleared for user
-        // Optionally show error toast/alert here
+
       });
   };
 
@@ -316,7 +306,6 @@ const ChatWithFriendsSection = () => {
       if (response.ok) {
         const friendIds = await response.json();
 
-        // Fetch full friend data for each friend ID
         const friendsData = await Promise.all(
           (friendIds || []).map(async (friendId: string) => {
             try {
@@ -351,7 +340,6 @@ const ChatWithFriendsSection = () => {
           })
         );
 
-        // Filter out null entries
         const validFriends = friendsData.filter((f: any) => f !== null);
         setFriends(validFriends);
       }
@@ -426,7 +414,6 @@ const ChatWithFriendsSection = () => {
         if (accept) {
           alert("✅ Friend request accepted!");
 
-          // Immediately add the new friend to the list
           if (requesterData) {
             const newFriend = {
               id: requesterData.requesterId,
@@ -440,7 +427,7 @@ const ChatWithFriendsSection = () => {
             };
             setFriends((prevFriends: any) => [...prevFriends, newFriend]);
           } else {
-            // Fallback: fetch all friends if requester data not available
+
             await fetchFriends();
           }
         } else {
@@ -859,9 +846,9 @@ const ChatWithFriendsSection = () => {
               if (e.key === "Enter" && messageInput.trim() && selectedFriend) {
                 e.preventDefault();
                 const content = messageInput;
-                // Clear input first
+
                 setMessageInput("");
-                // Then send with a slight delay to ensure state update
+
                 setTimeout(() => {
                   sendMessage(content);
                 }, 0);
@@ -876,9 +863,9 @@ const ChatWithFriendsSection = () => {
               e.preventDefault();
               if (messageInput.trim()) {
                 const content = messageInput;
-                // Clear input first
+
                 setMessageInput("");
-                // Then send with a slight delay to ensure state update
+
                 setTimeout(() => {
                   sendMessage(content);
                 }, 0);

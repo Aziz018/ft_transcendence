@@ -5,7 +5,7 @@ export function useWebSocket() {
   const [isConnected, setIsConnected] = Fuego.useState(false);
 
   Fuego.useEffect(() => {
-    // Connect to WebSocket
+
     wsService
       .connect()
       .then(() => {
@@ -17,9 +17,8 @@ export function useWebSocket() {
         setIsConnected(false);
       });
 
-    // Cleanup on unmount
     return () => {
-      // Don't disconnect globally - keep connection alive
+
     };
   }, []);
 

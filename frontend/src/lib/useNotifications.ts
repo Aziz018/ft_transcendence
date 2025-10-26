@@ -8,17 +8,17 @@ export function useNotifications() {
   const [notifications, setNotifications] = Fuego.useState<Notification[]>([]);
 
   Fuego.useEffect(() => {
-    // Subscribe to notifications
+
     const unsubscribe = notificationService.subscribe((notification) => {
       setNotifications((prev: any) => {
-        // Ensure prev is always an array
+
         const prevArray = Array.isArray(prev) ? prev : [];
 
         if (notification.title === "removed") {
-          // Remove notification
+
           return prevArray.filter((n: any) => n.id !== notification.id);
         } else {
-          // Add or update notification
+
           const exists = prevArray.find((n: any) => n.id === notification.id);
           if (exists) {
             return prevArray.map((n: any) =>
@@ -33,7 +33,6 @@ export function useNotifications() {
     return unsubscribe;
   }, []);
 
-  // Ensure notifications is always an array
   const safeNotifications = Array.isArray(notifications) ? notifications : [];
 
   return {

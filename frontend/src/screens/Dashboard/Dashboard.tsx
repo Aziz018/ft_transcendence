@@ -16,7 +16,6 @@ import TopRightBlurEffect from "../../components/ui/BlurEffect/TopRightBlurEffec
 import { getToken, decodeTokenPayload, clearToken } from "../../lib/auth";
 import { Link, redirect } from "../../library/Router/Router";
 import { useEffect } from "../../library/hooks/useEffect";
-// import { Button } from "../../components/ui/button";
 
 const navigationItems = [
   { label: "Dashboard", active: false, icon: DashboardIcon },
@@ -31,7 +30,6 @@ const Dashboard = () => {
   const [isAuthenticated, setIsAuthenticated] = Fuego.useState(true);
   const [userAvatar, setUserAvatar] = Fuego.useState("");
 
-  // Check if user is authenticated and fetch profile
   useEffect(() => {
     const token = getToken();
     if (!token) {
@@ -64,7 +62,6 @@ const Dashboard = () => {
     }
   };
 
-  // Only show content if authenticated
   if (!isAuthenticated) {
     return null;
   }
@@ -134,9 +131,9 @@ const Dashboard = () => {
           {/* <div className="mt-[32px] [font-family:'Questrial',Helvetica] font-normal text-white text-[32px] tracking-[0] leading-[15px] whitespace-nowrap">
             <UserName />
           </div> */}
-          <div className="mt-[17px] [font-family:'Questrial',Helvetica] font-normal text-[#f9f9f980] text-base tracking-[0] leading-[15px] whitespace-nowrap cursor-pointer">
+          {/* <div className="mt-[17px] [font-family:'Questrial',Helvetica] font-normal text-[#f9f9f980] text-base tracking-[0] leading-[15px] whitespace-nowrap cursor-pointer">
             View Profile
-          </div>
+          </div> */}
         </div>
 
         {/* Navigation Menu */}

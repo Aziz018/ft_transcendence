@@ -1,4 +1,4 @@
-// Global notification system using a simple pub/sub pattern
+
 export interface Notification {
   id: string;
   type: "info" | "success" | "error" | "warning" | "friend-request";
@@ -18,7 +18,6 @@ class NotificationService {
   subscribe(listener: NotificationListener): () => void {
     this.listeners.add(listener);
 
-    // Return unsubscribe function
     return () => {
       this.listeners.delete(listener);
     };
@@ -32,10 +31,8 @@ class NotificationService {
       duration: notification.duration || 5000,
     };
 
-    // Store the notification
     this.notifications.set(id, fullNotification);
 
-    // Notify all listeners
     this.listeners.forEach((listener) => {
       try {
         listener(fullNotification);
@@ -44,7 +41,6 @@ class NotificationService {
       }
     });
 
-    // Auto-remove after duration if specified
     if (fullNotification.duration && fullNotification.duration > 0) {
       const timer = setTimeout(() => {
         this.remove(id);
@@ -59,14 +55,12 @@ class NotificationService {
   remove(id: string) {
     this.notifications.delete(id);
 
-    // Clear timer if exists
     const timer = this.notificationTimers.get(id);
     if (timer) {
       clearTimeout(timer);
       this.notificationTimers.delete(id);
     }
 
-    // Notify listeners of removal
     this.listeners.forEach((listener) => {
       try {
         listener({
@@ -134,5 +128,4 @@ class NotificationService {
   }
 }
 
-// Create singleton instance
 export const notificationService = new NotificationService();

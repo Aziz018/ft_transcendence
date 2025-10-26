@@ -1,8 +1,7 @@
 import Fuego from "../../../index";
 
 import { BellIcon, SearchIcon } from "lucide-react";
-// import { Button } from "../../../../components/ui/button";
-// import { Input } from "../../../components/ui/input";
+
 import NotificationBell from "../../../assets/notification.svg";
 import SecondaryButton from "../../../components/ui/SecondaryButton";
 import { getToken, decodeTokenPayload } from "../../../lib/auth";
@@ -46,19 +45,16 @@ const WelcomeHeaderSection = () => {
   const [toastNotifications, setToastNotifications] = useState<any[]>([]);
 
   useEffect(() => {
-    // Connect to WebSocket
+
     if (!wsService.isConnected()) {
       wsService.connect();
     }
 
-    // Handle incoming friend requests
     const handleFriendRequest = (data: any) => {
       console.log("Friend request received:", data);
 
-      // Add to incoming requests
       fetchIncomingRequests();
 
-      // Show toast notification
       const notification = {
         id: data.requestId || Math.random().toString(),
         type: "friend_request",
@@ -70,11 +66,9 @@ const WelcomeHeaderSection = () => {
 
       setToastNotifications((prev: any[]) => [...prev, notification]);
 
-      // Play notification sound
       playNotificationSound();
     };
 
-    // Handle friend request accepted
     const handleFriendAccepted = (data: any) => {
       console.log("Friend request accepted:", data);
 
@@ -91,7 +85,6 @@ const WelcomeHeaderSection = () => {
       playNotificationSound();
     };
 
-    // Handle friend request declined
     const handleFriendDeclined = (data: any) => {
       console.log("Friend request declined:", data);
 
@@ -124,15 +117,15 @@ const WelcomeHeaderSection = () => {
         "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZUQ8PVKvi7q5aGAg+ltryxnMpBSh+zPLaizsIGGS57OihUQ0NTKXi8LJZHAY7k9jyyHkwBSuBzvLaizYIGWi78OScTgwNU6zk77BdGwc7ltjyxnQpBSiAzPDaizsIGmW57OihUQ0PU6ri7q5aGAhAl9vyxnMpBSh/zPLajDsJGWS56+mjUg4PUqri7qxbGAhAltvyxnMpBSh+zPPaizsIG2W56+mjUg4PUqvj7axbGAg/ltrzxnMpBSh+zPPajDsJG2S46+mjUg4PUqvi7axaGAg+ltrzxnQoBSh+zPPajDsJGmW46+mjUg4PUqvi7axaGAg+ltvzxnMoBSh+zPPajTsJGmW46+mjUg4PUqvi7axaGAg+ltvzxnMoBSh+zPPajTsJGmW46+mjUg4PUqvi7axaGAg+ltvzxnMoBSh+zPPajTsJGmW46+mjUg4PUqvi7axaGAg+ltvzxnMoBSh+zPPajTsJGmW46+mjUg4PUqvi7axaGAg+ltvzxnMoBSh+zPPajTsJGmW46+mjUg4PUqvi7axaGAg+ltvzxnMoBSh+zPPajTsJGmW46+mjUg4PUqvi7axaGAg+ltvzxnMoBSh+zPPajTsJGmW46+mjUg4PUqvi7axaGAg+ltvzxnMoBSh+zPPajTsJGmW46+mjUg4PUqvi7axaGAg+ltvzxnMoBSh+zPPajTsJGmW46+mjUg4PUqvi7axaGAg+ltvzxnMoBSh+zPPajTsJGmW46+mjUg4PUqvi7axaGAg+ltvzxnMoBSh+zPPajTsJGmW46+mjUg4PUqvi7axaGAg+ltvzxnMoBSh+zPPajTsJGmW46+mjUg4PUqvi7axaGAg+ltvzxnMoBSh+zPPajTsJGmW46+mjUg4PUqvi7axaGAg+ltvzxnMoBSh+zPPajTsJGmW46+mjUg4PUqvi7axaGAg+ltvzxnMoBSh+zPPajTsJGmW46+mjUg4PUqvi7axaGAg+ltvzxnMoBSh+zPPajTsJGmW46+mjUg4P"
       );
       audio.volume = 0.3;
-      // Try to play the audio
+
       const playPromise = audio.play();
       if (playPromise !== undefined) {
         playPromise
           .then(() => {
-            // Audio played successfully
+
           })
           .catch((error) => {
-            // Autoplay was prevented or another error occurred
+
             console.log(
               "Notification sound muted (user interaction required):",
               error.message
@@ -158,10 +151,8 @@ const WelcomeHeaderSection = () => {
         action === "accept"
       );
 
-      // Refresh incoming requests after accepting/declining
       fetchIncomingRequests();
 
-      // Dismiss the notification
       handleDismissNotification(notification.id);
     }
   };
@@ -302,7 +293,7 @@ const WelcomeHeaderSection = () => {
         console.log(
           accept ? "Friend request accepted!" : "Friend request declined!"
         );
-        // Refresh incoming requests to update the UI
+
         fetchIncomingRequests();
       } else {
         const error = await response.json();
@@ -342,7 +333,6 @@ const WelcomeHeaderSection = () => {
         };
         setToastNotifications((prev) => [...prev, notification]);
 
-        // Auto-dismiss after 3 seconds
         setTimeout(() => {
           setToastNotifications((prev) =>
             prev.filter((n) => n.id !== notification.id)
@@ -356,7 +346,6 @@ const WelcomeHeaderSection = () => {
         const error = await response.json();
         let message = "Failed to send friend request";
 
-        // Handle specific error cases with user-friendly messages
         if (response.status === 409) {
           if (error.message.includes("already friends")) {
             message = `You're already friends with ${userName}!`;
@@ -385,7 +374,6 @@ const WelcomeHeaderSection = () => {
         };
         setToastNotifications((prev) => [...prev, notification]);
 
-        // Auto-dismiss after 4 seconds
         setTimeout(() => {
           setToastNotifications((prev) =>
             prev.filter((n) => n.id !== notification.id)
@@ -403,7 +391,6 @@ const WelcomeHeaderSection = () => {
       };
       setToastNotifications((prev) => [...prev, notification]);
 
-      // Auto-dismiss after 4 seconds
       setTimeout(() => {
         setToastNotifications((prev) =>
           prev.filter((n) => n.id !== notification.id)

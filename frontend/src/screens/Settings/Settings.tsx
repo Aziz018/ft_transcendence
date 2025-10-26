@@ -90,7 +90,6 @@ const Settings = () => {
         "http://localhost:3001";
       const token = getToken();
 
-      // Update name if changed
       const nameRes = await fetch(`${backend}/v1/user/profile`, {
         method: "PUT",
         headers: {

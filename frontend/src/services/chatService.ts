@@ -295,12 +295,10 @@ class ChatService {
       const friendIds: string[] = await response.json();
       console.log("[ChatService] Friend IDs from backend:", friendIds);
 
-      // Backend returns array of friend IDs, we need to fetch user details
       if (!Array.isArray(friendIds) || friendIds.length === 0) {
         return [];
       }
 
-      // Fetch user details for each friend ID
       const friendPromises = friendIds.map(async (friendId) => {
         try {
           const userResponse = await fetch(
@@ -400,6 +398,5 @@ class ChatService {
   }
 }
 
-// Export singleton instance
 export const chatService = new ChatService();
 export type { Message, Friend };

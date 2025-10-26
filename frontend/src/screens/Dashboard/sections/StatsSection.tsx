@@ -1,6 +1,5 @@
 import { StarIcon, ThumbsUpIcon } from "lucide-react";
 import Fuego from "../../../index";
-// import { Card, CardContent } from "../../../../components/ui/card";
 
 const statsData = [
   {

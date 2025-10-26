@@ -15,7 +15,7 @@ class WebSocketService {
   private messageListeners: Map<string, (payload: any) => void> = new Map();
 
   constructor() {
-    // Determine WebSocket URL - backend is on port 3001
+
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const hostname = window.location.hostname;
     const backendUrl = `${hostname}:3001`;
@@ -62,14 +62,13 @@ class WebSocketService {
   private handleMessage(message: WebSocketMessage) {
     console.log("[WebSocket] Received:", message.type, message.payload);
 
-    // Handle specific message types
     switch (message.type) {
       case "friend_request_received":
         this.handleFriendRequestNotification(message.payload);
         break;
       case "friend_request_accepted":
         this.handleFriendRequestAccepted(message.payload);
-        // Also emit to custom listeners
+
         const acceptedListener = this.messageListeners.get(
           "friend_request_accepted"
         );
@@ -79,7 +78,7 @@ class WebSocketService {
         break;
       case "friend_request_declined":
         this.handleFriendRequestDeclined(message.payload);
-        // Also emit to custom listeners
+
         const declinedListener = this.messageListeners.get(
           "friend_request_declined"
         );
@@ -88,7 +87,7 @@ class WebSocketService {
         }
         break;
       default:
-        // Emit to custom listeners
+
         const listener = this.messageListeners.get(message.type);
         if (listener) {
           listener(message.payload);
@@ -121,7 +120,7 @@ class WebSocketService {
   }
 
   private attemptReconnect() {
-    // Don't attempt to reconnect if there's no token (user is logged out)
+
     const token = getToken();
     if (!token) {
       console.log("[WebSocket] No token available, skipping reconnection");
@@ -154,7 +153,6 @@ class WebSocketService {
   on(messageType: string, listener: (payload: any) => void) {
     this.messageListeners.set(messageType, listener);
 
-    // Return unsubscribe function
     return () => {
       this.messageListeners.delete(messageType);
     };
@@ -162,8 +160,7 @@ class WebSocketService {
 
   off(messageType: string, listener?: (payload: any) => void) {
     if (listener) {
-      // If a specific listener is provided, we can't really remove it since we store by type
-      // So just remove the type listener
+
       this.messageListeners.delete(messageType);
     } else {
       this.messageListeners.delete(messageType);
@@ -175,7 +172,7 @@ class WebSocketService {
       this.ws.close();
       this.ws = null;
     }
-    // Reset reconnection attempts so it won't auto-reconnect after logout
+
     this.reconnectAttempts = this.maxReconnectAttempts;
     console.log("[WebSocket] Disconnected and reconnection disabled");
   }
@@ -185,5 +182,4 @@ class WebSocketService {
   }
 }
 
-// Create singleton instance
 export const wsService = new WebSocketService();

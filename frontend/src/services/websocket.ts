@@ -46,7 +46,6 @@ class WebSocketService {
         console.log("WebSocket disconnected");
         this.ws = null;
 
-        // Attempt to reconnect if not intentionally closed
         if (
           !this.isIntentionallyClosed &&
           this.reconnectAttempts < this.maxReconnectAttempts
@@ -124,5 +123,4 @@ class WebSocketService {
   }
 }
 
-// Export a singleton instance
 export const wsService = new WebSocketService();

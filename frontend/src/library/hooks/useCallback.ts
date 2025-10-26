@@ -11,7 +11,6 @@ export function useCallback<T extends (...args: any[]) => any>(
   const hookIndex = currentFiber.hookIndex;
   const oldHook = currentFiber.alternate?.hooks?.[hookIndex];
 
-  // Check if dependencies have changed
   const hasChanged = oldHook
     ? !deps.every((dep, index) => Object.is(dep, oldHook.deps?.[index]))
     : true;

@@ -11,7 +11,6 @@ import { chatService, type Friend } from "../../../services/chatService";
 import { getToken } from "../../../lib/auth";
 import { wsService } from "../../../services/wsService";
 
-// Default avatar from backend
 const defaultAvatar = `${
   (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3001"
 }/images/default-avatar.png`;
@@ -23,27 +22,22 @@ const getAvatarUrl = (avatarPath: string | null | undefined): string => {
   const backend =
     (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3001";
 
-  // No avatar or empty string
   if (!avatarPath || !avatarPath.trim()) {
     return defaultAvatar;
   }
 
-  // Fix incorrect paths like /public/images/... to /images/...
   if (avatarPath.startsWith("/public/")) {
     return `${backend}${avatarPath.replace("/public", "")}`;
   }
 
-  // If it's a relative path, prepend backend URL
   if (avatarPath.startsWith("/")) {
     return `${backend}${avatarPath}`;
   }
 
-  // If it's already a full URL, return as is
   if (avatarPath.startsWith("http://") || avatarPath.startsWith("https://")) {
     return avatarPath;
   }
 
-  // Default fallback
   return defaultAvatar;
 };
 
@@ -109,10 +103,8 @@ const FriendsList = ({ onSelectFriend, selectedFriend }: FriendsListProps) => {
   useEffect(() => {
     loadFriends();
 
-    // Subscribe to online status updates
     const unsubscribeStatus = chatService.onOnlineStatus(handleOnlineStatus);
 
-    // Subscribe to friend request accepted events (via WebSocket - for the requester)
     const unsubscribeAccepted = wsService.on(
       "friend_request_accepted",
       (payload: any) => {
@@ -120,12 +112,11 @@ const FriendsList = ({ onSelectFriend, selectedFriend }: FriendsListProps) => {
           "[FriendsList] Friend request accepted (WebSocket), reloading friends list:",
           payload
         );
-        // Reload friends list when a friend request is accepted
+
         loadFriends();
       }
     );
 
-    // Subscribe to friend request accepted events (via custom event - for the accepter)
     const handleLocalAccept = () => {
       console.log(
         "[FriendsList] Friend request accepted (local), reloading friends list"
@@ -158,10 +149,8 @@ const FriendsList = ({ onSelectFriend, selectedFriend }: FriendsListProps) => {
 
         await chatService.blockUser(friend.id, token);
 
-        // Remove from friends list
         setFriends((prev) => prev.filter((f) => f.id !== friend.id));
 
-        // Clear selection if blocking selected friend
         if (selectedFriend?.id === friend.id) {
           onSelectFriend(null as any);
         }
@@ -194,10 +183,8 @@ const FriendsList = ({ onSelectFriend, selectedFriend }: FriendsListProps) => {
 
         await chatService.unfriend(friend.id, token);
 
-        // Remove from friends list
         setFriends((prev) => prev.filter((f) => f.id !== friend.id));
 
-        // Clear selection if unfriending selected friend
         if (selectedFriend?.id === friend.id) {
           onSelectFriend(null as any);
         }

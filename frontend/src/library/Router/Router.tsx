@@ -46,10 +46,9 @@ export function Link({ to, children, ...rest }: Props) {
     event.preventDefault();
     const currentPath = window.location.pathname;
 
-    // Only navigate if the path is different
     if (currentPath !== to) {
       window.history.pushState({}, "", to);
-      // Trigger a re-render by calling setRender with a toggle value
+
       setRender((prev: any) => !prev);
     }
   };
