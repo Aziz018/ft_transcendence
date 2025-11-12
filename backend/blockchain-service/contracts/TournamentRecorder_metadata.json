@@ -1,0 +1,280 @@
+{
+	"compiler": {
+		"version": "0.8.28+commit.7893614a"
+	},
+	"language": "Solidity",
+	"output": {
+		"abi": [
+			{
+				"inputs": [],
+				"stateMutability": "nonpayable",
+				"type": "constructor"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "bytes16",
+						"name": "TournamentId",
+						"type": "bytes16"
+					},
+					{
+						"indexed": false,
+						"internalType": "bytes16",
+						"name": "player1Id",
+						"type": "bytes16"
+					},
+					{
+						"indexed": false,
+						"internalType": "bytes16",
+						"name": "player2Id",
+						"type": "bytes16"
+					},
+					{
+						"indexed": true,
+						"internalType": "bytes16",
+						"name": "winner",
+						"type": "bytes16"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "timestamp",
+						"type": "uint256"
+					}
+				],
+				"name": "TournamentRecorded",
+				"type": "event"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "bytes16",
+						"name": "_tournamentId",
+						"type": "bytes16"
+					},
+					{
+						"internalType": "bytes16",
+						"name": "_player1Id",
+						"type": "bytes16"
+					},
+					{
+						"internalType": "bytes16",
+						"name": "_player2Id",
+						"type": "bytes16"
+					},
+					{
+						"internalType": "bytes16",
+						"name": "_winnerId",
+						"type": "bytes16"
+					}
+				],
+				"name": "createTournamentRecord",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "getMatchRecordCount",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "bytes16",
+						"name": "_tournamentId",
+						"type": "bytes16"
+					}
+				],
+				"name": "getTournamentRecord",
+				"outputs": [
+					{
+						"components": [
+							{
+								"internalType": "bytes16",
+								"name": "tournamentId",
+								"type": "bytes16"
+							},
+							{
+								"internalType": "bytes16",
+								"name": "player1",
+								"type": "bytes16"
+							},
+							{
+								"internalType": "bytes16",
+								"name": "player2",
+								"type": "bytes16"
+							},
+							{
+								"internalType": "uint256",
+								"name": "timestamp",
+								"type": "uint256"
+							},
+							{
+								"internalType": "bytes16",
+								"name": "winner",
+								"type": "bytes16"
+							}
+						],
+						"internalType": "struct TournamentRecorder.Tournament",
+						"name": "",
+						"type": "tuple"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "owner",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "tournamentsCount",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "bytes16",
+						"name": "",
+						"type": "bytes16"
+					}
+				],
+				"name": "tournamentsRecord",
+				"outputs": [
+					{
+						"internalType": "bytes16",
+						"name": "tournamentId",
+						"type": "bytes16"
+					},
+					{
+						"internalType": "bytes16",
+						"name": "player1",
+						"type": "bytes16"
+					},
+					{
+						"internalType": "bytes16",
+						"name": "player2",
+						"type": "bytes16"
+					},
+					{
+						"internalType": "uint256",
+						"name": "timestamp",
+						"type": "uint256"
+					},
+					{
+						"internalType": "bytes16",
+						"name": "winner",
+						"type": "bytes16"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			}
+		],
+		"devdoc": {
+			"kind": "dev",
+			"methods": {},
+			"version": 1
+		},
+		"userdoc": {
+			"kind": "user",
+			"methods": {},
+			"version": 1
+		}
+	},
+	"settings": {
+		"compilationTarget": {
+			"contracts/Tournament.sol": "TournamentRecorder"
+		},
+		"evmVersion": "cancun",
+		"libraries": {},
+		"metadata": {
+			"bytecodeHash": "ipfs"
+		},
+		"optimizer": {
+			"enabled": false,
+			"runs": 200
+		},
+		"remappings": []
+	},
+	"sources": {
+		"@openzeppelin/contracts/utils/Panic.sol": {
+			"keccak256": "0xf7fe324703a64fc51702311dc51562d5cb1497734f074e4f483bfb6717572d7a",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://c6a5ff4f9fd8649b7ee20800b7fa387d3465bd77cf20c2d1068cd5c98e1ed57a",
+				"dweb:/ipfs/QmVSaVJf9FXFhdYEYeCEfjMVHrxDh5qL4CGkxdMWpQCrqG"
+			]
+		},
+		"@openzeppelin/contracts/utils/Strings.sol": {
+			"keccak256": "0xad148d59f05165f9217d0a9e1ac8f772abb02ea6aaad8a756315c532bf79f9f4",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://15e3599867c2182f5831e9268b274b2ef2047825837df6b4d81c9e89254b093e",
+				"dweb:/ipfs/QmZbL7XAYr5RmaNaooPgZRmcDXaudfsYQfYD9y5iAECvpS"
+			]
+		},
+		"@openzeppelin/contracts/utils/math/Math.sol": {
+			"keccak256": "0x1225214420c83ebcca88f2ae2b50f053aaa7df7bd684c3e878d334627f2edfc6",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://6c5fab4970634f9ab9a620983dc1c8a30153981a0b1a521666e269d0a11399d3",
+				"dweb:/ipfs/QmVRnBC575MESGkEHndjujtR7qub2FzU9RWy9eKLp4hPZB"
+			]
+		},
+		"@openzeppelin/contracts/utils/math/SafeCast.sol": {
+			"keccak256": "0x195533c86d0ef72bcc06456a4f66a9b941f38eb403739b00f21fd7c1abd1ae54",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://b1d578337048cad08c1c03041cca5978eff5428aa130c781b271ad9e5566e1f8",
+				"dweb:/ipfs/QmPFKL2r9CBsMwmUqqdcFPfHZB2qcs9g1HDrPxzWSxomvy"
+			]
+		},
+		"@openzeppelin/contracts/utils/math/SignedMath.sol": {
+			"keccak256": "0xb1970fac7b64e6c09611e6691791e848d5e3fe410fa5899e7df2e0afd77a99e3",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://db5fbb3dddd8b7047465b62575d96231ba8a2774d37fb4737fbf23340fabbb03",
+				"dweb:/ipfs/QmVUSvooZKEdEdap619tcJjTLcAuH6QBdZqAzWwnAXZAWJ"
+			]
+		},
+		"contracts/Tournament.sol": {
+			"keccak256": "0x0f69697059c3231bd9c5ff22dfdff430e89ffb21fce195f8a2122b652fdee1fb",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://bb3544c2e04dbd5566fd1c2921ded59cf92a5dbbd0eaab0c6bc081da7b5b3bcc",
+				"dweb:/ipfs/QmUWixGAm5KgcYMxVy4e4fxJSMvtrQCPgTLknuRX9DzxsF"
+			]
+		}
+	},
+	"version": 1
+}
