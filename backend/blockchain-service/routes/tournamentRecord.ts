@@ -1,63 +1,11 @@
 import { FastifyInstance } from "fastify";
 import fastifyPlugin from "fastify-plugin";
-import { ethers, JsonRpcProvider, Wallet, Contract, Network } from "ethers";
-import * as dotenv from "dotenv";
-import fs from "fs";
-import { env } from "process";
-import { randomUUID, UUID } from "crypto";
+import { randomUUID, UUID} from "crypto";
+import TournamentRecord from "../interfaces/tournamentRecordInterfaces.js";
+import { uuidToBytes16, bytes16ToUuid } from "../utils/tournementRecordUtils.js";
+import { contract } from "../utils/contract.js"
 
 async function TournamentRecordPlugin(fastify: FastifyInstance, options: any) {
-  interface TournamentRecord {
-    tournamentId: UUID;
-    player1: UUID;
-    player2: UUID;
-    timestamp?: number;
-    winner: UUID;
-  }
-
-  function uuidToBytes16(uuid: UUID): string {
-    const hexString = uuid.replace(/-/g, "");
-    if (hexString.length !== 32) {
-      throw new Error("Invalid UUID format");
-    }
-    return "0x" + hexString;
-  }
-
-  function bytes16ToUuid(bytes16: string): UUID {
-    const hexString = bytes16.startsWith("0x") ? bytes16.slice(2) : bytes16;
-    if (hexString.length !== 32) {
-      throw new Error("Invalid bytes16 format");
-    }
-    return `${hexString.slice(0, 8)}-${hexString.slice(
-      8,
-      12
-    )}-${hexString.slice(12, 16)}-${hexString.slice(16, 20)}-${hexString.slice(
-      20
-    )}` as UUID;
-  }
-
-  dotenv.config({ path: ".env", quiet: true });
-  const TournamentRecorderAbi = JSON.parse(
-    fs.readFileSync("./contract-abis/TournamentRecorder.json", "utf8")
-  );
-
-  let provider: JsonRpcProvider;
-  let signer: Wallet;
-  let contract: Contract;
-
-  try {
-    provider = new ethers.JsonRpcProvider(env.AVALANCHE_TESTNET_RPC);
-    signer = new ethers.Wallet(env.PRIVATE_KEY as string, provider);
-    const contractAddress = env.CONTRACT_ADDRESS as string;
-    contract = new ethers.Contract(
-      contractAddress,
-      TournamentRecorderAbi,
-      signer
-    );
-  } catch (error) {
-    console.log(error);
-  }
-
   fastify.get("/", async (request, reply) => {
     reply.redirect("/tournamentRecord");
   });
@@ -83,10 +31,17 @@ async function TournamentRecordPlugin(fastify: FastifyInstance, options: any) {
 
       reply.send({ tournamentRecord });
     } catch (error: any) {
-      reply.status(404).send({
-        error: "Error fetching match record",
-        message: error.reason || error.message,
-      });
+      if (error.reason) {
+        reply.code(404).send({
+          error: "Error fetching match record",
+          message: error.reason,
+        });
+      } else {        
+        reply.code(500).send({
+          error: "Error fetching match record",
+          message: error.message,
+        });
+      }
     }
   });
 
@@ -110,10 +65,17 @@ async function TournamentRecordPlugin(fastify: FastifyInstance, options: any) {
         message: "Match record created successfully.",
       });
     } catch (error: any) {
-      reply.status(404).send({
-        error: "Error creating match record",
-        message: error.reason || error.message,
-      });
+      if (error.reason) {
+        reply.code(400).send({
+          error: "Error creating match record",
+          message: error.reason || error.message,
+        });
+      } else {        
+        reply.code(500).send({
+          error: "Error creating match record",
+          message: error.message,
+        });
+      }
     }
   });
 }
