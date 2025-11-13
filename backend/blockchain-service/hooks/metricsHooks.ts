@@ -6,7 +6,6 @@ import {
 	httpResponseSize,
 	acctiveConnections
 } from '../metrics/metricsDefinition.js';
-import { request } from 'axios';
 
 // Setup Fastify hooks to collect metrics
 export function setupMetricsHooks(fastify: FastifyInstance) {
