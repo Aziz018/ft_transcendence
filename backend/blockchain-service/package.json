@@ -1,37 +1,25 @@
 {
-  "name": "blockchain-service",
+  "name": "blockchain-tournament-record-service",
   "version": "1.0.0",
+  "type": "module",
   "description": "",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "npx tsc && node ./dist/src/index.js",
     "build": "npx tsc",
-    "dev": "npx tsc && node ./dist/src/index.js"
+    "start": "node ./dist/src/index.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "devDependencies": {
-    "@dotenvx/dotenvx": "^1.51.0",
-    "@nomicfoundation/hardhat-ignition": "^3.0.3",
-    "@nomicfoundation/hardhat-toolbox-mocha-ethers": "^3.0.0",
-    "@typechain/ethers-v6": "^0.5.1",
-    "@types/chai": "^4.3.20",
-    "@types/chai-as-promised": "^8.0.2",
-    "@types/mocha": "^10.0.10",
-    "@types/node": "^22.18.11",
-    "chai": "^5.3.3",
-    "dotenv": "^17.2.3",
+  "dependencies": {
     "ethers": "^6.15.0",
-    "fastify": "^5.6.1",
-    "fastify-metrics-js-prometheus": "^4.0.0",
+    "fastify": "^5.6.2",
     "fastify-plugin": "^5.1.0",
-    "forge-std": "github:foundry-rs/forge-std#v1.9.4",
-    "hardhat": "^3.0.7",
-    "mocha": "^11.7.4",
-    "ts-node": "^10.9.2",
-    "typechain": "^8.3.2",
-    "typescript": "~5.8.0"
-  },
-  "type": "module"
+    "process": "^0.11.10",
+    "prom-client": "^15.1.3",
+    "typescript": "^5.9.3",
+    "uuid": "^13.0.0"
+  }
 }
