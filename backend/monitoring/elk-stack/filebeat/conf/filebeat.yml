@@ -30,7 +30,7 @@ filebeat.inputs:
   # Paths that should be crawled and fetched. Glob based paths.
   paths:
     - /var/log/test*.log
-    - /var/log/*.log
+    - /var/log/nginx/*.log
     #- c:\programdata\elasticsearch\logs\*
   prospector.scanner.fingerprint.length: 64
   prospector.scanner.fingerprint.offset: 0

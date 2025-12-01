@@ -10,7 +10,9 @@ volumes:
   certs:
     name: elk-stack_certs
     driver: local
-
+  logs:
+    name: app-logs
+    driver: local
 services:
   init_certs:
     build: setupSSL
@@ -30,7 +32,28 @@ services:
     depends_on:
       elasticsearch:
         condition: service_healthy
-    
+  setupDashboards:
+    build: setupDashboards
+    image: set_dashboards
+    container_name: setDashboard
+    environment:
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+    networks:
+      - elk
+    depends_on:
+      kibana:
+        condition: service_healthy
+  setupDataCycleLife:
+    build: setupDataCycleLife
+    image: set_data_cycle_life
+    container_name: setupDataCycleLife
+    environment:
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+    networks:
+      - elk
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}
     container_name: elasticsearch
@@ -96,6 +119,13 @@ services:
         condition: service_healthy
     networks:
       - elk
+    healthcheck:
+      test: >
+        curl -s -k https://localhost:5601/api/status | grep -w -E '"level":"available"'
+      interval: 35s
+      timeout: 20s
+      retries: 10
+      start_period: 15s
   logstash:
     image: logstash:latest
     build: logstash
@@ -113,9 +143,20 @@ services:
     image: filebeat:latest
     container_name: filebeat
     build: filebeat
+    volumes:
+      - logs:/var/log/:rw
     networks:
       - elk
     depends_on:
       logstash:
         condition: service_started
-
+  nginx:
+    image: nginx:bookworm
+    container_name: nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/conf/:/etc/nginx/conf.d:ro
+      - logs:/var/log/:rw
+    networks:
+      - elk
