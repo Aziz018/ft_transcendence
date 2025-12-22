@@ -1,11 +1,35 @@
 groups:
-  - name: system-alerts
+  - name: alert_rules
     rules:
-      - alert: HighCPUUsage
-        expr: avg(rate(node_cpu_seconds_total{mode!="idle"}[1m])) > 0.8
-        for: 2m
+      - alert: InstanceDown
+        expr: up == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Instance {{ $labels.instance }} down"
+          description: "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 5 minutes."
+      - alert: HighMemoryUsage
+        expr: process_resident_memory_bytes / (1024^2) > 1024  # > 1GB
+        for: 5m
         labels:
           severity: warning
         annotations:
-          summary: "High CPU Usage"
-          description: "CPU usage is above 80% for more than 2 minutes."
+          summary: "High Memory Usage on {{ $labels.instance }}"
+          description: "Memory usage is above 1GB on instance {{ $labels.instance }} for more than 5 minutes."
+      - alert: HighCPUUsage
+        expr: rate(process_cpu_seconds_total[5m]) * 100 > 70  # > 70% CPU
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU Usage on {{ $labels.instance }}"
+          description: "CPU usage is above 70% on instance {{ $labels.instance }} for more than 5 minutes."
+      - alert: HighRequestRate
+        expr: rate(http_requests_total[1m]) > 120
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High rate of HTTP requests"
+          description: "The rate of HTTP requests has exceeded 120 requests per minute over the last 1 minute."

@@ -1,8 +1,6 @@
-# my global config
 global:
-  scrape_interval: 5s # Set the scrape interval to every 15 seconds. Default is every 1 minute.
-  evaluation_interval: 15s # Evaluate rules every 15 seconds. The default is every 1 minute.
-  # scrape_timeout is set to the global default (10s).
+  scrape_interval: 5s
+  evaluation_interval: 15s
 
 # Alertmanager configuration
 alerting:
@@ -11,29 +9,35 @@ alerting:
         - targets:
            - alertmanager:9093
 
-# Load rules once and periodically evaluate them according to the global 'evaluation_interval'.
+# Load rules
 rule_files:
-  - rules.yml
-  # - "first_rules.yml"
-  # - "second_rules.yml"
+  - "rules.yml"
 
-# A scrape configuration containing exactly one endpoint to scrape:
-# Here it's Prometheus itself.
 scrape_configs:
-  # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
   - job_name: "prometheus"
-
-    # metrics_path defaults to '/metrics'
-    # scheme defaults to 'http'.
-
     static_configs:
       - targets: ["localhost:9090"]
-       # The label name is added as a label `label_name=<label_value>` to any timeseries scraped from this config.
         labels:
           app: "prometheus"
+
   - job_name: "sample_server"
     static_configs:
       - targets: ["golang_server:8090"]
+        labels:
+          app: "sample_server"
+  
   - job_name: "node-exporter"
     static_configs:
       - targets: ["node-exporter:9100"]
+        labels:
+          app: "node-exporter"
+  - job_name: "service-x"
+    static_configs:
+      - targets: ["service-x:3010"]
+        labels:
+          app: "service-x"
+  - job_name: "service-y"
+    static_configs:
+      - targets: ["service-y:3010"]
+        labels:
+          app: "service-y"

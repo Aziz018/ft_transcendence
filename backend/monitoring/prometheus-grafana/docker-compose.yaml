@@ -58,6 +58,22 @@ services:
       - prom_net
     ports:
       - 8090:8090
+  service-x:
+    image: service-x
+    build: service-x
+    container_name: service-x
+    networks:
+      - prom_net
+    ports:
+      - 3010:3010
+  service-y:
+    image: service-x
+    build: service-x
+    container_name: service-y
+    networks:
+      - prom_net
+    ports:
+      - 3011:3010
   
 networks:
   prom_net:
