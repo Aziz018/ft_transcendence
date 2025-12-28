@@ -1,8 +1,22 @@
+networks:
+  prom_net:
+ 
+volumes:
+  prometheus_data:
+    driver: local
+
 services:
   prometheus:
     image: prom/prometheus
-    build: prometheus
     container_name: prometheus-container
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.size=500MB'
+      - '--storage.tsdb.retention.time=7d'
+    volumes:
+      - ./prometheus/config/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/config/rules.yml:/etc/prometheus/rules.yml
+      - prometheus_data:/prometheus
     networks:
       - prom_net
     ports:
@@ -75,6 +89,3 @@ services:
     ports:
       - 3011:3010
   
-networks:
-  prom_net:
- 
