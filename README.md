@@ -3,10 +3,10 @@
 
 <!-- BADGES -->
 <p align="center">
-  <img src="https://img.shields.io/github/languages/top/Aziz018/ft_transcendence">
-  <img src="https://img.shields.io/github/repo-size/Aziz018/ft_transcendence">
-  <img src="https://img.shields.io/github/last-commit/Aziz018/ft_transcendence">
-  <img src="https://img.shields.io/github/license/Aziz018/ft_transcendence">
+  <img src="https://img.shields.io/github/languages/top/Aziz018/ft_transcendence?style=flat-square">
+  <img src="https://img.shields.io/github/repo-size/Aziz018/ft_transcendence?style=flat-square">
+  <img src="https://img.shields.io/github/last-commit/Aziz018/ft_transcendence?style=flat-square">
+  <img src="https://img.shields.io/github/sponsors/itslhaj?style=flat-square">
 </p>
 
 <br/>
@@ -242,15 +242,19 @@ npm start
 8. **Review**: Once your PR is reviewed and approved, it will be merged into the main branch. Congratulations on your contribution!
 </details>
 
-<details>
-<summary>Contributor Graph</summary>
-<br>
-<p align="left">
-<a href="https://github.com/Aziz018/ft_transcendence/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=Aziz018/ft_transcendence" />
-</a>
+---
+
+<h2 align="center">✨ Special Thanks to Our Contributors ✨</h2>
+
+<p align="center">
+  <a href="https://github.com/Aziz018/ft_transcendence/graphs/contributors">
+    <img src="https://contrib.rocks/image?repo=Aziz018/ft_transcendence&v=2" />
+  </a>
 </p>
-</details>
+
+<p align="center">
+  💙 Huge thanks to everyone who contributed to this project!
+</p>
 
 ---
 
