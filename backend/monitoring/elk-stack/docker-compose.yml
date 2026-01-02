@@ -127,24 +127,27 @@ services:
       retries: 10
       start_period: 15s
   logstash:
-    image: logstash:latest
-    build: logstash
+    image: docker.elastic.co/logstash/logstash:${STACK_VERSION}
     container_name: logstash
     environment:
       - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
     volumes:
       - certs:${CERTS_PATH}:rw
+      - ./logstash/conf/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
     depends_on:
       elasticsearch:
         condition: service_healthy
     networks:
       - elk
   filebeat:
-    image: filebeat:latest
+    image: docker.elastic.co/beats/filebeat:${STACK_VERSION}
     container_name: filebeat
-    build: filebeat
+    command:
+      - '-e'
+      - '--strict.perms=false'
     volumes:
       - logs:/var/log/:rw
+      - ./filebeat/conf/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
     networks:
       - elk
     depends_on:
