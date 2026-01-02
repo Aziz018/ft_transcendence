@@ -3,10 +3,10 @@
 
 <!-- BADGES -->
 <p align="center">
-  <img src="https://img.shields.io/github/languages/top/Aziz018/ft_transcendence?style=flat-square">
-  <img src="https://img.shields.io/github/repo-size/Aziz018/ft_transcendence?style=flat-square">
-  <img src="https://img.shields.io/github/last-commit/Aziz018/ft_transcendence?style=flat-square">
-  <img src="https://img.shields.io/github/license/Aziz018/ft_transcendence?style=flat-square">
+  <img src="https://img.shields.io/github/languages/top/Aziz018/ft_transcendence">
+  <img src="https://img.shields.io/github/repo-size/Aziz018/ft_transcendence">
+  <img src="https://img.shields.io/github/last-commit/Aziz018/ft_transcendence">
+  <img src="https://img.shields.io/github/license/Aziz018/ft_transcendence">
 </p>
 
 <br/>
@@ -246,9 +246,9 @@ npm start
 <summary>Contributor Graph</summary>
 <br>
 <p align="left">
-  <a href="https://github.com/Aziz018/ft_transcendence/graphs/contributors">
-    <img src="https://contrib.rocks/image?repo=Aziz018/ft_transcendence">
-  </a>
+<a href="https://github.com/Aziz018/ft_transcendence/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=Aziz018/ft_transcendence" />
+</a>
 </p>
 </details>
 
