@@ -1,5 +1,7 @@
 <h2>Contributing to ft_transcendence</h2>
 
+![grisageeddine](https://github.com/user-attachments/assets/e0648776-f628-47b0-a6f8-1f7518bcf55c)
+
 Thank you for your interest in contributing to the **ft_transcendence** project! We welcome all contributions, from bug reports to new features. This document outlines the guidelines for contributing to this repository.
 
 ## How to Contribute
