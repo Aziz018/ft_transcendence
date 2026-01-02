@@ -59,16 +59,12 @@
 - [Overview](#overview)
 - [Features](#features)
 - [Project Structure](#project-structure)
-    - [Project Index](#project-index)
 - [Getting Started](#getting-started)
     - [Prerequisites](#prerequisites)
     - [Installation](#installation)
     - [Usage](#usage)
-    - [Testing](#testing)
-- [Roadmap](#roadmap)
 - [Contributing](#contributing)
 - [License](#license)
-- [Acknowledgments](#acknowledgments)
 
 ---
 
@@ -181,23 +177,23 @@ Build  from the source and intsall dependencies:
 3. **Install the dependencies:**
 <br/>
 
-    [![docker][docker-shield]][docker-link]
+[![docker][docker-shield]][docker-link]
 
-    [docker-shield]: https://img.shields.io/badge/Docker-2CA5E0.svg?style=flat&logo=docker&logoColor=white
-    [docker-link]: https://www.docker.com/
+[docker-shield]: https://img.shields.io/badge/Docker-2CA5E0.svg?style=flat&logo=docker&logoColor=white
+[docker-link]: https://www.docker.com/
 
-    ```sh
-    ❯ docker build -t / .
-    ```
+```sh
+❯ docker build -t / .
+```
 
-    [![npm][npm-shield]][npm-link]
+[![npm][npm-shield]][npm-link]
 
-    [npm-shield]: https://img.shields.io/badge/npm-CB3837.svg?style=flat&logo=npm&logoColor=white
-    [npm-link]: https://www.npmjs.com/
+[npm-shield]: https://img.shields.io/badge/npm-CB3837.svg?style=flat&logo=npm&logoColor=white
+[npm-link]: https://www.npmjs.com/
 
-    ```sh
-    ❯ npm install
-    ```
+```sh
+❯ npm install
+```
 
 ### Usage
 
