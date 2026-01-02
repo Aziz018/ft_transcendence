@@ -5,6 +5,16 @@ volumes:
   prometheus_data:
     driver: local
 
+secrets:
+  admin_password:
+    file: ./secrets/admin-password.txt
+  google_client_secret:
+    file: ./secrets/google-client-secret.txt
+  github_client_secret:
+    file: ./secrets/github-client-secret.txt
+  gitlab_client_secret:
+    file: ./secrets/gitlab-client-secret.txt
+
 services:
   prometheus:
     image: prom/prometheus
@@ -22,29 +32,28 @@ services:
     ports:
       - 9090:9090
   grafana:
-    image: grafana/grafana-enterprise:latest
+    image: grafana/grafana-enterprise
     container_name: grafana-container
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
-      start_period: 20s
+    #healthcheck:
+    #  test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+    #  interval: 10s
+    #  timeout: 3s
+    #  retries: 5
+    #  start_period: 20s
+    volumes:
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    secrets:
+      - admin_password
+      - google_client_secret
+      - github_client_secret
+      - gitlab_client_secret
+    env_file:
+      - ./.env
     networks:
       - prom_net
     ports:
       - 3000:3000
-  setup-dashboards:
-    image: setup-dashboards
-    build: grafana/setup-dashboards
-    container_name: setup-dashboards-container
-    networks:
-      - prom_net
-    depends_on:
-      grafana:
-        condition: service_healthy
-    environment:
-      - GRAFANA_HOST=grafana-container
   alertmanager:
     image: prom/alertmanager
     build: alertmanager
