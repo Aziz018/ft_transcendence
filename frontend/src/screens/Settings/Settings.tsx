@@ -5,6 +5,7 @@ import { Link, redirect } from "../../library/Router/Router";
 import { getToken, clearToken } from "../../lib/auth";
 import { wsService } from "../../services/wsService";
 import TopRightBlurEffect from "../../components/ui/BlurEffect/TopRightBlurEffect";
+import { useTheme, themeService } from "../../context/ThemeContext";
 
 import DashboardIcon from "../../assets/dd.svg";
 import LeaderboardIcon from "../../assets/Leaderboard.svg";
@@ -43,7 +44,8 @@ const Settings = () => {
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [showTwoFactorModal, setShowTwoFactorModal] = useState(false);
   const [qrCode, setQrCode] = useState("");
-  const [isDarkMode, setIsDarkMode] = useState(true);
+  const theme = useTheme();
+  const isDarkMode = theme === "dark";
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const fileInputRef = Fuego.useRef<HTMLInputElement>(null);
 
@@ -440,7 +442,7 @@ const Settings = () => {
                     Light
                   </span>
                   <button
-                    onClick={() => setIsDarkMode(!isDarkMode)}
+                    onClick={() => themeService.toggleTheme()}
                     className={`relative w-14 h-7 rounded-full transition-colors ${
                       isDarkMode ? "bg-accent-green" : "bg-white/20"
                     }`}>

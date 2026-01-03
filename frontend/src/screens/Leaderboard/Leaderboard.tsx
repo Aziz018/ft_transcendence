@@ -66,106 +66,34 @@ const Leaderboard = () => {
     try {
       const backend =
         (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-        "http://localhost:3001";
+        "http://localhost:3000";
       const token = getToken();
 
-      const mockData: Player[] = [
-        {
-          rank: 1,
-          id: "1",
-          name: "Champion Player",
-          avatar: "",
-          wins: 150,
-          losses: 20,
-          score: 3500,
+      const response = await fetch(`${backend}/v1/leaderboard/global`, {
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
         },
-        {
-          rank: 2,
-          id: "2",
-          name: "Silver Knight",
-          avatar: "",
-          wins: 140,
-          losses: 25,
-          score: 3200,
-        },
-        {
-          rank: 3,
-          id: "3",
-          name: "Bronze Warrior",
-          avatar: "",
-          wins: 130,
-          losses: 30,
-          score: 2900,
-        },
-        {
-          rank: 4,
-          id: "4",
-          name: "Rising Star",
-          avatar: "",
-          wins: 120,
-          losses: 35,
-          score: 2600,
-        },
-        {
-          rank: 5,
-          id: "5",
-          name: "Skilled Gamer",
-          avatar: "",
-          wins: 110,
-          losses: 40,
-          score: 2400,
-        },
-        {
-          rank: 6,
-          id: "6",
-          name: "Pro Player",
-          avatar: "",
-          wins: 100,
-          losses: 45,
-          score: 2200,
-        },
-        {
-          rank: 7,
-          id: "7",
-          name: "Elite Fighter",
-          avatar: "",
-          wins: 95,
-          losses: 50,
-          score: 2000,
-        },
-        {
-          rank: 8,
-          id: "8",
-          name: "Master Tactician",
-          avatar: "",
-          wins: 90,
-          losses: 55,
-          score: 1850,
-        },
-        {
-          rank: 9,
-          id: "9",
-          name: "Swift Striker",
-          avatar: "",
-          wins: 85,
-          losses: 60,
-          score: 1700,
-        },
-        {
-          rank: 10,
-          id: "10",
-          name: "Determined Soul",
-          avatar: "",
-          wins: 80,
-          losses: 65,
-          score: 1550,
-        },
-      ];
+      });
 
-      setTimeout(() => {
-        setPlayers(mockData);
-        setIsLoading(false);
-      }, 500);
+      if (!response.ok) {
+        throw new Error("Failed to fetch leaderboard");
+      }
+
+      const data = await response.json();
+      
+      // Transform backend data to match frontend Player interface
+      const transformedData: Player[] = data.leaderboard.map((item: any) => ({
+        rank: item.rank,
+        id: item.userId,
+        name: item.username,
+        avatar: "",
+        wins: 0, // These fields aren't in the backend yet
+        losses: 0,
+        score: item.exp,
+      }));
+
+      setPlayers(transformedData);
+      setIsLoading(false);
     } catch (error) {
       console.error("Failed to fetch leaderboard:", error);
       setIsLoading(false);
@@ -327,8 +255,18 @@ const Leaderboard = () => {
           {isLoading ? (
             <div className="flex items-center justify-center h-64">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent-green"></div>
-            </div>
-          ) : (
+            </div>          ) : players.length === 0 ? (
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-12">
+              <div className="text-center">
+                <div className="text-6xl mb-4">🏆</div>
+                <h3 className="font-questrial text-light text-2xl mb-2">
+                  No user match the top 1 yet
+                </h3>
+                <p className="font-questrial text-light/60">
+                  Be the first to earn experience points and claim the top spot!
+                </p>
+              </div>
+            </div>          ) : (
             <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">

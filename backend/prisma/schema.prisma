@@ -45,6 +45,25 @@ enum FriendRequestStatus {
   REJECTED
 }
 
+enum TournamentStatus {
+  CREATED
+  WAITING
+  IN_PROGRESS
+  FINISHED
+}
+
+enum TournamentInviteStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+enum MatchStatus {
+  PENDING
+  IN_PROGRESS
+  FINISHED
+}
+
 /**
  * Represents a system user.
  * Fields:
@@ -81,6 +100,13 @@ model User {
   sentMessages      Message[] @relation("MessageSender")
   receivedMessages  Message[] @relation("MessageReceiver")
   roomMembers       RoomMember[]
+
+  ownedTournaments        Tournament[] @relation("TournamentOwner")
+  tournamentParticipants  TournamentParticipant[]
+  tournamentInvites       TournamentInvite[]
+  matchesAsPlayer1        Match[] @relation("MatchPlayer1")
+  matchesAsPlayer2        Match[] @relation("MatchPlayer2")
+  matchesWon              Match[] @relation("MatchWinner")
 
   @@index([name, email])
 }
@@ -171,4 +197,76 @@ model Message {
   sender    User @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
   receiver  User? @relation("MessageReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
   room      Room? @relation(fields: [roomId], references: [id], onDelete: Cascade)
+}
+
+model Tournament {
+  id          String @id @default(uuid())
+  name        String
+  maxPlayers  Int
+  ownerId     String
+  status      TournamentStatus @default(CREATED)
+  currentRound Int @default(0)
+  winnerId    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  startedAt   DateTime?
+  finishedAt  DateTime?
+
+  owner        User @relation("TournamentOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  participants TournamentParticipant[]
+  invites      TournamentInvite[]
+  matches      Match[]
+
+  @@index([status, ownerId])
+}
+
+model TournamentParticipant {
+  id            String @id @default(uuid())
+  tournamentId  String
+  userId        String
+  joinedAt      DateTime @default(now())
+  placement     Int? // 1st, 2nd, 3rd, etc. Set when eliminated or tournament finishes
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  user       User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, userId])
+  @@index([tournamentId])
+}
+
+model TournamentInvite {
+  id            String @id @default(uuid())
+  tournamentId  String
+  userId        String
+  status        TournamentInviteStatus @default(PENDING)
+  createdAt     DateTime @default(now())
+  respondedAt   DateTime?
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  user       User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, userId])
+  @@index([userId, status])
+}
+
+model Match {
+  id            String @id @default(uuid())
+  tournamentId  String
+  round         Int // 1 = first round, 2 = semi-final, 3 = final, etc.
+  matchNumber   Int // Position in the round (0-indexed)
+  player1Id     String?
+  player2Id     String?
+  winnerId      String?
+  status        MatchStatus @default(PENDING)
+  createdAt     DateTime @default(now())
+  startedAt     DateTime?
+  finishedAt    DateTime?
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  player1    User? @relation("MatchPlayer1", fields: [player1Id], references: [id], onDelete: SetNull)
+  player2    User? @relation("MatchPlayer2", fields: [player2Id], references: [id], onDelete: SetNull)
+  winner     User? @relation("MatchWinner", fields: [winnerId], references: [id], onDelete: SetNull)
+
+  @@unique([tournamentId, round, matchNumber])
+  @@index([tournamentId, round])
 }

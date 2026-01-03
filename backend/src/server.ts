@@ -181,9 +181,12 @@ export default class Server {
       allowedHeaders: ["Content-Type", "Authorization"],
       exposedHeaders: ["Authorization"],
     });
+    
+    // Register custom plugins AFTER JWT plugin
     for (const plugin of this.plugins) {
       await this.fastify.register(plugin);
     }
+    
     await this.registerOAuthClients();
     await fastify.register(websocket);
   }

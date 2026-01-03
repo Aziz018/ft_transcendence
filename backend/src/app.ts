@@ -13,6 +13,8 @@ import AuthRoutes from "./routes/auth.js";
 import TOTPRoutes from "./routes/totp.js";
 import ChatRoutes from "./routes/chat.js";
 import { MessageRoutes } from "./routes/message.js";
+import LeaderboardRoutes from "./routes/leaderboard.js";
+import { TournamentRoutes } from "./routes/tournament.js";
 
 import JWTAuthenticationPlugin from "./plugins/jwt.js";
 import {
@@ -54,6 +56,14 @@ const routes = [
   {
     pcb: MessageRoutes,
     opt: {},
+  },
+  {
+    pcb: LeaderboardRoutes,
+    opt: { prefix: "/v1/leaderboard" },
+  },
+  {
+    pcb: TournamentRoutes,
+    opt: { prefix: "/v1/tournament" },
   },
 ];
 

@@ -16,6 +16,7 @@ import TopRightBlurEffect from "../../components/ui/BlurEffect/TopRightBlurEffec
 import { getToken, decodeTokenPayload, clearToken } from "../../lib/auth";
 import { Link, redirect } from "../../library/Router/Router";
 import { useEffect } from "../../library/hooks/useEffect";
+import { useTheme, themeService } from "../../context/ThemeContext";
 
 const navigationItems = [
   { label: "Dashboard", active: false, icon: DashboardIcon },
@@ -29,6 +30,8 @@ const navigationItems = [
 const Dashboard = () => {
   const [isAuthenticated, setIsAuthenticated] = Fuego.useState(true);
   const [userAvatar, setUserAvatar] = Fuego.useState("");
+  const theme = useTheme();
+  const isDarkMode = theme === "dark";
 
   useEffect(() => {
     const token = getToken();
@@ -105,21 +108,21 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="bg-[#141517] overflow-hidden w-full min-w-[1431px] min-h-[1024px] relative flex">
+    <div className="bg-theme-primary overflow-hidden w-full min-w-[1431px] min-h-[1024px] relative flex">
       {/* Background decorative elements */}
       <TopRightBlurEffect />
-      <div className="absolute top-[991px] left-[-285px] w-[900px] h-[900px] bg-[#f9f9f980] rounded-[450px] blur-[153px] pointer-events-none" />
+      <div className="absolute top-[991px] left-[-285px] w-[900px] h-[900px] bg-[#f9f9f980] dark:bg-[#f9f9f980] rounded-[450px] blur-[153px] pointer-events-none opacity-20 dark:opacity-100" />
 
       <img
-        className="absolute top-[-338px] left-[1235px] max-w-full w-[900px] pointer-events-none"
+        className="absolute top-[-338px] left-[1235px] max-w-full w-[900px] pointer-events-none opacity-10 dark:opacity-100"
         alt="Ellipse"
         src="/ellipse-2.svg"
       />
 
-      <div className="absolute top-[721px] left-[-512px] w-[700px] h-[700px] bg-[#dda15e80] rounded-[350px] blur-[153px] pointer-events-none" />
+      <div className="absolute top-[721px] left-[-512px] w-[700px] h-[700px] bg-[#dda15e80] rounded-[350px] blur-[153px] pointer-events-none opacity-20 dark:opacity-100" />
 
       {/* Left Sidebar */}
-      <aside className="w-[450px] border-r-[1px] border-[#F9F9F9] border-opacity-[0.05] h-screen flex flex-col relative z-10">
+      <aside className="w-[450px] border-r-[1px] border-theme h-screen flex flex-col relative z-10 bg-theme-secondary">
         {/* Logo */}
         <div className="pt-[47px] pl-[43px] pb-[80px] flex items-center gap-3">
           <img className="w-[250px] " alt="Group" src={Logo} />
@@ -141,12 +144,12 @@ const Dashboard = () => {
           {navigationItems.map((item, index) => (
             <div
               key={index}
-              className="cursor-pointer flex items-center gap-3 px -3 py -2 w-full max-w-full transition-colors duration-150">
+              className="cursor-pointer flex items-center gap-3 px-3 py-2 w-full max-w-full transition-colors duration-150 hover:bg-white/5 rounded-lg">
               <div
                 className={`${
                   item.active
-                    ? "bg-transparent border border-white/10 border-solid rounded-full p-3"
-                    : "bg-transparent border border-white/10 border-solid rounded-full p-3"
+                    ? "bg-transparent border border-theme rounded-full p-3"
+                    : "bg-transparent border border-theme rounded-full p-3"
                 }`}>
                 <img
                   src={item.icon}
@@ -160,8 +163,8 @@ const Dashboard = () => {
               </div>
               <Link to={item.label.toLowerCase()}>
                 <span
-                  className={`[font-family:'Questrial',Helvetica] font-normal text-base tracking-[0] leading-[15px] whitespace-nowrap ${
-                    item.active ? "text-white" : "text-white/30"
+                  className={`[font-family:'Questrial',Helvetica] font-normal text-base tracking-[0] leading-[15px] whitespace-nowrap text-theme-primary ${
+                    item.active ? "" : "opacity-30"
                   }`}>
                   {item.label}
                 </span>
@@ -170,8 +173,22 @@ const Dashboard = () => {
           ))}
         </nav>
 
+        {/* Theme Toggle */}
+        <div className="mt-[40px] px-[88px]">
+          <button
+            onClick={() => themeService.toggleTheme()}
+            className="w-full flex items-center gap-3 px-3 py-3 bg-theme-card border border-theme rounded-lg bg-theme-card-hover transition-colors duration-150">
+            <div className="text-2xl">
+              {isDarkMode ? "☀️" : "🌙"}
+            </div>
+            <span className="font-questrial text-theme-primary text-base">
+              {isDarkMode ? "Light Mode" : "Dark Mode"}
+            </span>
+          </button>
+        </div>
+
         {/* logout btn */}
-        <div className="mt-[60px] p-2 w-[150px] bg-transparent ml-[88px] border border-solid border-[#f9f9f94c] rounded-[14px] flex items-center justify-center gap-2 cursor-pointer hover:bg-white/10 transition-colors duration-150">
+        <div className="mt-[40px] p-2 w-[150px] bg-transparent ml-[88px] border border-theme rounded-[14px] flex items-center justify-center gap-2 cursor-pointer bg-theme-card-hover transition-all duration-150">
           <div>
             <img src={LogOutIcon} alt="logout icon" className="w-4 h-4" />
           </div>
@@ -198,7 +215,7 @@ const Dashboard = () => {
                 clearToken();
                 redirect("/");
               }}
-              className="text-light ">
+              className="text-theme-primary">
               LogOut
             </button>
           </div>
