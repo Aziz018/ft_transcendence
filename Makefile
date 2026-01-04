@@ -3,6 +3,10 @@
 # Detect docker compose command (new 'docker compose' or legacy 'docker-compose')
 DOCKER_COMPOSE := $(shell command -v docker-compose 2>/dev/null || echo "docker compose")
 
+# Enable BuildKit to avoid warnings (required for Docker Compose v2)
+export DOCKER_BUILDKIT=1
+export COMPOSE_DOCKER_CLI_BUILD=1
+
 # Default target
 all: build up
 

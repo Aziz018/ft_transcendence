@@ -5,7 +5,6 @@ import { Link, redirect } from "../../library/Router/Router";
 import { getToken, clearToken } from "../../lib/auth";
 import { wsService } from "../../services/wsService";
 import TopRightBlurEffect from "../../components/ui/BlurEffect/TopRightBlurEffect";
-import { useTheme, themeService } from "../../context/ThemeContext";
 
 import DashboardIcon from "../../assets/dd.svg";
 import LeaderboardIcon from "../../assets/Leaderboard.svg";
@@ -44,8 +43,6 @@ const Settings = () => {
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [showTwoFactorModal, setShowTwoFactorModal] = useState(false);
   const [qrCode, setQrCode] = useState("");
-  const theme = useTheme();
-  const isDarkMode = theme === "dark";
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const fileInputRef = Fuego.useRef<HTMLInputElement>(null);
 
@@ -419,48 +416,7 @@ const Settings = () => {
               </div>
             </div>
 
-            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
-              <h2 className="font-questrial text-light text-2xl mb-4">
-                Preferences
-              </h2>
 
-              <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
-                <div>
-                  <h3 className="font-questrial text-light text-lg mb-1">
-                    Theme
-                  </h3>
-                  <p className="font-questrial text-light/60 text-sm">
-                    Choose your preferred color scheme
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <span
-                    className={`font-questrial text-sm ${
-                      !isDarkMode ? "text-light" : "text-light/40"
-                    }`}>
-                    Light
-                  </span>
-                  <button
-                    onClick={() => themeService.toggleTheme()}
-                    className={`relative w-14 h-7 rounded-full transition-colors ${
-                      isDarkMode ? "bg-accent-green" : "bg-white/20"
-                    }`}>
-                    <div
-                      className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-transform ${
-                        isDarkMode ? "translate-x-8" : "translate-x-1"
-                      }`}
-                    />
-                  </button>
-                  <span
-                    className={`font-questrial text-sm ${
-                      isDarkMode ? "text-light" : "text-light/40"
-                    }`}>
-                    Dark
-                  </span>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>

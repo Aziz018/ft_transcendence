@@ -16,7 +16,6 @@ import TopRightBlurEffect from "../../components/ui/BlurEffect/TopRightBlurEffec
 import { getToken, decodeTokenPayload, clearToken } from "../../lib/auth";
 import { Link, redirect } from "../../library/Router/Router";
 import { useEffect } from "../../library/hooks/useEffect";
-import { useTheme, themeService } from "../../context/ThemeContext";
 
 const navigationItems = [
   { label: "Dashboard", active: false, icon: DashboardIcon },
@@ -30,8 +29,6 @@ const navigationItems = [
 const Dashboard = () => {
   const [isAuthenticated, setIsAuthenticated] = Fuego.useState(true);
   const [userAvatar, setUserAvatar] = Fuego.useState("");
-  const theme = useTheme();
-  const isDarkMode = theme === "dark";
 
   useEffect(() => {
     const token = getToken();
@@ -172,20 +169,6 @@ const Dashboard = () => {
             </div>
           ))}
         </nav>
-
-        {/* Theme Toggle */}
-        <div className="mt-[40px] px-[88px]">
-          <button
-            onClick={() => themeService.toggleTheme()}
-            className="w-full flex items-center gap-3 px-3 py-3 bg-theme-card border border-theme rounded-lg bg-theme-card-hover transition-colors duration-150">
-            <div className="text-2xl">
-              {isDarkMode ? "☀️" : "🌙"}
-            </div>
-            <span className="font-questrial text-theme-primary text-base">
-              {isDarkMode ? "Light Mode" : "Dark Mode"}
-            </span>
-          </button>
-        </div>
 
         {/* logout btn */}
         <div className="mt-[40px] p-2 w-[150px] bg-transparent ml-[88px] border border-theme rounded-[14px] flex items-center justify-center gap-2 cursor-pointer bg-theme-card-hover transition-all duration-150">

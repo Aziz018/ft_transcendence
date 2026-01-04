@@ -9,10 +9,8 @@ import { useState } from "../../../library/hooks/useState";
 import { useCallback } from "../../../library/hooks/useCallback";
 import { notificationService } from "../../../services/notificationService";
 import FriendRequestNotifications from "../../../components/Dashboard/FriendRequestNotifications";
-import { useTheme } from "../../../context/ThemeContext";
 
 const WelcomeHeaderSection = () => {
-  const { theme, toggleTheme } = useTheme();
 
   const getAvatarUrl = (avatarPath: string | null | undefined): string => {
     const backend =
@@ -349,13 +347,6 @@ const WelcomeHeaderSection = () => {
             onCountChange={(count) => setNotificationCount(count)}
           />
         </div>
-
-        <button
-          onClick={toggleTheme}
-          className="h-10 px-[18px] bg-accent-orange hover:bg-accent-orange/90 rounded-[14px] border border-solid border-[#f9f9f933] font-questrial font-normal text-light text-sm tracking-[0] leading-[15px] transition-all duration-300 flex items-center gap-2">
-          <span className="text-lg">{theme === "dark" ? "☀️" : "🌙"}</span>
-          {theme === "dark" ? "Light Mode" : "Dark Mode"}
-        </button>
       </div>
     </header>
   );
