@@ -1,15 +1,40 @@
 import Fuego from "../../../index";
 
 import { BellIcon, SearchIcon } from "lucide-react";
-// import { Button } from "../../../../components/ui/button";
-// import { Input } from "../../../components/ui/input";
 import NotificationBell from "../../../assets/notification.svg";
 import SecondaryButton from "../../../components/ui/SecondaryButton";
 import { getToken, decodeTokenPayload } from "../../../lib/auth";
 import { useEffect } from "../../../library/hooks/useEffect";
 import { useState } from "../../../library/hooks/useState";
+import { useCallback } from "../../../library/hooks/useCallback";
+import { notificationService } from "../../../services/notificationService";
+import FriendRequestNotifications from "../../../components/Dashboard/FriendRequestNotifications";
 
 const WelcomeHeaderSection = () => {
+
+  const getAvatarUrl = (avatarPath: string | null | undefined): string => {
+    const backend =
+      (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3001";
+
+    if (!avatarPath || !avatarPath.trim()) {
+      return `${backend}/images/default-avatar.png`;
+    }
+
+    if (avatarPath.startsWith("/public/")) {
+      return `${backend}${avatarPath.replace("/public", "")}`;
+    }
+
+    if (avatarPath.startsWith("/")) {
+      return `${backend}${avatarPath}`;
+    }
+
+    if (avatarPath.startsWith("http://") || avatarPath.startsWith("https://")) {
+      return avatarPath;
+    }
+
+    return `${backend}/images/default-avatar.png`;
+  };
+
   const deriveNameFromToken = () => {
     try {
       const token = getToken();
@@ -33,6 +58,12 @@ const WelcomeHeaderSection = () => {
   };
 
   const [name, setName] = useState<string>(deriveNameFromToken());
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notificationCount, setNotificationCount] = useState(0);
 
   useEffect(() => {
     if (name && name !== "Guest") {
@@ -45,7 +76,7 @@ const WelcomeHeaderSection = () => {
 
         const backend =
           (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-          "http://localhost:3000";
+          "http://localhost:3001";
 
         const headers: any = { "Content-Type": "application/json" };
         if (token) headers["Authorization"] = `Bearer ${token}`;
@@ -77,6 +108,144 @@ const WelcomeHeaderSection = () => {
     fetchProfile();
   }, []);
 
+  const handleSearch = useCallback(async () => {
+    const trimmedQuery = searchQuery.trim();
+
+    if (!trimmedQuery || trimmedQuery.length < 2) {
+      setSearchResults([]);
+      setShowResults(false);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const token = getToken();
+      const backend =
+        (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
+        "http://localhost:3001";
+
+      const res = await fetch(
+        `${backend}/v1/user/search?q=${encodeURIComponent(trimmedQuery)}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!res.ok) {
+        console.error("Search failed:", res.statusText);
+        return;
+      }
+
+      const data = await res.json();
+      setSearchResults(data.users || []);
+      setShowResults(true);
+    } catch (error) {
+      console.error("[Search] Failed:", error);
+    } finally {
+      setIsSearching(false);
+    }
+  }, [searchQuery]);
+
+  const handleAddFriend = useCallback(async (userId: string) => {
+    try {
+      const token = getToken();
+      const backend =
+        (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
+        "http://localhost:3001";
+
+      const res = await fetch(`${backend}/v1/friend/request`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          requested_uid: userId,
+        }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+
+        if (res.status === 409) {
+          notificationService.warning(
+            error.message || "Friend request already sent",
+            4000
+          );
+        } else if (res.status === 403) {
+          notificationService.error(
+            error.message || "Cannot send friend request",
+            4000
+          );
+        } else if (res.status === 400) {
+          notificationService.error(error.message || "Invalid user", 3000);
+        } else {
+          notificationService.error(
+            error.message || "Failed to send friend request",
+            4000
+          );
+        }
+        return;
+      }
+
+      notificationService.success("Friend request sent successfully!", 3000);
+
+      setSearchResults((prev) => prev.filter((u) => u.uid !== userId));
+    } catch (error) {
+      console.error("[AddFriend] Failed:", error);
+      notificationService.error("Failed to send friend request", 4000);
+    }
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      handleSearch();
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, handleSearch]);
+
+  useEffect(() => {
+    const fetchNotificationCount = async () => {
+      try {
+        const token = getToken();
+        const backend =
+          (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
+          "http://localhost:3001";
+
+        const res = await fetch(`${backend}/v1/friend/incoming`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setNotificationCount(Array.isArray(data) ? data.length : 0);
+        }
+      } catch (error) {
+        console.error("[Notifications] Failed to fetch count:", error);
+      }
+    };
+
+    fetchNotificationCount();
+
+    const unsubscribe = notificationService.subscribe((notification) => {
+      if (
+        notification.type === "friend-request" &&
+        notification.title !== "removed"
+      ) {
+        setNotificationCount((prev) => prev + 1);
+      }
+    });
+
+    return unsubscribe;
+  }, []);
+
   return (
     <header className="w-full flex items-start justify-between gap-4 bg-transparent">
       <div className="flex flex-col gap-6">
@@ -90,30 +259,94 @@ const WelcomeHeaderSection = () => {
       </div>
 
       <div className="flex items-center gap-[10px]">
-        <div className="relative w-[230px]">
-          {/* <input
+        <div className="relative w-[300px]">
+          <input
             type="text"
-            placeholder="Search"
-            className="flex h-9 w-full focus:text-light rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
-          /> */}
+            placeholder="Search users (e.g., 'aziz')..."
+            value={searchQuery}
+            onInput={(e: any) => setSearchQuery(e.target.value)}
+            onFocus={() => searchQuery && setShowResults(true)}
+            onBlur={() => setTimeout(() => setShowResults(false), 200)}
+            className="flex h-10 w-full rounded-md border border-[#f9f9f933] bg-[#1a1a1a] px-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-blue-600"
+          />
+
+          {showResults && searchResults.length > 0 && (
+            <div className="absolute top-full mt-2 w-full bg-[#1f1f1f] border border-[#f9f9f933] rounded-md shadow-lg max-h-[300px] overflow-y-auto z-50">
+              {searchResults.map((user) => (
+                <div
+                  key={user.uid}
+                  className="flex items-center justify-between p-3 hover:bg-white/5 border-b border-white/5">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={getAvatarUrl(user.avatar)}
+                      alt={user.name}
+                      className="w-10 h-10 rounded-full object-cover bg-gray-700"
+                      onError={(e) => {
+                        const backend =
+                          (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
+                          "http://localhost:3001";
+                        console.error(
+                          "Failed to load avatar:",
+                          e.currentTarget.src
+                        );
+                        e.currentTarget.src = `${backend}/images/default-avatar.png`;
+                      }}
+                    />
+                    <div>
+                      <p className="text-white font-medium">{user.name}</p>
+                      <p className="text-white/50 text-sm">{user.email}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleAddFriend(user.uid)}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-md transition-colors">
+                    Add Friend
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {showResults &&
+            !isSearching &&
+            searchQuery &&
+            searchResults.length === 0 && (
+              <div className="absolute top-full mt-2 w-full bg-[#1f1f1f] border border-[#f9f9f933] rounded-md shadow-lg p-4 z-50">
+                <p className="text-white/50 text-center">No users found</p>
+              </div>
+            )}
+
+          {isSearching && (
+            <div className="absolute top-full mt-2 w-full bg-[#1f1f1f] border border-[#f9f9f933] rounded-md shadow-lg p-4 z-50">
+              <p className="text-white/50 text-center">Searching...</p>
+            </div>
+          )}
         </div>
 
-        <button
-          variant="outline"
-          size="icon"
-          className="relative flex items-center justify-center h-10 w-[43px] rounded-[14px] border border-solid border-[#f9f9f933] bg-transparent hover:bg-transparent">
-          <img
-            src={NotificationBell}
-            alt="bell icon"
-            className="w-[22px] h-[22px]"
-          />
-          {/* small notification dot positioned over the top-right of the icon */}
-          <span className="absolute top-[10px] right-[13px] z-[1] w-[6px] h-[6px] bg-[#b7f272] rounded-full border border-white/20" />
-        </button>
+        <div className="relative">
+          <button
+            onClick={() => setShowNotifications(!showNotifications)}
+            variant="outline"
+            size="icon"
+            className="relative flex items-center justify-center h-10 w-[43px] rounded-[14px] border border-solid border-[#f9f9f933] bg-transparent hover:bg-white/5 transition-colors">
+            <img
+              src={NotificationBell}
+              alt="bell icon"
+              className="w-[22px] h-[22px]"
+            />
+            {notificationCount > 0 && (
+              <span className="absolute top-[6px] right-[9px] z-[1] min-w-[16px] h-[16px] bg-[#ef4444] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+                {notificationCount > 9 ? "9+" : notificationCount}
+              </span>
+            )}
+          </button>
 
-        <button className="h-10 px-[18px] bg-[#dda15e] rounded-[14px] border border-solid border-[#f9f9f933] [font-family:'Questrial',Helvetica] font-normal text-[#f9f9f9] text-sm tracking-[0] leading-[15px] hover:bg-[#dda15e]/90">
-          Switch Mode
-        </button>
+          <FriendRequestNotifications
+            isOpen={showNotifications}
+            onClose={() => setShowNotifications(false)}
+            onCountChange={(count) => setNotificationCount(count)}
+          />
+        </div>
       </div>
     </header>
   );

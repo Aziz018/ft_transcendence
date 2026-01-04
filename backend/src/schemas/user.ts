@@ -96,7 +96,9 @@ export const userProfileSchema = {
       properties: {
         uid: { type: "string" },
         name: { type: "string" },
+        email: { type: "string" },
         avatar: { type: "string" },
+        xp: { type: "number" },
         createdAt: { type: "string" },
       },
     },
@@ -116,7 +118,7 @@ export const userProfileUpdateSchema = {
     properties: {
       field: {
         type: "string",
-        enum: ["name", "avatar"],
+        enum: ["name", "avatar", "xp"],
       },
       value: { type: "string" },
     },

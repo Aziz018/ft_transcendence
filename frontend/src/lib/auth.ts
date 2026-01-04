@@ -13,7 +13,7 @@ export function saveToken(token: string) {
       }
       document.cookie = `access_token=${token}; Path=/; HttpOnly=false${expires}`;
     } catch (e) {
-      // ignore cookie set failures
+
     }
   } catch (e) {
     console.warn("failed to save token", e);

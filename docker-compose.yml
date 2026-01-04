@@ -1,0 +1,137 @@
+services:
+  # Frontend Service
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.microservices
+    container_name: ft_frontend
+    ports:
+      - "8080:80"
+    environment:
+      - VITE_API_URL=http://localhost:3000
+    networks:
+      - transcendence-network
+    depends_on:
+      - api-gateway
+    restart: unless-stopped
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile
+    container_name: ft_api_gateway
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - JWT_SECRET=${JWT_SECRET:-supersecret}
+      - CKE_SECRET=${CKE_SECRET:-supersecret}
+      - DATABASE_URL=file:/app/shared-data/dev.db
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - USER_SERVICE_URL=http://user-service:3002
+      - FRIEND_SERVICE_URL=http://friend-service:3003
+      - CHAT_SERVICE_URL=http://chat-service:3004
+      - FRONTEND_ORIGIN=${FRONTEND_ORIGIN:-http://localhost:5173}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - FACEBOOK_CLIENT_ID=${FACEBOOK_CLIENT_ID:-}
+      - FACEBOOK_CLIENT_SECRET=${FACEBOOK_CLIENT_SECRET:-}
+      - INTRA42_CLIENT_ID=${INTRA42_CLIENT_ID:-}
+      - INTRA42_CLIENT_SECRET=${INTRA42_CLIENT_SECRET:-}
+    volumes:
+      - shared-data:/app/shared-data
+      - avatar-uploads:/app/public/images
+    networks:
+      - transcendence-network
+    depends_on:
+      - auth-service
+      - user-service
+      - friend-service
+      - chat-service
+    restart: unless-stopped
+
+  # Auth Service
+  auth-service:
+    build:
+      context: ./services/auth-service
+      dockerfile: Dockerfile
+    container_name: ft_auth_service
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - JWT_SECRET=${JWT_SECRET:-supersecret}
+      - CKE_SECRET=${CKE_SECRET:-supersecret}
+      - DATABASE_URL=file:/app/shared-data/dev.db
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - FACEBOOK_CLIENT_ID=${FACEBOOK_CLIENT_ID:-}
+      - FACEBOOK_CLIENT_SECRET=${FACEBOOK_CLIENT_SECRET:-}
+      - INTRA42_CLIENT_ID=${INTRA42_CLIENT_ID:-}
+      - INTRA42_CLIENT_SECRET=${INTRA42_CLIENT_SECRET:-}
+    volumes:
+      - shared-data:/app/shared-data
+    networks:
+      - transcendence-network
+    restart: unless-stopped
+
+  # User Service
+  user-service:
+    build:
+      context: ./services/user-service
+      dockerfile: Dockerfile
+    container_name: ft_user_service
+    environment:
+      - NODE_ENV=production
+      - PORT=3002
+      - JWT_SECRET=${JWT_SECRET:-supersecret}
+      - DATABASE_URL=file:/app/shared-data/dev.db
+    volumes:
+      - shared-data:/app/shared-data
+      - avatar-uploads:/app/public/images
+    networks:
+      - transcendence-network
+    restart: unless-stopped
+
+  # Friend Service
+  friend-service:
+    build:
+      context: ./services/friend-service
+      dockerfile: Dockerfile
+    container_name: ft_friend_service
+    environment:
+      - NODE_ENV=production
+      - PORT=3003
+      - JWT_SECRET=${JWT_SECRET:-supersecret}
+      - DATABASE_URL=file:/app/shared-data/dev.db
+    volumes:
+      - shared-data:/app/shared-data
+    networks:
+      - transcendence-network
+    restart: unless-stopped
+
+  # Chat Service
+  chat-service:
+    build:
+      context: ./services/chat-service
+      dockerfile: Dockerfile
+    container_name: ft_chat_service
+    environment:
+      - NODE_ENV=production
+      - PORT=3004
+      - JWT_SECRET=${JWT_SECRET:-supersecret}
+      - DATABASE_URL=file:/app/shared-data/dev.db
+    volumes:
+      - shared-data:/app/shared-data
+    networks:
+      - transcendence-network
+    restart: unless-stopped
+
+networks:
+  transcendence-network:
+    driver: bridge
+
+volumes:
+  shared-data:
+  avatar-uploads:

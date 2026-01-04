@@ -15,7 +15,7 @@ import DashboardSection from "./sections/DashboardSection";
 import TopRightBlurEffect from "../../components/ui/BlurEffect/TopRightBlurEffect";
 import { getToken, decodeTokenPayload, clearToken } from "../../lib/auth";
 import { Link, redirect } from "../../library/Router/Router";
-// import { Button } from "../../components/ui/button";
+import { useEffect } from "../../library/hooks/useEffect";
 
 const navigationItems = [
   { label: "Dashboard", active: false, icon: DashboardIcon },
@@ -27,6 +27,56 @@ const navigationItems = [
 ];
 
 const Dashboard = () => {
+  const [isAuthenticated, setIsAuthenticated] = Fuego.useState(true);
+  const [userAvatar, setUserAvatar] = Fuego.useState("");
+
+  useEffect(() => {
+    const token = getToken();
+    if (!token) {
+      setIsAuthenticated(false);
+      redirect("/");
+    } else {
+      fetchUserProfile();
+    }
+  }, []);
+
+  const fetchUserProfile = async () => {
+    try {
+      const backend =
+        (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
+        "http://localhost:3001";
+      const token = getToken();
+
+      const res = await fetch(`${backend}/v1/user/profile`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setUserAvatar(data.avatar || "");
+      }
+    } catch (error) {
+      console.error("Failed to fetch profile:", error);
+    }
+  };
+
+  if (!isAuthenticated) {
+    return null;
+  }
+
+  const getAvatarUrl = (path: string | null | undefined): string => {
+    const backend =
+      (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3001";
+    if (!path || !path.trim()) return `${backend}/images/default-avatar.png`;
+    if (path.startsWith("/public/"))
+      return `${backend}${path.replace("/public", "")}`;
+    if (path.startsWith("/")) return `${backend}${path}`;
+    if (path.startsWith("http")) return path;
+    return `${backend}/images/default-avatar.png`;
+  };
+
   const UserName = () => {
     try {
       const t = getToken();
@@ -39,59 +89,37 @@ const Dashboard = () => {
   };
 
   const TokenAvatar = () => {
-    try {
-      const t = getToken();
-      if (!t)
-        return (
-          <img
-            className="w -[150px]  object -cover rounded -full"
-            alt="Ellipse"
-            src={Avatar}
-          />
-        );
-      const p = decodeTokenPayload(t);
-      if (p?.picture)
-        return (
-          <img
-            className="w- [150px]  object -cover rounded -full"
-            alt={p?.name || "avatar"}
-            src={p.picture}
-          />
-        );
-      return (
-        <img
-          className="w- [150px]  object -cover rounded -full"
-          alt="Ellipse"
-          src={Avatar}
-        />
-      );
-    } catch (e) {
-      return (
-        <img
-          className="w- [150px]  object -cover rounded -full"
-          alt="Ellipse"
-          src={Avatar}
-        />
-      );
-    }
+    return (
+      <img
+        className="w-[150px] object-cover rounded-full"
+        alt="User Avatar"
+        src={getAvatarUrl(userAvatar)}
+        onError={(e: any) => {
+          const backend =
+            (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
+            "http://localhost:3001";
+          e.currentTarget.src = `${backend}/images/default-avatar.png`;
+        }}
+      />
+    );
   };
 
   return (
-    <div className="bg-[#141517] overflow-hidden w-full min-w-[1431px] min-h-[1024px] relative flex">
+    <div className="bg-theme-primary overflow-hidden w-full min-w-[1431px] min-h-[1024px] relative flex">
       {/* Background decorative elements */}
       <TopRightBlurEffect />
-      <div className="absolute top-[991px] left-[-285px] w-[900px] h-[900px] bg-[#f9f9f980] rounded-[450px] blur-[153px] pointer-events-none" />
+      <div className="absolute top-[991px] left-[-285px] w-[900px] h-[900px] bg-[#f9f9f980] dark:bg-[#f9f9f980] rounded-[450px] blur-[153px] pointer-events-none opacity-20 dark:opacity-100" />
 
       <img
-        className="absolute top-[-338px] left-[1235px] max-w-full w-[900px] pointer-events-none"
+        className="absolute top-[-338px] left-[1235px] max-w-full w-[900px] pointer-events-none opacity-10 dark:opacity-100"
         alt="Ellipse"
         src="/ellipse-2.svg"
       />
 
-      <div className="absolute top-[721px] left-[-512px] w-[700px] h-[700px] bg-[#dda15e80] rounded-[350px] blur-[153px] pointer-events-none" />
+      <div className="absolute top-[721px] left-[-512px] w-[700px] h-[700px] bg-[#dda15e80] rounded-[350px] blur-[153px] pointer-events-none opacity-20 dark:opacity-100" />
 
       {/* Left Sidebar */}
-      <aside className="w-[450px] border-r-[1px] border-[#F9F9F9] border-opacity-[0.05] h-screen flex flex-col relative z-10">
+      <aside className="w-[450px] border-r-[1px] border-theme h-screen flex flex-col relative z-10 bg-theme-secondary">
         {/* Logo */}
         <div className="pt-[47px] pl-[43px] pb-[80px] flex items-center gap-3">
           <img className="w-[250px] " alt="Group" src={Logo} />
@@ -103,9 +131,9 @@ const Dashboard = () => {
           {/* <div className="mt-[32px] [font-family:'Questrial',Helvetica] font-normal text-white text-[32px] tracking-[0] leading-[15px] whitespace-nowrap">
             <UserName />
           </div> */}
-          <div className="mt-[17px] [font-family:'Questrial',Helvetica] font-normal text-[#f9f9f980] text-base tracking-[0] leading-[15px] whitespace-nowrap cursor-pointer">
+          {/* <div className="mt-[17px] [font-family:'Questrial',Helvetica] font-normal text-[#f9f9f980] text-base tracking-[0] leading-[15px] whitespace-nowrap cursor-pointer">
             View Profile
-          </div>
+          </div> */}
         </div>
 
         {/* Navigation Menu */}
@@ -113,12 +141,12 @@ const Dashboard = () => {
           {navigationItems.map((item, index) => (
             <div
               key={index}
-              className="cursor-pointer flex items-center gap-3 px -3 py -2 w-full max-w-full transition-colors duration-150">
+              className="cursor-pointer flex items-center gap-3 px-3 py-2 w-full max-w-full transition-colors duration-150 hover:bg-white/5 rounded-lg">
               <div
                 className={`${
                   item.active
-                    ? "bg-transparent border border-white/10 border-solid rounded-full p-3"
-                    : "bg-transparent border border-white/10 border-solid rounded-full p-3"
+                    ? "bg-transparent border border-theme rounded-full p-3"
+                    : "bg-transparent border border-theme rounded-full p-3"
                 }`}>
                 <img
                   src={item.icon}
@@ -132,8 +160,8 @@ const Dashboard = () => {
               </div>
               <Link to={item.label.toLowerCase()}>
                 <span
-                  className={`[font-family:'Questrial',Helvetica] font-normal text-base tracking-[0] leading-[15px] whitespace-nowrap ${
-                    item.active ? "text-white" : "text-white/30"
+                  className={`[font-family:'Questrial',Helvetica] font-normal text-base tracking-[0] leading-[15px] whitespace-nowrap text-theme-primary ${
+                    item.active ? "" : "opacity-30"
                   }`}>
                   {item.label}
                 </span>
@@ -143,7 +171,7 @@ const Dashboard = () => {
         </nav>
 
         {/* logout btn */}
-        <div className="mt-[60px] p-2 w-[150px] bg-transparent ml-[88px] border border-solid border-[#f9f9f94c] rounded-[14px] flex items-center justify-center gap-2 cursor-pointer hover:bg-white/10 transition-colors duration-150">
+        <div className="mt-[40px] p-2 w-[150px] bg-transparent ml-[88px] border border-theme rounded-[14px] flex items-center justify-center gap-2 cursor-pointer bg-theme-card-hover transition-all duration-150">
           <div>
             <img src={LogOutIcon} alt="logout icon" className="w-4 h-4" />
           </div>
@@ -153,7 +181,7 @@ const Dashboard = () => {
                 try {
                   const backend =
                     (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-                    "http://localhost:3000";
+                    "http://localhost:3001";
                   const token = getToken();
 
                   await fetch(`${backend}/v1/user/logout`, {
@@ -170,7 +198,7 @@ const Dashboard = () => {
                 clearToken();
                 redirect("/");
               }}
-              className="text-light ">
+              className="text-theme-primary">
               LogOut
             </button>
           </div>
