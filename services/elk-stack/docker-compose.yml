@@ -1,0 +1,165 @@
+networks:
+  elk:
+    name: elk-stack_elk
+    driver: bridge
+
+volumes:
+  esdata:
+    name: elk-stack_esdata
+    driver: local
+  certs:
+    name: elk-stack_certs
+    driver: local
+  logs:
+    name: app-logs
+    driver: local
+services:
+  init_certs:
+    build: setupSSL
+    container_name: init_certs
+    volumes:
+      - certs:/usr/share/elasticsearch/certs:rw
+  setup_passwords:
+    build: setupPassowrds
+    container_name: setup_passwords
+    environment:
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      - KIBANA_SYSTEM_PASSWORD=${KIBANA_SYSTEM_PASSWORD}
+    volumes:
+      - certs:/certs
+    networks:
+      - elk
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+  setupDashboards:
+    build: setupDashboards
+    image: set_dashboards
+    container_name: setDashboard
+    environment:
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+    networks:
+      - elk
+    depends_on:
+      kibana:
+        condition: service_healthy
+  setupDataCycleLife:
+    build: setupDataCycleLife
+    image: set_data_cycle_life
+    container_name: setupDataCycleLife
+    environment:
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+    networks:
+      - elk
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}
+    container_name: elasticsearch
+    depends_on:
+      init_certs:
+        condition: service_completed_successfully
+    healthcheck:
+      test: >
+        curl --silent --fail --cacert config/certs/ca/ca.crt -u elastic:${ELASTIC_PASSWORD} https://localhost:9200/_cluster/health?wait_for_status=yellow | grep -E '"status":"(yellow|green)"'
+      interval: 20s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
+    environment:
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      - xpack.security.enabled="true"
+      - xpack.security.http.ssl.enabled=true
+      - xpack.security.http.ssl.key=${CERTS_PATH}/elasticsearch/elasticsearch.key
+      - xpack.security.http.ssl.certificate=${CERTS_PATH}/elasticsearch/elasticsearch.crt
+      - xpack.security.http.ssl.certificate_authorities=${CERTS_PATH}/ca/ca.crt
+      - xpack.security.transport.ssl.enabled=true 
+      - xpack.security.transport.ssl.verification_mode=certificate
+      - xpack.security.transport.ssl.key=${CERTS_PATH}/elasticsearch/elasticsearch.key
+      - xpack.security.transport.ssl.certificate=${CERTS_PATH}/elasticsearch/elasticsearch.crt
+      - xpack.security.transport.ssl.certificate_authorities=${CERTS_PATH}/ca/ca.crt
+      - node.name=elasticsearch
+      - cluster.name=ping-pong-cluster
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+      - discovery.type=single-node
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - esdata:/usr/share/elasticsearch/data:wr
+      - certs:${CERTS_PATH}:wr
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    networks:
+      - elk
+  kibana:
+    image: docker.elastic.co/kibana/kibana:${STACK_VERSION}
+    container_name: kibana
+    environment:
+      ELASTICSEARCH_HOSTS: https://elasticsearch:9200
+      ELASTICSEARCH_USERNAME: kibana_system
+      ELASTICSEARCH_PASSWORD: ${KIBANA_SYSTEM_PASSWORD}
+      ELASTICSEARCH_SSL_VERIFICATIONMODE: certificate
+      ELASTICSEARCH_SSL_CERTIFICATEAUTHORITIES: ${CERTS_PATH}/ca/ca.crt
+      SERVER_SSL_ENABLED: "true"
+      SERVER_SSL_KEY: ${CERTS_PATH}/kibana/kibana.key
+      SERVER_SSL_CERTIFICATE: ${CERTS_PATH}/kibana/kibana.crt
+    volumes:
+      - certs:${CERTS_PATH}:wr
+    ports:
+      - "5601:5601"
+    depends_on:
+      setup_passwords:
+        condition: service_completed_successfully
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - elk
+    healthcheck:
+      test: >
+        curl -s -k https://localhost:5601/api/status | grep -w -E '"level":"available"'
+      interval: 35s
+      timeout: 20s
+      retries: 10
+      start_period: 15s
+  logstash:
+    image: docker.elastic.co/logstash/logstash:${STACK_VERSION}
+    container_name: logstash
+    environment:
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+    volumes:
+      - certs:${CERTS_PATH}:rw
+      - ./logstash/conf/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - elk
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:${STACK_VERSION}
+    container_name: filebeat
+    command:
+      - '-e'
+      - '--strict.perms=false'
+    volumes:
+      - logs:/var/log/:rw
+      - ./filebeat/conf/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+    networks:
+      - elk
+    depends_on:
+      logstash:
+        condition: service_started
+  nginx:
+    image: nginx:bookworm
+    container_name: nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/conf/:/etc/nginx/conf.d:ro
+      - logs:/var/log/:rw
+    networks:
+      - elk
