@@ -4,7 +4,9 @@
   "type": "module",
   "scripts": {
     "start": "tsx src/server.ts",
-    "dev": "tsx --watch src/server.ts"
+    "dev": "tsx --watch src/server.ts",
+    "prisma:migrate": "prisma generate",
+    "prisma:generate": "prisma migrate deploy"
   },
   "dependencies": {
     "@fastify/cors": "^11.1.0",
