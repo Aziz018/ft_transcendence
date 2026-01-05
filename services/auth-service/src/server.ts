@@ -3,7 +3,7 @@ import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
 import cookie from '@fastify/cookie';
 import fp from 'fastify-plugin';
-import { PrismaClient } from '../generated/prisma/index.js';
+import { PrismaClient } from './generated/prisma/index.js';
 
 const fastify = Fastify({ logger: true });
 const prisma = new PrismaClient();
@@ -28,7 +28,7 @@ fastify.decorate('authentication_jwt', async (req: any, rep: any) => {
   if (!token) {
     return rep.status(401).send({ message: 'Authentication required' });
   }
-  
+
   const isBlackListed = await prisma.blacklistedToken.findUnique({ where: { token } });
   if (isBlackListed) {
     return rep.code(401).send({
@@ -37,10 +37,10 @@ fastify.decorate('authentication_jwt', async (req: any, rep: any) => {
       message: 'Token blacklisted, please login again!',
     });
   }
-  
+
   try {
     const decoded = req.jwt.verify(token);
-    
+
     if (req.url === '/totp/verify') {
       if (!decoded.mfa_required) {
         return rep.code(401).send({
@@ -56,7 +56,7 @@ fastify.decorate('authentication_jwt', async (req: any, rep: any) => {
         message: 'MFA verification required!',
       });
     }
-    
+
     req.user = decoded;
   } catch (err) {
     return rep.status(401).send({ message: 'Invalid token' });
@@ -66,7 +66,16 @@ fastify.decorate('authentication_jwt', async (req: any, rep: any) => {
 // Register routes
 import authRoutes from './routes/auth.js';
 import totpRoutes from './routes/totp.js';
+import metricsPlugin from "fastify-metrics";
+import { Counter } from "prom-client";
 
+export const requestCounter = new Counter({
+    name: "http_requests_total",
+    help: "Total number of HTTP requests",
+    labelNames: ["method", "route"],
+});
+
+await fastify.register(metricsPlugin, { endpoint: "/metrics" });
 await fastify.register(authRoutes, { prefix: '/auth' });
 await fastify.register(totpRoutes, { prefix: '/totp' });
 
