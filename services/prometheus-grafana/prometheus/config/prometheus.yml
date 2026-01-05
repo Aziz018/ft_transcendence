@@ -19,25 +19,50 @@ scrape_configs:
       - targets: ["localhost:9090"]
         labels:
           app: "prometheus"
-
-  - job_name: "sample_server"
+  - job_name: "ft_transcendence-api-gateway"
     static_configs:
-      - targets: ["golang_server:8090"]
+      - targets: ["ft_api_gateway:3000"]
         labels:
-          app: "sample_server"
+          app: "ft_transcendence-api-gateway"
+  - job_name: "ft_transcendence-auth-service"
+    static_configs:
+      - targets: ["ft_auth_service:3001"]
+        labels:
+          app: "ft_transcendence-auth-service"
+  - job_name: "ft_transcendence-user-service"
+    static_configs:
+      - targets: ["ft_user_service:3002"]
+        labels:
+          app: "ft_transcendence-user-service"
+  - job_name: "ft_transcendence-friend-service"
+    static_configs:
+      - targets: ["ft_friend_service:3003"]
+        labels:
+          app: "ft_transcendence-friend-service"
+  - job_name: "ft_transcendence-chat-service"
+    static_configs:
+      - targets: ["ft_chat_service:3004"]
+        labels:
+          app: "ft_transcendence-chat-service"
   
-  - job_name: "node-exporter"
-    static_configs:
-      - targets: ["node-exporter:9100"]
-        labels:
-          app: "node-exporter"
-  - job_name: "service-x"
-    static_configs:
-      - targets: ["service-x:3010"]
-        labels:
-          app: "service-x"
-  - job_name: "service-y"
-    static_configs:
-      - targets: ["service-y:3010"]
-        labels:
-          app: "service-y"
+  #- job_name: "sample_server"
+  #  static_configs:
+  #    - targets: ["golang_server:8090"]
+  #      labels:
+  #        app: "sample_server"
+  
+  #- job_name: "node-exporter"
+  #  static_configs:
+  #    - targets: ["node-exporter:9100"]
+  #      labels:
+  #        app: "node-exporter"
+  #- job_name: "service-x"
+  #  static_configs:
+  #    - targets: ["service-x:3010"]
+  #      labels:
+  #        app: "service-x"
+  #- job_name: "service-y"
+  #  static_configs:
+  #    - targets: ["service-y:3010"]
+  #      labels:
+  #        app: "service-y"
