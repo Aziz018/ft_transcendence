@@ -1,23 +1,23 @@
 //import metricsPlugin from "../routes/metrics.ts";
-import metricsPlugin from "fastify-metrics";
-import { register, Counter } from "prom-client";
-import homePlugin from "../routes/home.ts";
-import memoryTestPlugin from "../routes/memoryTest.ts";
-import fastify from "fastify";
 
-const app = fastify({ requestTimeout: 100000 });
+import f from "fastify";
+
+const fastify = f({ requestTimeout: 100000 });
 
 //{ logger: {level: 'debug',
 //    transport: {
-//        target: 'pino-pretty',
-//        options: {
-//            colorize: true,
-//            translateTime: 'SYS:standard',
-//            ignore: 'pid,hostname'
-//        }
-//    }} }
-
-
+  //        target: 'pino-pretty',
+  //        options: {
+    //            colorize: true,
+    //            translateTime: 'SYS:standard',
+    //            ignore: 'pid,hostname'
+    //        }
+    //    }} }
+    
+    
+    
+import metricsPlugin from "fastify-metrics";
+import { Counter } from "prom-client";
 
 export const requestCounter = new Counter({
     name: "http_requests_total",
@@ -25,12 +25,7 @@ export const requestCounter = new Counter({
     labelNames: ["method", "route"],
 });
 
-
-
-await app.register(metricsPlugin, { endpoint: "/metrics" });
-
-app.register(homePlugin);
-app.register(memoryTestPlugin)
+await fastify.register(metricsPlugin, { endpoint: "/metrics" });
 
 app.listen({ port: 3010 , host: '0.0.0.0'}, (err, address) => {
   if (err) {
