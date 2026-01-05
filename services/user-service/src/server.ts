@@ -4,14 +4,24 @@ import jwt from '@fastify/jwt';
 import cookie from '@fastify/cookie';
 import multipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
-import { PrismaClient } from '../generated/prisma/index.js';
+import { PrismaClient } from './generated/prisma/index.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import Ajv2020 from 'ajv/dist/2020.js'
+import addErrors from 'ajv-errors'
+import addFormats from 'ajv-formats'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const fastify = Fastify({ logger: true });
 const prisma = new PrismaClient();
+
+fastify.setValidatorCompiler(({ schema }) => {
+  const ajv = new Ajv2020({ allErrors: true })
+  addErrors(ajv)
+  addFormats(ajv)
+  return ajv.compile(schema)
+})
 
 await fastify.register(cors, {
   origin: true,
