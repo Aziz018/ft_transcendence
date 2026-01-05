@@ -1,12 +1,14 @@
 import Fastify from 'fastify';
 import websocket from '@fastify/websocket';
 import gameRoutes from './routes/game.js';
+import tournamentRoutes from './routes/tournament.js';
 const fastify = Fastify({ logger: true });
 // register websocket plugin
 fastify.register(websocket);
 // register routes (the route module exports a default function)
 fastify.register(async (instance) => {
     gameRoutes(instance, {});
+    tournamentRoutes(instance);
 });
 const start = async () => {
     try {

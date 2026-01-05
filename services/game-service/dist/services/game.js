@@ -1004,6 +1004,29 @@ export class GameServices {
         return { success: true, tournaments };
     }
     /**
+     * Get tournaments where the user is owner or participant.
+     */
+    getUserTournaments(userId) {
+        const tournaments = Array.from(this.tournaments.values())
+            .filter(t => t.creatorId === userId || t.players.some(p => p.id === userId))
+            .map(t => this.sanitizeTournamentForClient(t));
+        return { success: true, tournaments };
+    }
+    /**
+     * Report a match result by tournament and match id. Called from REST API.
+     */
+    async reportMatchResultById(tournamentId, matchId, winnerId) {
+        const tournament = this.tournaments.get(tournamentId);
+        if (!tournament)
+            throw new Error('Tournament not found');
+        const match = tournament.bracket.find(m => m.id === matchId);
+        if (!match)
+            throw new Error('Match not found');
+        if (!match.gameId)
+            throw new Error('Match has no associated game session');
+        return await this.processTournamentGameResult(tournamentId, { gameId: match.gameId, winnerId });
+    }
+    /**
      * Utility function to check if a number is a power of 2.
      *
      * @private
