@@ -2,7 +2,9 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
 import cookie from '@fastify/cookie';
-import { PrismaClient } from '../generated/prisma/index.js';
+import { PrismaClient } from './generated/prisma/index.js';
+
+export const wsValidators: Record<string, Ajv.ValidateFunction> = {};
 
 const fastify = Fastify({ logger: true });
 const prisma = new PrismaClient();
