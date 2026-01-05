@@ -10,10 +10,11 @@ fastify.register(async (instance) => {
     gameRoutes(instance, {});
     tournamentRoutes(instance);
 });
+const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
 const start = async () => {
     try {
-        await fastify.listen({ port: 3000, host: '0.0.0.0' });
-        console.log('Game service listening on 3000');
+        await fastify.listen({ port: PORT, host: '0.0.0.0' });
+        console.log(`Game service listening on ${PORT}`);
     }
     catch (err) {
         fastify.log.error(err);

@@ -1,5 +1,7 @@
 FROM node:18-alpine
 
+RUN apk add --no-cache curl
+
 WORKDIR /usr/src/app
 
 COPY package.json package-lock.json* ./
