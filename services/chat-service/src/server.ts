@@ -57,7 +57,15 @@ fastify.decorate('authentication_jwt', async (req: any, rep: any) => {
 // Register routes
 import chatRoutes from './routes/chat.js';
 import messageRoutes from './routes/message.js';
+import metricsPlugin from "fastify-metrics";
 
+await fastify.register(metricsPlugin, {
+    endpoint: "/metrics",
+    routeMetrics: {
+        enabled: true,
+        routeBlacklist: ["/metrics"],
+    },
+});
 await fastify.register(chatRoutes, { prefix: '/chat' });
 await fastify.register(messageRoutes, { prefix: '/message' });
 

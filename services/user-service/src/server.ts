@@ -27,7 +27,15 @@ await fastify.register(cors, {
   origin: true,
   credentials: true,
 });
+import metricsPlugin from "fastify-metrics";
 
+await fastify.register(metricsPlugin, {
+    endpoint: "/metrics",
+    routeMetrics: {
+        enabled: true,
+        routeBlacklist: ["/metrics"],
+    },
+});
 await fastify.register(jwt, { secret: process.env.JWT_SECRET || 'supersecret' });
 await fastify.register(cookie, { secret: process.env.CKE_SECRET || 'supersecret' });
 await fastify.register(multipart, { limits: { fileSize: 10485760 } });
