@@ -21,7 +21,7 @@ const PingPongShowcaseSection = () => {
     try {
       const backend =
         (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-        "http://localhost:3001";
+        "http://localhost:3000";
       const token = getToken();
 
       if (!token) {

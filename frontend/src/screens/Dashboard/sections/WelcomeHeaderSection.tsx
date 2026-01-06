@@ -14,7 +14,7 @@ const WelcomeHeaderSection = () => {
 
   const getAvatarUrl = (avatarPath: string | null | undefined): string => {
     const backend =
-      (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3001";
+      (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3000";
 
     if (!avatarPath || !avatarPath.trim()) {
       return `${backend}/images/default-avatar.png`;
@@ -76,7 +76,7 @@ const WelcomeHeaderSection = () => {
 
         const backend =
           (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-          "http://localhost:3001";
+          "http://localhost:3000";
 
         const headers: any = { "Content-Type": "application/json" };
         if (token) headers["Authorization"] = `Bearer ${token}`;
@@ -122,7 +122,7 @@ const WelcomeHeaderSection = () => {
       const token = getToken();
       const backend =
         (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-        "http://localhost:3001";
+        "http://localhost:3000";
 
       const res = await fetch(
         `${backend}/v1/user/search?q=${encodeURIComponent(trimmedQuery)}`,
@@ -155,7 +155,7 @@ const WelcomeHeaderSection = () => {
       const token = getToken();
       const backend =
         (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-        "http://localhost:3001";
+        "http://localhost:3000";
 
       const res = await fetch(`${backend}/v1/friend/request`, {
         method: "POST",
@@ -215,7 +215,7 @@ const WelcomeHeaderSection = () => {
         const token = getToken();
         const backend =
           (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-          "http://localhost:3001";
+          "http://localhost:3000";
 
         const res = await fetch(`${backend}/v1/friend/incoming`, {
           headers: {
@@ -284,7 +284,7 @@ const WelcomeHeaderSection = () => {
                       onError={(e) => {
                         const backend =
                           (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-                          "http://localhost:3001";
+                          "http://localhost:3000";
                         console.error(
                           "Failed to load avatar:",
                           e.currentTarget.src

@@ -40,9 +40,9 @@ class ChatService {
 
   constructor() {
     this.baseUrl =
-      (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3001";
+      (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3000";
     this.wsUrl =
-      (import.meta as any).env?.VITE_WS_URL || "ws://localhost:3001/v1/chat/ws";
+      (import.meta as any).env?.VITE_WS_URL || "ws://localhost:3000/v1/chat/ws";
   }
 
   /**
@@ -201,7 +201,10 @@ class ChatService {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
+            "Accept": "application/json",
           },
+          credentials: "include",
+          mode: "cors",
         }
       );
 
@@ -231,7 +234,10 @@ class ChatService {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
+          "Accept": "application/json",
         },
+        credentials: "include",
+        mode: "cors",
         body: JSON.stringify({
           receiver_uid: receiverId,
           content,

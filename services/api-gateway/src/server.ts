@@ -31,19 +31,32 @@ await fastify.register(cors, {
       'http://localhost:5173',
       'http://localhost:5174',
       'http://localhost:8080',
+      'http://localhost:3000',
       'http://localhost',
       process.env.FRONTEND_ORIGIN,
     ].filter(Boolean);
-    if (!origin || allowedOrigins.includes(origin)) {
+    
+    // Allow requests with no origin (like mobile apps or curl)
+    if (!origin) {
+      cb(null, true);
+      return;
+    }
+    
+    if (allowedOrigins.includes(origin)) {
       cb(null, true);
     } else {
+      fastify.log.warn(`CORS blocked origin: ${origin}`);
       cb(new Error('Not allowed by CORS'), false);
     }
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  exposedHeaders: ['Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  exposedHeaders: ['Authorization', 'Content-Type'],
+  preflight: true,
+  preflightContinue: false,
+  optionsSuccessStatus: 204,
+  strictPreflight: false,
 });
 
 // Plugins
@@ -75,6 +88,14 @@ await fastify.register(swaggerUi, {
 });
 
 await fastify.register(websocket);
+
+// Add hook to ensure JSON responses have correct Content-Type
+fastify.addHook('onSend', async (request, reply, payload) => {
+  if (typeof payload === 'object' && payload !== null && !reply.hasHeader('Content-Type')) {
+    reply.header('Content-Type', 'application/json; charset=utf-8');
+  }
+  return payload;
+});
 
 // OAuth2 Clients
 await fastify.register(oauth2, {
@@ -131,6 +152,7 @@ async function forwardRequest(serviceUrl: string, req: any, reply: any) {
     delete headers.host;
     delete headers.connection;
     delete headers['content-length'];
+    delete headers['transfer-encoding'];
 
     const response = await axios({
       method: req.method,
@@ -140,16 +162,37 @@ async function forwardRequest(serviceUrl: string, req: any, reply: any) {
       params: req.query,
       validateStatus: () => true,
       maxRedirects: 0,
+      responseType: 'json',
     });
 
-    Object.keys(response.headers).forEach(key => {
-      reply.header(key, response.headers[key]);
+    // Explicitly set CORS headers for the response
+    reply.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+    reply.header('Access-Control-Allow-Credentials', 'true');
+    reply.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+    reply.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    reply.header('Access-Control-Expose-Headers', 'Authorization');
+    
+    // Ensure Content-Type is set correctly
+    const contentType = response.headers['content-type'];
+    if (contentType) {
+      reply.header('Content-Type', contentType);
+    } else if (typeof response.data === 'object') {
+      reply.header('Content-Type', 'application/json; charset=utf-8');
+    }
+    
+    // Forward other safe headers
+    const safeHeaders = ['x-ratelimit-limit', 'x-ratelimit-remaining', 'x-ratelimit-reset', 'etag', 'cache-control'];
+    safeHeaders.forEach(key => {
+      if (response.headers[key]) {
+        reply.header(key, response.headers[key]);
+      }
     });
 
     reply.code(response.status).send(response.data);
   } catch (error: any) {
-    fastify.log.error(error);
-    reply.code(500).send({ error: 'Service unavailable' });
+    fastify.log.error('Service forwarding error:', error);
+    reply.header('Content-Type', 'application/json; charset=utf-8');
+    reply.code(500).send({ error: 'Service unavailable', message: error.message });
   }
 }
 

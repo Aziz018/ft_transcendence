@@ -1,0 +1,66 @@
+# Docker Compose - Monolithic Backend Configuration
+# This configuration uses the monolithic backend instead of microservices
+# Use this for simpler deployment and immediate functionality
+
+services:
+  # Frontend Service
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_BACKEND_ORIGIN=http://localhost:3000
+        - VITE_WS_URL=ws://localhost:3000/v1/chat/ws
+    container_name: ft_frontend
+    ports:
+      - "8080:80"
+    environment:
+      - VITE_BACKEND_ORIGIN=http://localhost:3000
+      - VITE_WS_URL=ws://localhost:3000/v1/chat/ws
+    networks:
+      - transcendence-network
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  # Monolithic Backend Service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ft_backend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - JWT_SECRET=${JWT_SECRET:-supersecret}
+      - CKE_SECRET=${CKE_SECRET:-supersecret}
+      - DATABASE_URL=file:/app/data/dev.db
+      - FRONTEND_ORIGIN=http://localhost:8080
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - FACEBOOK_CLIENT_ID=${FACEBOOK_CLIENT_ID:-}
+      - FACEBOOK_CLIENT_SECRET=${FACEBOOK_CLIENT_SECRET:-}
+      - INTRA42_CLIENT_ID=${INTRA42_CLIENT_ID:-}
+      - INTRA42_CLIENT_SECRET=${INTRA42_CLIENT_SECRET:-}
+    volumes:
+      - backend-data:/app/data
+      - avatar-uploads:/app/public/images
+    networks:
+      - transcendence-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  transcendence-network:
+    driver: bridge
+
+volumes:
+  backend-data:
+  avatar-uploads:

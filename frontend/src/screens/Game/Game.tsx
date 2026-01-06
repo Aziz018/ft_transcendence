@@ -76,7 +76,7 @@ export const Game = () => {
     try {
       const backend =
         (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-        "http://localhost:3001";
+        "http://localhost:3000";
       const token = getToken();
 
       const res = await fetch(`${backend}/v1/user/profile`, {
@@ -97,7 +97,7 @@ export const Game = () => {
 
   const getAvatarUrl = (path: string | null | undefined): string => {
     const backend =
-      (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3001";
+      (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3000";
     if (!path || !path.trim()) return `${backend}/images/default-avatar.png`;
     if (path.startsWith("/public/"))
       return `${backend}${path.replace("/public", "")}`;
@@ -213,7 +213,7 @@ export const Game = () => {
     try {
       const backend =
         (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-        "http://localhost:3001";
+        "http://localhost:3000";
       const token = getToken();
 
       if (!token) {
@@ -398,7 +398,7 @@ export const Game = () => {
                 onError={(e: any) => {
                   const backend =
                     (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-                    "http://localhost:3001";
+                    "http://localhost:3000";
                   e.currentTarget.src = `${backend}/images/default-avatar.png`;
                 }}
               />
@@ -439,7 +439,7 @@ export const Game = () => {
                 onError={(e: any) => {
                   const backend =
                     (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-                    "http://localhost:3001";
+                    "http://localhost:3000";
                   e.currentTarget.src = `${backend}/images/default-avatar.png`;
                 }}
               />
@@ -565,7 +565,7 @@ export const Game = () => {
                     onError={(e: any) => {
                       const backend =
                         (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-                        "http://localhost:3001";
+                        "http://localhost:3000";
                       e.currentTarget.src = `${backend}/images/default-avatar.png`;
                     }}
                   />
@@ -591,7 +591,7 @@ export const Game = () => {
                     onError={(e: any) => {
                       const backend =
                         (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-                        "http://localhost:3001";
+                        "http://localhost:3000";
                       e.currentTarget.src = `${backend}/images/default-avatar.png`;
                     }}
                   />

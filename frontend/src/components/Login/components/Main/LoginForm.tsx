@@ -31,13 +31,18 @@ const LoginForm = () => {
     }
 
     const backend =
-      (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3001";
+      (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3000";
 
     try {
 
       const res = await fetch(`${backend}/v1/user/login`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
+        credentials: "include",
+        mode: "cors",
         body: JSON.stringify({ email, password }),
       });
 

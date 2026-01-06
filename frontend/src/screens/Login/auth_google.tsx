@@ -1,7 +1,7 @@
 const GoogleAuth = () => {
   const handleGoogleLogin = () => {
     const backend =
-      (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3001";
+      (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3000";
     window.open(
       `${backend}/v1/auth/google`,
       "Google Login",

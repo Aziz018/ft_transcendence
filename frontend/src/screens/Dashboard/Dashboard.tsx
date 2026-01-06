@@ -1,6 +1,6 @@
 import Fuego from "../../index";
 import Logo from "../../assets/secondLogo.svg";
-import Avatar from "../../assets/Ellipse 46.svg";
+// import Avatar from "../../assets/Ellipse 46.svg";
 import DashboardIcon from "../../assets/dd.svg";
 import LeaderboardIcon from "../../assets/Leaderboard.svg";
 import Game from "../../assets/game-icon.svg";
@@ -44,7 +44,7 @@ const Dashboard = () => {
     try {
       const backend =
         (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-        "http://localhost:3001";
+        "http://localhost:3000";
       const token = getToken();
 
       const res = await fetch(`${backend}/v1/user/profile`, {
@@ -68,13 +68,13 @@ const Dashboard = () => {
 
   const getAvatarUrl = (path: string | null | undefined): string => {
     const backend =
-      (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3001";
-    if (!path || !path.trim()) return `${backend}/images/default-avatar.png`;
+      (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3000";
+    if (!path || !path.trim()) return "https://lumiere-a.akamaihd.net/v1/images/a_avatarpandorapedia_neytiri_16x9_1098_01_0e7d844a.jpeg?region=0%2C0%2C1920%2C1080";
     if (path.startsWith("/public/"))
       return `${backend}${path.replace("/public", "")}`;
     if (path.startsWith("/")) return `${backend}${path}`;
     if (path.startsWith("http")) return path;
-    return `${backend}/images/default-avatar.png`;
+    return "https://lumiere-a.akamaihd.net/v1/images/a_avatarpandorapedia_neytiri_16x9_1098_01_0e7d844a.jpeg?region=0%2C0%2C1920%2C1080";
   };
 
   const UserName = () => {
@@ -97,7 +97,7 @@ const Dashboard = () => {
         onError={(e: any) => {
           const backend =
             (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-            "http://localhost:3001";
+            "http://localhost:3000";
           e.currentTarget.src = `${backend}/images/default-avatar.png`;
         }}
       />
@@ -181,7 +181,7 @@ const Dashboard = () => {
                 try {
                   const backend =
                     (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-                    "http://localhost:3001";
+                    "http://localhost:3000";
                   const token = getToken();
 
                   await fetch(`${backend}/v1/user/logout`, {

@@ -61,7 +61,7 @@ const Settings = () => {
     try {
       const backend =
         (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-        "http://localhost:3001";
+        "http://localhost:3000";
       const token = getToken();
 
       const res = await fetch(`${backend}/v1/user/profile`, {
@@ -86,7 +86,7 @@ const Settings = () => {
     try {
       const backend =
         (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-        "http://localhost:3001";
+        "http://localhost:3000";
       const token = getToken();
 
       const nameRes = await fetch(`${backend}/v1/user/profile`, {
@@ -140,7 +140,7 @@ const Settings = () => {
     try {
       const backend =
         (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-        "http://localhost:3001";
+        "http://localhost:3000";
       const token = getToken();
 
       const formData = new FormData();
@@ -178,7 +178,7 @@ const Settings = () => {
     try {
       const backend =
         (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-        "http://localhost:3001";
+        "http://localhost:3000";
       const token = getToken();
 
       await fetch(`${backend}/v1/user/logout`, {
@@ -203,7 +203,7 @@ const Settings = () => {
 
   const getAvatarUrl = (path: string | null | undefined): string => {
     const backend =
-      (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3001";
+      (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3000";
     if (!path || !path.trim()) return `${backend}/images/default-avatar.png`;
     if (path.startsWith("/public/"))
       return `${backend}${path.replace("/public", "")}`;

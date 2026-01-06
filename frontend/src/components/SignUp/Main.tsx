@@ -5,7 +5,7 @@ import { saveToken } from "../../lib/auth";
 import SignUpFormContainer from "./components/SignUpFormContainer";
 
 const BACKEND_ORIGIN =
-  (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3001";
+  (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3000";
 
 const Main = () => {
   const [name, setName] = useState("");
@@ -47,7 +47,10 @@ const Main = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Accept": "application/json",
         },
+        credentials: "include",
+        mode: "cors",
         body: JSON.stringify({
           name,
           email,

@@ -7,7 +7,7 @@ import SecondaryButton from "../ui/SecondaryButton";
 import { saveToken } from "../../lib/auth";
 
 const BACKEND_ORIGIN =
-  (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3001";
+  (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3000";
 
 function openGooglePopup() {
   const w = 520;

@@ -4,11 +4,15 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile.microservices
+      args:
+        - VITE_BACKEND_ORIGIN=http://localhost:3000
+        - VITE_WS_URL=ws://localhost:3000/v1/chat/ws
     container_name: ft_frontend
     ports:
       - "8080:80"
     environment:
-      - VITE_API_URL=http://localhost:3000
+      - VITE_BACKEND_ORIGIN=http://localhost:3000
+      - VITE_WS_URL=ws://localhost:3000/v1/chat/ws
     networks:
       - transcendence-network
     depends_on:
@@ -33,7 +37,7 @@ services:
       - USER_SERVICE_URL=http://user-service:3002
       - FRIEND_SERVICE_URL=http://friend-service:3003
       - CHAT_SERVICE_URL=http://chat-service:3004
-      - FRONTEND_ORIGIN=${FRONTEND_ORIGIN:-http://localhost:5173}
+      - FRONTEND_ORIGIN=http://localhost:8080
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
       - FACEBOOK_CLIENT_ID=${FACEBOOK_CLIENT_ID:-}

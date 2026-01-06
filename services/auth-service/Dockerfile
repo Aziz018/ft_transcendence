@@ -7,7 +7,7 @@ COPY prisma ./prisma/
 
 RUN npm install
 COPY . .
-RUN npx prisma generate
+RUN mkdir -p src/generated && npx prisma generate
 
 EXPOSE 3001
 
