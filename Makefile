@@ -18,7 +18,7 @@ build:
 # Start all services
 up:
 	@echo "🚀 Starting all microservices..."
-	@$(DOCKER_COMPOSE) up -d
+	@$(DOCKER_COMPOSE) up -d --remove-orphans
 	@echo ""
 	@echo "✅ All services are running!"
 	@echo ""
