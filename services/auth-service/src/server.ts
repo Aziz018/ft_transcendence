@@ -67,20 +67,16 @@ fastify.decorate('authentication_jwt', async (req: any, rep: any) => {
 import authRoutes from './routes/auth.js';
 import totpRoutes from './routes/totp.js';
 import metricsPlugin from "fastify-metrics";
-import { Counter } from "prom-client";
 
-export const requestCounter = new Counter({
-    name: "http_requests_total",
-    help: "Total number of HTTP requests",
-    labelNames: ["method", "route"],
+await fastify.register(metricsPlugin, {
+    endpoint: "/metrics",
+    routeMetrics: {
+        enabled: true,
+        routeBlacklist: ["/metrics"],
+    },
 });
-
-await fastify.register(metricsPlugin, { endpoint: "/metrics" });
 await fastify.register(authRoutes, { prefix: '/auth' });
 await fastify.register(totpRoutes, { prefix: '/totp' });
-
-// Health check
-fastify.get('/health', async () => ({ status: 'ok', service: 'auth', timestamp: new Date().toISOString() }));
 
 // Connect to database
 await prisma.$connect();
