@@ -1,4 +1,4 @@
-// import { Button } from "../../components/ui/button";
+
 import Fuego from "../../index";
 import Footer from "../../components/SecondaryLogin/Footer";
 import Header from "../../components/SecondaryLogin/Header";

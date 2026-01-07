@@ -49,29 +49,45 @@ export const JWTAuthentication = async (
     });
   }
 
-  const decoded = req.jwt.verify<FastifyJWT["user"]>(token);
+  try {
+    if (!req.jwt) {
+      return rep.code(500).send({
+        statusCode: 500,
+        error: "Internal Server Error",
+        message: "JWT plugin not initialized",
+      });
+    }
 
-  /**
-   * @warning make sure the user is mfa_required set to false
-   * @note how can i make exceptions? like he can access verify
-   *       only and only if the mfa_required is set to true ??
-   */
+    const decoded = req.jwt.verify<FastifyJWT["user"]>(token);
 
-  if (req.url === "/v1/totp/verify") {
-    if (!decoded.mfa_required) {
+    /**
+     * @warning make sure the user is mfa_required set to false
+     * @note how can i make exceptions? like he can access verify
+     *       only and only if the mfa_required is set to true ??
+     */
+
+    if (req.url === "/v1/totp/verify") {
+      if (!decoded.mfa_required) {
+        return rep.code(401).send({
+          statusCode: 401,
+          error: "Unauthorized!",
+          message: "you are not supposed to be here, you are already verified!",
+        });
+      }
+    } else if (decoded.mfa_required) {
       return rep.code(401).send({
         statusCode: 401,
         error: "Unauthorized!",
-        message: "you are not supposed to be here, you are already verified!",
+        message: "you are not supposed to be here, you are not verified!",
       });
     }
-  } else if (decoded.mfa_required) {
+
+    req.user = decoded;
+  } catch (error) {
     return rep.code(401).send({
       statusCode: 401,
-      error: "Unauthorized!",
-      message: "you are not supposed to be here, you are not verified!",
+      error: "Unauthorized",
+      message: "Invalid or expired token",
     });
   }
-
-  req.user = decoded;
 };

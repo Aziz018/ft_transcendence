@@ -12,6 +12,9 @@ import FriendRoutes from "./routes/friend.js";
 import AuthRoutes from "./routes/auth.js";
 import TOTPRoutes from "./routes/totp.js";
 import ChatRoutes from "./routes/chat.js";
+import { MessageRoutes } from "./routes/message.js";
+import LeaderboardRoutes from "./routes/leaderboard.js";
+import { TournamentRoutes } from "./routes/tournament.js";
 
 import JWTAuthenticationPlugin from "./plugins/jwt.js";
 import {
@@ -23,8 +26,8 @@ import ServiceManagerPlugin from "./plugins/service.js";
 
 const rateLimitingOpts = {
   global: true,
-  max: 4,
-  timeWindow: 10 * 1000,
+  max: 100, // Increased from 4 to 100 requests
+  timeWindow: 10 * 1000, // Per 10 seconds
   allowList: [],
   addHeaders: true,
 };
@@ -48,7 +51,19 @@ const routes = [
   },
   {
     pcb: ChatRoutes,
-    opt: { prefix: "/v1" },
+    opt: { prefix: "/v1/chat" },
+  },
+  {
+    pcb: MessageRoutes,
+    opt: {},
+  },
+  {
+    pcb: LeaderboardRoutes,
+    opt: { prefix: "/v1/leaderboard" },
+  },
+  {
+    pcb: TournamentRoutes,
+    opt: { prefix: "/v1/tournament" },
   },
 ];
 
@@ -65,7 +80,7 @@ const secrets = {
 
 const app: Server = new Server(
   "0.0.0.0",
-  3000,
+  parseInt(process.env.PORT || "3000"),
   [googleOAuthOpts, facebookOAuthOpts, intra42OAuthOpts],
   rateLimitingOpts,
   routes,

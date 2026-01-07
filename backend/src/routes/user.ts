@@ -6,6 +6,8 @@ import {
   userProfileController,
   userLogoutController,
   userRefreshTokController,
+  userSearchController,
+  getUserByIdController,
 } from "../controllers/user.js";
 import type { FastifyInstance, FastifyPluginOptions } from "fastify";
 import {
@@ -53,6 +55,12 @@ export default async (
     preHandler: [fastify.authentication_jwt],
   });
 
+  fastify.get("/search", {
+    schema: { tags: ["users"] },
+    handler: userSearchController,
+    preHandler: [fastify.authentication_jwt],
+  });
+
   fastify.put("/profile", {
     schema: userProfileUpdateSchema,
     handler: userProfileUpdateController,
@@ -66,5 +74,11 @@ export default async (
 
   fastify.get("/refresh", {
     handler: userRefreshTokController,
+  });
+
+  fastify.get("/:userId", {
+    schema: { tags: ["users"] },
+    handler: getUserByIdController,
+    preHandler: [fastify.authentication_jwt],
   });
 };

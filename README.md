@@ -1,245 +1,442 @@
-<div id="top">
+# ft_transcendence - Microservices Architecture
 
-<!-- BADGES -->
-<p align="center">
-  <img src="https://img.shields.io/github/languages/top/Aziz018/ft_transcendence?style=flat-square">
-  <img src="https://img.shields.io/github/repo-size/Aziz018/ft_transcendence?style=flat-square">
-  <img src="https://img.shields.io/github/last-commit/Aziz018/ft_transcendence?style=flat-square">
-  <img src="https://img.shields.io/github/sponsors/itslhaj?style=flat-square">
-</p>
+A full-stack web application with real-time chat, user authentication, friend management, and game features, built with a microservices architecture.
 
-<br/>
+## 🏗️ Architecture Overview
 
-<em></em>
-
-<!-- HEADER STYLE: CLASSIC -->
-<div align="center">
-
-<img src="assets/cover.svg" width="90%" style="position: relative; top: 0; right: 0;" alt="Project Logo"/>
-
-<em></em>
-
-<br/>
-
-<em>Built with the tools and technologies:</em>
-
-<img src="https://img.shields.io/badge/Fastify-000000.svg?style=default&logo=Fastify&logoColor=white" alt="Fastify">
-<img src="https://img.shields.io/badge/JSON-000000.svg?style=default&logo=JSON&logoColor=white" alt="JSON">
-<img src="https://img.shields.io/badge/Lucide-F56565.svg?style=default&logo=Lucide&logoColor=white" alt="Lucide">
-<img src="https://img.shields.io/badge/npm-CB3837.svg?style=default&logo=npm&logoColor=white" alt="npm">
-<img src="https://img.shields.io/badge/Autoprefixer-DD3735.svg?style=default&logo=Autoprefixer&logoColor=white" alt="Autoprefixer">
-<img src="https://img.shields.io/badge/Normalize.css-E3695F.svg?style=default&logo=normalizedotcss&logoColor=white" alt="Normalize.css">
-<img src="https://img.shields.io/badge/PostCSS-DD3A0A.svg?style=default&logo=PostCSS&logoColor=white" alt="PostCSS">
-<img src="https://img.shields.io/badge/TOML-9C4121.svg?style=default&logo=TOML&logoColor=white" alt="TOML">
-<img src="https://img.shields.io/badge/esbuild-FFCF00.svg?style=default&logo=esbuild&logoColor=black" alt="esbuild">
-<img src="https://img.shields.io/badge/.ENV-ECD53F.svg?style=default&logo=dotenv&logoColor=black" alt=".ENV">
-<img src="https://img.shields.io/badge/JavaScript-F7DF1E.svg?style=default&logo=JavaScript&logoColor=black" alt="JavaScript">
-<br>
-<img src="https://img.shields.io/badge/Vitest-6E9F18.svg?style=default&logo=Vitest&logoColor=white" alt="Vitest">
-<img src="https://img.shields.io/badge/Nodemon-76D04B.svg?style=default&logo=Nodemon&logoColor=white" alt="Nodemon">
-<img src="https://img.shields.io/badge/GNU%20Bash-4EAA25.svg?style=default&logo=GNU-Bash&logoColor=white" alt="GNU%20Bash">
-<img src="https://img.shields.io/badge/Docker-2496ED.svg?style=default&logo=Docker&logoColor=white" alt="Docker">
-<img src="https://img.shields.io/badge/TypeScript-3178C6.svg?style=default&logo=TypeScript&logoColor=white" alt="TypeScript">
-<img src="https://img.shields.io/badge/tsnode-3178C6.svg?style=default&logo=ts-node&logoColor=white" alt="tsnode">
-<img src="https://img.shields.io/badge/Prisma-2D3748.svg?style=default&logo=Prisma&logoColor=white" alt="Prisma">
-<img src="https://img.shields.io/badge/Zod-3E67B1.svg?style=default&logo=Zod&logoColor=white" alt="Zod">
-<img src="https://img.shields.io/badge/Vite-646CFF.svg?style=default&logo=Vite&logoColor=white" alt="Vite">
-<img src="https://img.shields.io/badge/Axios-5A29E4.svg?style=default&logo=Axios&logoColor=white" alt="Axios">
-<img src="https://img.shields.io/badge/CSS-663399.svg?style=default&logo=CSS&logoColor=white" alt="CSS">
-<img src="https://img.shields.io/badge/YAML-CB171E.svg?style=default&logo=YAML&logoColor=white" alt="YAML">
-
-</div>
-<br>
-
----
-
-## Table of Contents
-
-- [Table of Contents](#table-of-contents)
-- [Overview](#overview)
-- [Features](#features)
-- [Project Structure](#project-structure)
-- [Getting Started](#getting-started)
-    - [Prerequisites](#prerequisites)
-    - [Installation](#installation)
-    - [Usage](#usage)
-- [Contributing](#contributing)
-- [License](#license)
-
----
-
-## Overview
-
-**ft_transcendence** is a **full-stack web application** built as part of the 42 curriculum.
-The project focuses on designing, developing, and deploying a **real-time multiplayer Pong platform** with modern web technologies.
-
-It emphasizes:
-
-* **Real-time communication**
-* **User authentication & security**
-* **Scalable backend architecture**
-* **Clean frontend UX**
-* **Production-ready DevOps practices**
-
-Users can authenticate, play Pong matches in real time, track their game history, and interact with other players in a secure environment.
-
-##### Project Goals
-
-* Apply **full-stack engineering principles**
-* Handle **real-time systems** correctly
-* Build a **maintainable and scalable architecture**
-* Follow **security best practices**
-* Deliver a **clean, production-grade project**
-
-##### Features
-
-* Real-time Pong gameplay
-* User authentication & authorization
-* Matchmaking and game sessions
-* User profiles and statistics
-* Secure API & protected routes
-* Dockerized development & deployment
-
----
-
-## Project Structure
-
-```sh
-└── /
-    ├── LICENSE
-    ├── Makefile
-    ├── README.md
-    ├── backend
-    │   ├── .dockerignore
-    │   ├── .env.example
-    │   ├── .gitignore
-    │   ├── Dockerfile
-    │   ├── LICENSE
-    │   ├── Makefile
-    │   ├── README.md
-    │   ├── endpoints
-    │   ├── filebeat.yml
-    │   ├── monitoring
-    │   ├── nodemon.json
-    │   ├── package-lock.json
-    │   ├── package.json
-    │   ├── postcss.config.js
-    │   ├── prisma
-    │   ├── public
-    │   ├── src
-    │   └── tsconfig.json
-    ├── docker-compose.yml
-    ├── frontend
-    │   ├── .dockerignore
-    │   ├── .gitignore
-    │   ├── Dockerfile
-    │   ├── README.md
-    │   ├── index.html
-    │   ├── nginx.conf
-    │   ├── package-lock.json
-    │   ├── package.json
-    │   ├── postcss.config.js
-    │   ├── src
-    │   ├── tailwind.config.js
-    │   ├── tsconfig.json
-    │   └── vite.config.ts
-    └── package-lock.json
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                              FRONTEND (Nginx:80)                         │
+│                        React SPA + Client-Side Routing                   │
+└───────────────────────────────┬─────────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         API GATEWAY (:3000)                              │
+│    - Request routing          - JWT validation                          │
+│    - OAuth2 handling           - Rate limiting                           │
+│    - WebSocket proxy           - CORS management                         │
+└─────┬──────────┬───────────┬──────────┬─────────────────────────────────┘
+      │          │           │          │
+      ▼          ▼           ▼          ▼
+┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐
+│   Auth   │ │   User   │ │  Friend  │ │   Chat   │
+│ Service  │ │ Service  │ │ Service  │ │ Service  │
+│  :3001   │ │  :3002   │ │  :3003   │ │  :3004   │
+└────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘
+     │            │            │            │
+     └────────────┴────────────┴────────────┘
+                      │
+              ┌───────▼────────┐
+              │  SQLite DB     │
+              │ (Shared Volume)│
+              └────────────────┘
 ```
 
----
+## 📁 Project Structure
 
-## Getting Started
+```
+ft_transcendence/
+├── docker-compose.yml          # Orchestrates all services
+├── Makefile                    # Build & run commands
+├── .env.example                # Environment variables template
+│
+├── frontend/                   # React SPA
+│   ├── Dockerfile.microservices
+│   ├── nginx.conf
+│   └── src/
+│
+└── services/
+    ├── api-gateway/            # API Gateway (Port 3000)
+    │   ├── Dockerfile
+    │   ├── package.json
+    │   ├── prisma/
+    │   └── src/
+    │       └── server.ts       # Routes to microservices
+    │
+    ├── auth-service/           # Authentication Service (Port 3001)
+    │   ├── Dockerfile
+    │   ├── package.json
+    │   ├── prisma/
+    │   └── src/
+    │       ├── controllers/    # auth.ts, intra42.ts, totp.ts
+    │       ├── routes/         # auth.ts, totp.ts
+    │       ├── services/       # auth.ts, totp.ts
+    │       └── server.ts
+    │
+    ├── user-service/           # User Management Service (Port 3002)
+    │   ├── Dockerfile
+    │   ├── package.json
+    │   ├── prisma/
+    │   └── src/
+    │       ├── controllers/    # user.ts
+    │       ├── routes/         # user.ts
+    │       ├── services/       # user.ts
+    │       └── server.ts
+    │
+    ├── friend-service/         # Friend Management Service (Port 3003)
+    │   ├── Dockerfile
+    │   ├── package.json
+    │   ├── prisma/
+    │   └── src/
+    │       ├── controllers/    # friend.ts
+    │       ├── routes/         # friend.ts
+    │       ├── services/       # friend.ts
+    │       └── server.ts
+    │
+    └── chat-service/           # Chat & Messaging Service (Port 3004)
+        ├── Dockerfile
+        ├── package.json
+        ├── prisma/
+        └── src/
+            ├── controllers/    # chat.ts, message.ts
+            ├── routes/         # chat.ts, message.ts
+            ├── services/       # message.ts, room.ts
+            ├── middleware/     # chat.ts
+            └── server.ts
+```
+
+## 🚀 Quick Start
 
 ### Prerequisites
 
-This project requires the following dependencies:
+- Docker & Docker Compose
+- Make (optional but recommended)
 
-- **Programming Language:** TypeScript
-- **Package Manager:** Npm
-- **Container Runtime:** Docker
+### Running the Application
 
-### Installation
+```bash
+# Start all services (builds if needed)
+make
 
-Build  from the source and intsall dependencies:
+# Stop all services
+make down
 
-1. **Clone the repository:**
+# View logs from all services
+make logs
 
-    ```sh
-    ❯ git clone ../
-    ```
+# View logs from specific service
+make logs-gateway
+make logs-auth
+make logs-user
+make logs-friend
+make logs-chat
+make logs-frontend
 
-2. **Navigate to the project directory:**
+# Clean containers and volumes
+make clean
 
-    ```sh
-    ❯ cd 
-    ```
+# Full cleanup (including images)
+make fclean
 
-3. **Install the dependencies:**
-<br/>
+# Rebuild everything from scratch
+make re
 
-[![docker][docker-shield]][docker-link]
-
-[docker-shield]: https://img.shields.io/badge/Docker-2CA5E0.svg?style=flat&logo=docker&logoColor=white
-[docker-link]: https://www.docker.com/
-
-```sh
-❯ docker build -t / .
+# Show service status
+make status
 ```
 
-[![npm][npm-shield]][npm-link]
+### Without Make
 
-[npm-shield]: https://img.shields.io/badge/npm-CB3837.svg?style=flat&logo=npm&logoColor=white
-[npm-link]: https://www.npmjs.com/
+```bash
+# Start all services
+docker-compose up -d
 
-```sh
-❯ npm install
+# Stop all services
+docker-compose down
+
+# View logs
+docker-compose logs -f
+
+# View specific service logs
+docker-compose logs -f api-gateway
 ```
 
-### Usage
+## 🔌 Services & Ports
 
-Run the project with:
+| Service         | Port | Public | Description                              |
+|-----------------|------|--------|------------------------------------------|
+| Frontend        | 80   | ✅      | Nginx serving React SPA                  |
+| API Gateway     | 3000 | ✅      | Main API entry point                     |
+| Auth Service    | 3001 | ❌      | User authentication & OAuth              |
+| User Service    | 3002 | ❌      | User profile management                  |
+| Friend Service  | 3003 | ❌      | Friend requests & blocking               |
+| Chat Service    | 3004 | ❌      | Real-time messaging & WebSocket          |
 
-**Using [docker](https://www.docker.com/):**
-```sh
-docker run -it {image_name}
+**Public Access:**
+- Frontend: http://localhost
+- API Gateway: http://localhost:3000
+- API Documentation: http://localhost:3000/docs
+
+## 🔗 API Endpoints
+
+All external requests go through the API Gateway at `http://localhost:3000`.
+
+### Authentication (`/v1/auth/*`, `/v1/totp/*`)
+
+**Auth Service handles:**
+- `POST /v1/user/register` - Register new user
+- `POST /v1/user/login` - Login user
+- `POST /v1/user/logout` - Logout user
+- `GET /v1/user/refresh` - Refresh access token
+- `GET /v1/auth/google` - Google OAuth
+- `GET /v1/auth/google/callback` - Google OAuth callback
+- `GET /v1/auth/facebook` - Facebook OAuth
+- `GET /v1/auth/facebook/callback` - Facebook OAuth callback
+- `GET /v1/auth/intra42` - 42 Intra OAuth
+- `GET /v1/auth/intra42/callback` - 42 Intra OAuth callback
+
+**TOTP/2FA:**
+- `GET /v1/totp/status` - Get 2FA status
+- `PUT /v1/totp/enable` - Enable 2FA
+- `PUT /v1/totp/disable` - Disable 2FA
+- `GET /v1/totp/qr-code` - Get 2FA QR code
+- `POST /v1/totp/verify` - Verify 2FA code
+
+### User Management (`/v1/user/*`)
+
+**User Service handles:**
+- `GET /v1/user/profile` - Get current user profile
+- `PUT /v1/user/profile` - Update user profile
+- `POST /v1/user/avatar` - Upload avatar
+- `GET /v1/user/search` - Search users
+- `GET /v1/user/:userId` - Get user by ID
+
+### Friend Management (`/v1/friend/*`)
+
+**Friend Service handles:**
+- `POST /v1/friend/request` - Send friend request
+- `PUT /v1/friend/respond` - Accept/reject friend request
+- `GET /v1/friend/friends` - Get friends list
+- `GET /v1/friend/pending` - Get pending requests (sent)
+- `GET /v1/friend/incoming` - Get incoming requests
+- `POST /v1/friend/block` - Block user
+- `POST /v1/friend/unblock` - Unblock user
+- `GET /v1/friend/blocked` - Get blocked users
+- `DELETE /v1/friend/unfriend` - Remove friend
+
+### Chat & Messaging (`/v1/chat/*`, `/v1/message/*`)
+
+**Chat Service handles:**
+- `GET /v1/chat/ws` - WebSocket connection for real-time chat
+- `POST /v1/chat/rooms` - Create chat room
+- `GET /v1/chat/rooms` - Get user's rooms
+- `POST /v1/message/send` - Send message
+- `GET /v1/message/direct` - Get direct messages
+- `GET /v1/message/room/:roomId` - Get room messages
+- `DELETE /v1/message/:messageId` - Delete message
+
+## 🔐 Inter-Service Communication
+
+### Request Flow
+
+1. **External Request** → API Gateway (`:3000`)
+2. **API Gateway** validates JWT (if required)
+3. **API Gateway** routes to appropriate microservice:
+   - `/v1/auth/*` → Auth Service (`:3001`)
+   - `/v1/totp/*` → Auth Service (`:3001`)
+   - `/v1/user/*` → User Service (`:3002`)
+   - `/v1/friend/*` → Friend Service (`:3003`)
+   - `/v1/chat/*` → Chat Service (`:3004`)
+   - `/v1/message/*` → Chat Service (`:3004`)
+4. **Microservice** processes request and returns response
+5. **API Gateway** forwards response to client
+
+### WebSocket Flow
+
+1. Client connects to `ws://localhost:3000/v1/chat/ws`
+2. API Gateway proxies to Chat Service `ws://chat-service:3004/ws`
+3. Bidirectional real-time communication established
+
+### Database Access
+
+- All services access the **same SQLite database** via shared Docker volume
+- Database: `/app/shared-data/dev.db`
+- Each service has its own Prisma client
+- Migrations are run automatically on container startup
+
+## 🛠️ Environment Variables
+
+Create a `.env` file in the project root (use `.env.example` as template):
+
+```bash
+# Database
+DATABASE_URL=file:/app/shared-data/dev.db
+
+# JWT Secrets
+JWT_SECRET=your_jwt_secret_here
+CKE_SECRET=your_cookie_secret_here
+
+# Frontend
+FRONTEND_ORIGIN=http://localhost:5173
+
+# Google OAuth
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+
+# Facebook OAuth
+FACEBOOK_CLIENT_ID=your_facebook_client_id
+FACEBOOK_CLIENT_SECRET=your_facebook_client_secret
+
+# 42 Intra OAuth
+INTRA42_CLIENT_ID=your_42_client_id
+INTRA42_CLIENT_SECRET=your_42_client_secret
 ```
-**Using [npm](https://www.npmjs.com/):**
-```sh
-npm start
+
+## 🏛️ Design Principles
+
+### Service Boundaries
+
+Each service has clear ownership:
+
+- **Auth Service**: Authentication, authorization, OAuth, JWT, TOTP/2FA
+- **User Service**: User profiles, avatars, user search
+- **Friend Service**: Friend relationships, blocking
+- **Chat Service**: Real-time messaging, rooms, WebSocket
+
+### Data Consistency
+
+- Shared SQLite database ensures ACID transactions
+- No eventual consistency issues
+- Single source of truth for all data
+
+### Scalability Strategy
+
+- Services are containerized and isolated
+- Can be scaled independently (horizontal scaling)
+- API Gateway handles load balancing
+- WebSocket connections proxied efficiently
+
+### Development Workflow
+
+1. Each service can be developed independently
+2. Shared code (utils, types, models) copied to each service
+3. Prisma schema shared across all services
+4. TypeScript for type safety across services
+
+## 🧪 Development
+
+### Running Individual Services
+
+```bash
+# Run just the API Gateway
+docker-compose up api-gateway
+
+# Run auth and user services
+docker-compose up auth-service user-service
+
+# Rebuild specific service
+docker-compose build user-service
+docker-compose up -d user-service
 ```
 
----
+### Debugging
 
-## Contributing
+```bash
+# Follow logs from all services
+make logs
 
-- **💬 [Join the Discussions](https://LOCAL///discussions)**: Share your insights, provide feedback, or ask questions.
-- **🐛 [Report Issues](https://LOCAL///issues)**: Submit bugs found or log feature requests for the `` project.
-- **💡 [Submit Pull Requests](https://LOCAL/blob/main/CONTRIBUTING.md)**: Review open PRs, and submit your own PRs.
+# Follow logs from specific service
+docker-compose logs -f auth-service
 
----
+# Execute command in running container
+docker-compose exec auth-service sh
 
-<h2 align="center">✨ Special Thanks to Our Contributors ✨</h2>
+# Check service health
+curl http://localhost:3000/health
+curl http://localhost:3001/health
+curl http://localhost:3002/health
+curl http://localhost:3003/health
+curl http://localhost:3004/health
+```
 
-<p align="center">
-  <a href="https://github.com/Aziz018/ft_transcendence/graphs/contributors">
-    <img src="https://contrib.rocks/image?repo=Aziz018/ft_transcendence&v=2" />
-  </a>
-</p>
+### Database Migrations
 
-<p align="center">
-  💙 Huge thanks to everyone who contributed to this project!
-</p>
+```bash
+# Migrations run automatically on container startup
+# To run manually:
+docker-compose exec auth-service npx prisma migrate deploy
 
----
+# Generate Prisma Client
+docker-compose exec auth-service npx prisma generate
 
-## License
+# View database
+docker-compose exec auth-service npx prisma studio
+```
 
- is protected under the [MIT](https://choosealicense.com/licenses/mit/) License. For more details, refer to the [LICENSE](LICENSE) file.
+## 📦 Technology Stack
 
-<div align="right">
+- **Frontend**: React, Vite, TypeScript, Nginx
+- **Backend**: Node.js, Fastify, TypeScript
+- **Database**: SQLite, Prisma ORM
+- **Authentication**: JWT, OAuth2 (Google, Facebook, 42 Intra), TOTP/2FA
+- **Real-time**: WebSocket (ws library)
+- **Containerization**: Docker, Docker Compose
+- **API Documentation**: Swagger/OpenAPI
 
-[![][back-to-top]](#top)
+## 🔒 Security Features
 
-</div>
+- JWT-based authentication
+- HTTP-only cookies
+- CORS configuration
+- Rate limiting
+- Password hashing (bcrypt)
+- Token blacklisting
+- Two-Factor Authentication (TOTP)
+- OAuth2 integration
 
-[back-to-top]: https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square
+## 📝 License
+
+This project is licensed under the GNU General Public License v3.0.
+
+<<<<<<< HEAD
+│   │   └── prometheus-grafana
+│   │       ├── alertmanager
+│   │       │   ├── config
+│   │       │   │   └── alertmanager.yml
+│   │       │   └── Dockerfile
+│   │       ├── grafana
+│   │       │   ├── setup-dashboards
+│   │       │   │   ├── scripts\
+│   │       │   │   └── Dockerfile
+│   │       │   └── Dockerfile
+│   │       ├── prometheus
+│   │       │   ├── config\
+│   │       │   └── Dockerfile
+│   │       ├── docker-compose.yaml
+│   ├── security
+│   │   └── vault
+│   │       ├── policies\
+│   │       ├── config.hcl
+│   │       └── Dockerfile
+│   ├── server
+│   │   ├── ssl\
+│   │   ├── Dockerfile
+│   │   └── nginx.config
+│   └── user-service
+│       ├── db\
+│       ├── src
+│       │   ├── routes\
+│       │   ├── types\
+│       │   └── index.ts
+│       ├── Dockerfile
+│       └── package.json
+├── frontend
+│   ├── public
+│   ├── src
+│   │   ├── components\
+│   │   ├── services\
+│   │   ├── types\
+│   │   ├── utils\
+│   │   ├── App.tsx
+│   │   └── index.tsx
+│   ├── Dockerfile
+│   ├── package.json
+│   ├── tailwind.config.js
+│   └── tsconfig.json
+├── docker-compose.yml
+├── LICENSE
+├── Makefile
+└── README.md
+```
+>>>>>>> backend

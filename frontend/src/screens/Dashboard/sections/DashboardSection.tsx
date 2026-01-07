@@ -1,7 +1,6 @@
 import SecondaryButton from "../../../components/ui/SecondaryButton";
 import Fuego from "../../../index";
 import { Link } from "../../../library/Router/Router";
-// import { Button } from "../../../../components/ui/button";
 
 const sections = [
   {
@@ -81,7 +80,7 @@ const DashboardSection = () => {
             {/* <Button className="bg-[#dda15e] hover:bg-[#dda15e]/90 text-[#f9f9f9] rounded-[30px] h-[37px] px-6 [-webkit-text-stroke:1px_#87878766] [font-family:'Questrial',Helvetica] font-normal text-base tracking-[0] leading-[15px]">
               {sections[1].buttonText}
             </Button> */}
-            <Link to="/leaderboard">
+            <Link to="/tournament">
               <SecondaryButton data={"Join Now"} />
             </Link>
           </div>
