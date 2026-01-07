@@ -139,6 +139,12 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
+      - DATABASE_URL=file:/app/data/game.db
+      - JWT_SECRET=${JWT_SECRET:-supersecret}
+      - USER_SERVICE_URL=http://user-service:3002
+      - AUTH_SERVICE_URL=http://auth-service:3001
+    volumes:
+      - game-data:/app/data
     networks:
       - transcendence-network
     restart: unless-stopped
@@ -151,3 +157,4 @@ networks:
 volumes:
   shared-data:
   avatar-uploads:
+  game-data:

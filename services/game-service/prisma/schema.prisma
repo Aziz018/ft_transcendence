@@ -1,0 +1,277 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/**
+ * Enums for game-specific statuses and types
+ */
+enum GameType {
+  CLASSIC
+  TOURNAMENT
+  RANKED
+  CASUAL
+}
+
+enum GameStatus {
+  WAITING
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
+}
+
+enum TournamentStatus {
+  CREATED
+  WAITING
+  IN_PROGRESS
+  FINISHED
+}
+
+enum TournamentInviteStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+enum MatchStatus {
+  PENDING
+  IN_PROGRESS
+  FINISHED
+  CANCELLED
+}
+
+/**
+ * Represents a minimal user reference for game service.
+ * Only stores essential user data needed for games.
+ * The authoritative user data lives in user-service.
+ */
+model User {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  email     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  xp        Int      @default(0)
+
+  gamesAsPlayer1        GameSession[] @relation("GamePlayer1")
+  gamesAsPlayer2        GameSession[] @relation("GamePlayer2")
+  gamesWon              GameSession[] @relation("GameWinner")
+
+  ownedTournaments      Tournament[] @relation("TournamentOwner")
+  tournamentParticipants TournamentParticipant[]
+  tournamentInvites     TournamentInvite[]
+  matchesAsPlayer1      Match[] @relation("MatchPlayer1")
+  matchesAsPlayer2      Match[] @relation("MatchPlayer2")
+  matchesWon            Match[] @relation("MatchWinner")
+
+  @@index([name, email])
+}
+
+/**
+ * Represents an individual game session between two players.
+ * Stores game state, scores, and timestamps for analytics.
+ */
+model GameSession {
+  id          String      @id @default(uuid())
+  gameType    GameType    @default(CLASSIC)
+  status      GameStatus  @default(WAITING)
+
+  player1Id   String?
+  player2Id   String?
+  winnerId    String?
+
+  player1Score Int       @default(0)
+  player2Score Int       @default(0)
+
+  player1Exp   Int?      // Final EXP earned
+  player2Exp   Int?      // Final EXP earned
+
+  durationMs   Int?      // Match duration in milliseconds
+  tournamentId String?   // Reference to tournament if applicable
+  matchId      String?   // Reference to tournament match if applicable
+
+  createdAt    DateTime  @default(now())
+  startedAt    DateTime?
+  completedAt  DateTime?
+
+  player1 User? @relation("GamePlayer1", fields: [player1Id], references: [id], onDelete: SetNull)
+  player2 User? @relation("GamePlayer2", fields: [player2Id], references: [id], onDelete: SetNull)
+  winner  User? @relation("GameWinner", fields: [winnerId], references: [id], onDelete: SetNull)
+  tournament Tournament? @relation(fields: [tournamentId], references: [id], onDelete: SetNull)
+  match Match? @relation(fields: [matchId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([player1Id, player2Id])
+  @@index([tournamentId])
+  @@index([winnerId])
+  @@unique([matchId])
+}
+
+/**
+ * Represents a tournament with multiple players and rounds.
+ * Manages bracket-style competition with match progression.
+ */
+model Tournament {
+  id           String            @id @default(uuid())
+  name         String
+  description  String?
+  maxPlayers   Int
+  ownerId      String
+  status       TournamentStatus  @default(CREATED)
+  currentRound Int               @default(0)
+  winnerId     String?
+  isPrivate    Boolean           @default(false)
+  password     String?           // Hashed password for private tournaments
+
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  startedAt    DateTime?
+  finishedAt   DateTime?
+
+  owner        User @relation("TournamentOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  participants TournamentParticipant[]
+  invites      TournamentInvite[]
+  matches      Match[]
+  gameSessions GameSession[]
+
+  @@index([status, ownerId])
+  @@index([createdAt])
+}
+
+/**
+ * Represents a participant in a tournament.
+ * Tracks join time, elimination status, and final placement.
+ */
+model TournamentParticipant {
+  id            String   @id @default(uuid())
+  tournamentId  String
+  userId        String
+  joinedAt      DateTime @default(now())
+  isEliminated  Boolean  @default(false)
+  placement     Int?     // 1st, 2nd, 3rd, etc. Set when eliminated or tournament finishes
+  totalExpEarned Int     @default(0)
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  user       User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, userId])
+  @@index([tournamentId, isEliminated])
+}
+
+/**
+ * Represents an invitation to join a tournament.
+ * Supports both public and private tournament invitations.
+ */
+model TournamentInvite {
+  id            String                  @id @default(uuid())
+  tournamentId  String
+  userId        String
+  status        TournamentInviteStatus  @default(PENDING)
+  createdAt     DateTime                @default(now())
+  respondedAt   DateTime?
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  user       User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, userId])
+  @@index([userId, status])
+}
+
+/**
+ * Represents a single match within a tournament bracket.
+ * Tracks round progression, players, and match outcomes.
+ */
+model Match {
+  id            String      @id @default(uuid())
+  tournamentId  String
+  round         Int         // 1 = first round, 2 = semi-final, 3 = final, etc.
+  matchNumber   Int         // Position in the round (0-indexed)
+  player1Id     String?
+  player2Id     String?
+  winnerId      String?
+  status        MatchStatus @default(PENDING)
+
+  player1Score  Int         @default(0)
+  player2Score  Int         @default(0)
+
+  createdAt     DateTime    @default(now())
+  startedAt     DateTime?
+  finishedAt    DateTime?
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  player1    User? @relation("MatchPlayer1", fields: [player1Id], references: [id], onDelete: SetNull)
+  player2    User? @relation("MatchPlayer2", fields: [player2Id], references: [id], onDelete: SetNull)
+  winner     User? @relation("MatchWinner", fields: [winnerId], references: [id], onDelete: SetNull)
+  gameSession GameSession?
+
+  @@unique([tournamentId, round, matchNumber])
+  @@index([tournamentId, round])
+  @@index([status])
+}
+
+/**
+ * Stores player statistics and analytics.
+ * Aggregates performance metrics across all games.
+ */
+model PlayerStats {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+
+  totalGames      Int      @default(0)
+  totalWins       Int      @default(0)
+  totalLosses     Int      @default(0)
+  totalDraws      Int      @default(0)
+
+  winStreak       Int      @default(0)
+  bestWinStreak   Int      @default(0)
+
+  totalExpEarned  Int      @default(0)
+  averageGameDuration Int  @default(0)
+
+  tournamentsWon  Int      @default(0)
+  tournamentsPlayed Int    @default(0)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([totalWins, totalGames])
+}
+
+/**
+ * Stores historical game records for leaderboard and analytics.
+ * Optimized for quick querying of recent games and player performance.
+ */
+model GameHistory {
+  id            String   @id @default(uuid())
+  gameSessionId String   @unique
+  gameType      GameType
+
+  player1Id     String
+  player2Id     String
+  winnerId      String?
+
+  player1Name   String
+  player2Name   String
+
+  player1Score  Int
+  player2Score  Int
+
+  durationMs    Int
+  playedAt      DateTime @default(now())
+
+  @@index([playedAt])
+  @@index([player1Id, playedAt])
+  @@index([player2Id, playedAt])
+  @@index([winnerId, playedAt])
+}

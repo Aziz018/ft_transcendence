@@ -1,15 +1,36 @@
 import { gameService } from '../services/game.js';
 import { playerMoveSchema, gameJoinSchema, matchmakingSchema, gameReadySchema, tournamentActionSchema, gameResultSchema, scoreUpdateSchema, matchEndSchema } from '../schemas/game.js';
 export async function handleGameWebSocket(connection, request) {
-    // test user (temporary stub for local development)
-    const testUserId = 'frontend-user-' + Date.now();
-    connection.authenticatedUser = {
-        uid: testUserId,
-        id: testUserId,
-        name: 'Frontend Player'
-    };
+    // Extract and verify JWT token
+    const token = extractTokenFromRequest(request);
+    if (!token) {
+        console.log('❌ No token provided');
+        connection.send(JSON.stringify({ type: 'error', message: 'Authentication required' }));
+        connection.close();
+        return;
+    }
+    try {
+        const decoded = request.server.jwt.verify(token);
+        if (decoded.mfa_required) {
+            console.log('❌ MFA required for user');
+            connection.send(JSON.stringify({ type: 'error', message: 'MFA verification required' }));
+            connection.close();
+            return;
+        }
+        connection.authenticatedUser = {
+            uid: decoded.uid || decoded.id,
+            id: decoded.id,
+            name: decoded.name || decoded.email || 'Player'
+        };
+    }
+    catch (error) {
+        console.log('❌ Invalid token:', error);
+        connection.send(JSON.stringify({ type: 'error', message: 'Invalid or expired token' }));
+        connection.close();
+        return;
+    }
     const userId = connection.authenticatedUser.uid;
-    console.log(`🔗 Frontend user ${userId} connected`);
+    console.log(`🔗 User ${userId} (${connection.authenticatedUser.name}) connected`);
     gameService.addConnection(userId, connection);
     console.log(`🔗 User ${userId} connected. ${gameService.getStats().activeConnections} total connections`);
     connection.on('message', async (message) => {
@@ -113,9 +134,18 @@ export async function handleGameWebSocket(connection, request) {
         stats: gameService.getStats()
     }));
 }
-function extractTokenFromHeaders(headers) {
-    const auth = headers.authorization;
-    return auth?.startsWith('Bearer') ? auth.slice(7) : null;
+function extractTokenFromRequest(request) {
+    // Check Authorization header first
+    const authHeader = request.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        return authHeader.substring(7);
+    }
+    // Check query parameter (for WebSocket connections)
+    const query = request.query;
+    if (query.token) {
+        return query.token;
+    }
+    return null;
 }
 export function getActiveConnectionsCount() {
     return gameService.getStats().activeConnections;
