@@ -11,7 +11,7 @@ export default async (fastify: FastifyInstance, opts: FastifyPluginOptions): Pro
       return reply.send({ message: 'OAuth callback handled by plugin' });
     } catch (error: any) {
       fastify.log.error(error);
-      return reply.code(500).send({ message: 'Internal server error' });
+      return reply.code(500).send({ message: error });
     }
   });
 
@@ -22,7 +22,7 @@ export default async (fastify: FastifyInstance, opts: FastifyPluginOptions): Pro
       return reply.send({ message: 'OAuth callback handled by plugin' });
     } catch (error: any) {
       fastify.log.error(error);
-      return reply.code(500).send({ message: 'Internal server error' });
+      return reply.code(500).send({ message: error });
     }
   });
 
@@ -33,7 +33,7 @@ export default async (fastify: FastifyInstance, opts: FastifyPluginOptions): Pro
       return reply.send({ message: 'OAuth callback handled by plugin' });
     } catch (error: any) {
       fastify.log.error(error);
-      return reply.code(500).send({ message: 'Internal server error' });
+      return reply.code(500).send({ message: error });
     }
   });
 };

@@ -23,7 +23,7 @@ export default async (fastify: FastifyInstance, opts: FastifyPluginOptions): Pro
         });
       } catch (error: any) {
         fastify.log.error(error);
-        return reply.code(500).send({ message: 'Internal server error' });
+        return reply.code(500).send({ message: error });
       }
     },
   });
@@ -53,7 +53,7 @@ export default async (fastify: FastifyInstance, opts: FastifyPluginOptions): Pro
         return reply.code(200).send({ message: '2FA enabled successfully' });
       } catch (error: any) {
         fastify.log.error(error);
-        return reply.code(500).send({ message: 'Internal server error' });
+        return reply.code(500).send({ message: error });
       }
     },
   });
@@ -71,7 +71,7 @@ export default async (fastify: FastifyInstance, opts: FastifyPluginOptions): Pro
         return reply.code(200).send({ message: '2FA disabled successfully' });
       } catch (error: any) {
         fastify.log.error(error);
-        return reply.code(500).send({ message: 'Internal server error' });
+        return reply.code(500).send({ message: error });
       }
     },
   });
@@ -113,7 +113,7 @@ export default async (fastify: FastifyInstance, opts: FastifyPluginOptions): Pro
         });
       } catch (error: any) {
         fastify.log.error(error);
-        return reply.code(500).send({ message: 'Internal server error' });
+        return reply.code(500).send({ message: error });
       }
     },
   });
@@ -168,7 +168,7 @@ export default async (fastify: FastifyInstance, opts: FastifyPluginOptions): Pro
         });
       } catch (error: any) {
         fastify.log.error(error);
-        return reply.code(500).send({ message: 'Internal server error' });
+        return reply.code(500).send({ message: error });
       }
     },
   });

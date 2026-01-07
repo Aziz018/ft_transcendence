@@ -7,6 +7,7 @@ CREATE TABLE "User" (
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL,
     "avatar" TEXT NOT NULL DEFAULT '../public/images/default-avatar.jpg',
+    "xp" INTEGER NOT NULL DEFAULT 0,
     "secret" TEXT,
     "status" TEXT NOT NULL DEFAULT 'OFFLINE',
     "lastSeen" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP

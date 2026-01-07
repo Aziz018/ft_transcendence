@@ -115,7 +115,8 @@ export default async (fastify: FastifyInstance, opts: FastifyPluginOptions): Pro
       });
     } catch (error: any) {
       fastify.log.error(error);
-      return reply.code(500).send({ message: 'Internal server error' });
+      // return reply.code(500).send({ message: 'Internal server error' });
+      return reply.code(500).send({ message: error });
     }
   });
 
