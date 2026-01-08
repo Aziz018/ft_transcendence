@@ -28,7 +28,7 @@ services:
       - PORT=3000
       - JWT_SECRET=${JWT_SECRET:-supersecret}
       - CKE_SECRET=${CKE_SECRET:-supersecret}
-      - DATABASE_URL=file:/app/shared-data/dev.db
+      - DATABASE_URL=file:./app/shared-data/dev.db
       - AUTH_SERVICE_URL=http://auth-service:3001
       - USER_SERVICE_URL=http://user-service:3002
       - FRIEND_SERVICE_URL=http://friend-service:3003
@@ -63,7 +63,7 @@ services:
       - PORT=3001
       - JWT_SECRET=${JWT_SECRET:-supersecret}
       - CKE_SECRET=${CKE_SECRET:-supersecret}
-      - DATABASE_URL=file:/app/shared-data/dev.db
+      - DATABASE_URL=file:./app/shared-data/dev.db
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
       - FACEBOOK_CLIENT_ID=${FACEBOOK_CLIENT_ID:-}
@@ -86,7 +86,7 @@ services:
       - NODE_ENV=production
       - PORT=3002
       - JWT_SECRET=${JWT_SECRET:-supersecret}
-      - DATABASE_URL=file:/app/shared-data/dev.db
+      - DATABASE_URL=file:./app/shared-data/dev.db
     volumes:
       - shared-data:/app/shared-data
       - avatar-uploads:/app/public/images
@@ -104,7 +104,7 @@ services:
       - NODE_ENV=production
       - PORT=3003
       - JWT_SECRET=${JWT_SECRET:-supersecret}
-      - DATABASE_URL=file:/app/shared-data/dev.db
+      - DATABASE_URL=file:./app/shared-data/dev.db
     volumes:
       - shared-data:/app/shared-data
     networks:
@@ -121,7 +121,7 @@ services:
       - NODE_ENV=production
       - PORT=3004
       - JWT_SECRET=${JWT_SECRET:-supersecret}
-      - DATABASE_URL=file:/app/shared-data/dev.db
+      - DATABASE_URL=file:./app/shared-data/dev.db
     volumes:
       - shared-data:/app/shared-data
     networks:
