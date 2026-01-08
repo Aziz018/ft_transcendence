@@ -5,6 +5,7 @@ import FriendService from "./friend.js";
 import AuthService from "./auth.js";
 import TOTPService from "./totp.js";
 import MessageService from "./message.js";
+import GameService from "./game.js";
 import type { ServiceManager } from "../types/service-manager.js";
 
 /**
@@ -19,6 +20,7 @@ export function buildServiceManager(fastify: FastifyInstance): ServiceManager {
     auth: new AuthService(fastify),
     totp: new TOTPService(fastify),
     message: new MessageService(fastify),
+    game: new GameService(fastify),
     /// ... add other services !
   };
 }
