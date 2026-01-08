@@ -25,49 +25,12 @@ export const JWTAuthentication = async (
     req: FastifyRequest, rep: FastifyReply): Promise<void> => {
     const token = req.cookies.access_token;
 
-    if (!token) {
-        return rep.status(401).send({
-            message: "Authentication required"
-        });
-    }
-
-    const isBlackListed = await prisma.blacklistedToken.findUnique({
-        where: { token }
+    if (!token) return rep.status(401).send({
+        message: "Authentication required"
     });
-    if (isBlackListed) {
-        return rep.code(401).send({
-            statusCode: 401,
-            error: 'Unauthorized!',
-            message: 'token blacklisted, please login again!'
-        });
-    }
 
-    const decoded = req.jwt.verify<FastifyJWT['user']>(token);
-
-    /**
-     * @warning make sure the user is mfa_required set to false
-     * @note how can i make exceptions? like he can access verify
-     *       only and only if the mfa_required is set to true ??
-     */
-
-    if (req.url === '/v1/totp/verify') {
-        if (!decoded.mfa_required) {
-            return rep.code(401).send({
-                statusCode: 401,
-                error: 'Unauthorized!',
-                message: 'you are not supposed to be here, you are already verified!'
-            });
-        }
-    } else if (decoded.mfa_required) {
-        return rep.code(401).send({
-            statusCode: 401,
-            error: 'Unauthorized!',
-            message: 'you are not supposed to be here, you are not verified!'
-        });
-    }
-
+    const decoded = req.jwt.verify(token);
     req.user = decoded;
-
 }
 
 

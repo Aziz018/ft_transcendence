@@ -10,6 +10,10 @@ import { isServiceError } from "../utils/service-error.js";
 export const sendFriendRequestController = async (
     req: FastifyRequest<{ Body: SendFriendRequestInput }>, res: FastifyReply
 ): Promise<void> => {
+    await req.server.service.auth.validateAccess(
+        req.cookies.access_token!,
+        req.url
+    );
     try {
         const friendReq: FriendRequest | undefined = await req.server.service.friend.sendRequest(
             req.user.uid, req.body.requested_uid);
@@ -30,6 +34,10 @@ export const sendFriendRequestController = async (
 export const resolveFriendRequestController = async (
     req: FastifyRequest<{ Body: ResolveFriendRequestInput }>, res: FastifyReply
 ): Promise<void> => {
+    await req.server.service.auth.validateAccess(
+        req.cookies.access_token!,
+        req.url
+    );
     const friendMS: FriendService = req.server.service.friend;
     const incomingFReqs: FriendRequest[] = await friendMS.getIncomingRequests(
         req.user.uid
@@ -64,14 +72,21 @@ export const resolveFriendRequestController = async (
 export const getFriendsController = async (
     req: FastifyRequest, res: FastifyReply
 ): Promise<void> => {
+    await req.server.service.auth.validateAccess(
+        req.cookies.access_token!,
+        req.url
+    );
     const friendMS: FriendService = req.server.service.friend;
-    const friends: string[] = await friendMS.getFriends(req.user.uid);
-    res.code(200).send(friends);
+    return await friendMS.getFriends(req.user.uid);
 }
 
 export const getPendingRequestsController = async (
     req: FastifyRequest, res: FastifyReply
 ): Promise<void> => {
+    await req.server.service.auth.validateAccess(
+        req.cookies.access_token!,
+        req.url
+    );
     const pendingFriendRequests: FriendRequest[] = await req.server.service.friend
         .getPendingRequests(req.user.uid);
     const pendingFriendIds: string[] = pendingFriendRequests
@@ -83,6 +98,10 @@ export const getPendingRequestsController = async (
 export const getIncomingRequestsController = async (
     req: FastifyRequest, res: FastifyReply
 ): Promise<void> => {
+    await req.server.service.auth.validateAccess(
+        req.cookies.access_token!,
+        req.url
+    );
     const incomingFriendRequests: FriendRequest[] = await req.server.service.friend
         .getIncomingRequests(req.user.uid);
     const incomingFriendIds: string[] = incomingFriendRequests
@@ -94,6 +113,10 @@ export const getIncomingRequestsController = async (
 export const blockUserController = async (
     req: FastifyRequest<{ Body: BlockUserInput }>, rep: FastifyReply
 ): Promise<void> => {
+    await fastify.service.auth.validateAccess(
+        req.cookies.access_token!,
+        req.url
+    );
     try {
         await req.server.service.friend.blockUser(
             req.user.uid,
@@ -116,6 +139,10 @@ export const blockUserController = async (
 export const unblockUserController = async (
     req: FastifyRequest<{ Body: BlockUserInput }>, rep: FastifyReply
 ): Promise<void> => {
+    await req.server.service.auth.validateAccess(
+        req.cookies.access_token!,
+        req.url
+    );
     try {
         await req.server.service.friend.unblockUser(
             req.user.uid,
@@ -139,6 +166,10 @@ export const getBlockedUsersController = async (
     req: FastifyRequest,
     rep :FastifyReply
 ): Promise<void> => {
+    await req.server.service.auth.validateAccess(
+        req.cookies.access_token!,
+        req.url
+    );
     const blockedUsers = await req.server.service.friend.getBlockedUsers(req.user.uid);
     rep.code(200).send(blockedUsers);
 }

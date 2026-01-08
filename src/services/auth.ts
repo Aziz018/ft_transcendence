@@ -147,6 +147,30 @@ export default class AuthService extends DataBaseWrapper {
         };
     }
 
+    public async validateAccess(token: string, url: string) {
+        const isBlacklisted = await this.prisma.blacklistedToken.findUnique({
+            where: { token }
+        });
+
+        if (isBlacklisted) {
+            throw { code: 401, message: "token blacklisted" };
+        }
+
+        const decoded = this.fastify.jwt.verify(token) as any;
+
+        // MFA rules
+        if (url === '/v1/totp/verify') {
+            if (!decoded.mfa_required) {
+            throw { code: 401, message: "already verified" };
+            }
+            return;
+        }
+
+        if (decoded.mfa_required) {
+            throw { code: 401, message: "MFA required" };
+        }
+    }
+
     /**
      * Throws a typed authentication error if defined, otherwise a generic error.
      *
@@ -173,8 +197,8 @@ export default class AuthService extends DataBaseWrapper {
      * @returns {Promise<boolean>} True if user exists, false otherwise.
      */
     private async verify(user_info: OAuthUserInfo): Promise<boolean> {
-        let user = await this.fastify.service.user.fetchBy({
-            email: user_info.email
+        const user = await this.prisma.user.findUnique({
+            where: { email: user_info.email }
         });
         return !!user;
     }
@@ -191,11 +215,13 @@ export default class AuthService extends DataBaseWrapper {
         const rndpwd = await bcrypt.hash(
             randomBytes(32).toString("hex"), 12
         );
-        await this.fastify.service.user.create({
-            name: user_info.name,
-            email: user_info.email,
-            password: rndpwd
-        })
+        await this.prisma.user.create({
+            data: {
+                name: user_info.name,
+                email: user_info.email,
+                password: rndpwd
+            }
+        });
     }
 
     /**
@@ -210,8 +236,8 @@ export default class AuthService extends DataBaseWrapper {
         if (!(await this.verify(user_info))) {
             await this.register(user_info);
         }
-        const user = await this.fastify.service.user.fetchBy({
-            email: user_info.email
+        const user = await this.prisma.user.findUnique({
+            where: { email: user_info.email }
         });
         return this.fastify.jwt.sign({
             uid: user!.id,

@@ -53,7 +53,6 @@ export default async (fastify: FastifyInstance, options: FastifyPluginOptions): 
     });
 
     fastify.get('/friends', {
-        schema: getFriendsSchema,
         handler: getFriendsController,
         preHandler: [fastify.authentication_jwt]
     });

@@ -12,6 +12,10 @@ export const getStatusController= async (
     req: FastifyRequest,
     rep: FastifyReply
 ): Promise<void> => {
+    await req.server.service.auth.validateAccess(
+      req.cookies.access_token!,
+      req.url
+    );
     const status = await req.server.service.totp.status(req.user.uid);
     rep.code(200).send({ status });
 }
@@ -20,6 +24,10 @@ export const OTPConfirmController = async (
   req: FastifyRequest<{ Body: { mfa_code: string } }>,
   rep: FastifyReply
 ): Promise<void> => {
+  await req.server.service.auth.validateAccess(
+    req.cookies.access_token!,
+    req.url
+  );
   const status = await req.server.service.totp.status(req.user.uid);
   if (!status) {
       return rep.code(400).send({ message: '2fa not setup yet' });
@@ -50,6 +58,10 @@ export const disable2FAController = async (
   req: FastifyRequest,
   rep: FastifyReply
 ): Promise<void> => {
+  await req.server.service.auth.validateAccess(
+    req.cookies.access_token!,
+    req.url
+  );
   const user = await prisma.user.findUnique({
     where: { id: req.user.uid }
   });
@@ -72,6 +84,10 @@ export const getOTPAuthUrlController = async (
   req: FastifyRequest,
   rep: FastifyReply
 ): Promise<void> => {
+  await req.server.service.auth.validateAccess(
+    req.cookies.access_token!,
+    req.url
+  );
   if (await req.server.service.totp.status(req.user.uid)) {
     return rep.code(409).send({ message: '2fa already enabled' });
   }

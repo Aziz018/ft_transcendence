@@ -37,7 +37,7 @@ export const resolveFriendRequestSchema = {
                 message: { type: 'string' },
                 newStatus: {
                     type: 'string',
-                    enum: ['ACCEPTED', 'REJECTED']
+                    enum: ['PENDING', 'ACCEPTED', 'REJECTED']
                 }
             }
         },

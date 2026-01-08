@@ -12,6 +12,10 @@ import type { UserRegisterInput, UserLoginInput, UserUpdateInput } from "../mode
 const UPLOAD_DIR = "./public/images";
 
 export const userUploadHandler = async (request: FastifyRequest<{ Body: { description: string } }>, reply: FastifyReply) => {
+    await request.server.service.auth.validateAccess(
+        request.cookies.access_token!,
+        request.url
+    );
 
     const data = await request.file();
     if (!data) {
@@ -234,6 +238,10 @@ export const userLoginController = async (
 export const userProfileController = async (
     req: FastifyRequest, rep: FastifyReply
 ): Promise<void> => {
+    await req.server.service.auth.validateAccess(
+        req.cookies.access_token!,
+        req.url
+    );
     const user: UserModel | null = await req.server.service.user.fetchBy(
         { id: req.user.uid });
     if (user !== null) {
@@ -249,6 +257,11 @@ export const userProfileController = async (
 export const userProfileUpdateController = async (
     req: FastifyRequest<{ Body: UserUpdateInput }>, rep: FastifyReply
 ): Promise<void> => {
+    await req.server.service.auth.validateAccess(
+        req.cookies.access_token!,
+        req.url
+    );
+
     /// i will assume that the user will be able to access the profile settings
     /// right there he can update those things, ...
     ///     - name
