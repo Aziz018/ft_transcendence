@@ -255,6 +255,38 @@ const FriendRequestNotifications = ({
     return unsubscribe;
   }, []);
 
+  /**
+   * Listen for real-time incoming friend requests via WebSocket
+   */
+  useEffect(() => {
+    const handleIncomingFriendRequest = (payload: {
+      requestId: string;
+      requesterId: string;
+      requesterName: string;
+      requesterAvatar?: string;
+      requesterEmail?: string;
+    }) => {
+      // This triggers both:
+      // 1. A purple toast with Accept/Decline buttons
+      // 2. Adds the request to the dropdown list (via the subscribe below)
+      notificationService.friendRequest({
+        requestId: payload.requestId,
+        requesterId: payload.requesterId,
+        requesterName: payload.requesterName,
+        requesterAvatar: payload.requesterAvatar || "",
+        requesterEmail: payload.requesterEmail,
+      });
+    };
+
+    // Replace "friend_request_received" with the exact event name your backend uses
+    wsService.on("friend_request_received", handleIncomingFriendRequest);
+
+    // Cleanup on unmount
+    return () => {
+      wsService.off("friend_request_received", handleIncomingFriendRequest);
+    };
+  }, []);
+
   if (!isOpen) return null;
 
   return (
