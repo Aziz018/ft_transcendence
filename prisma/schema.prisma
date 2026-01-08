@@ -81,6 +81,8 @@ model User {
   receivedMessages  Message[] @relation("MessageReceiver")
   roomMembers       RoomMember[]
 
+  totpConfirmed Boolean @default(false)
+
   @@index([name, email])
 }
 

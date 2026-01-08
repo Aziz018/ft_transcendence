@@ -60,8 +60,7 @@ export default async (fastify: FastifyInstance, options: FastifyPluginOptions): 
 
     fastify.post('/logout', {
         schema: userLogoutSchema,
-        handler: userLogoutController,
-        preHandler: [fastify.authentication_jwt]
+        handler: userLogoutController
     });
 
     fastify.get('/refresh', {

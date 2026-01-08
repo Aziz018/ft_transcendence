@@ -167,26 +167,6 @@ export default class TOTPService extends DataBaseWrapper {
     }
 
     /**
-     * Enables 2FA for a user by generating and storing a new secret.
-     *
-     * @param {string} uid - The user ID.
-     * @returns {Promise<UserModel | null>} The updated user object.
-     * @throws {TOTPServiceError_t} If 2FA is already enabled.
-     */
-    public async enable(uid: string): Promise<UserModel | null> {
-        if (await this.status(uid)) {
-            this.throwErr({ code: 409, message: `2fa already enabled for ${uid}` });
-        }
-
-        const user: UserModel | null = await this.prisma.user.update({
-            where: { id: uid },
-            data: { secret: this.fastify.service.totp.generateSecret() }
-        });
-
-        return user;
-    }
-
-    /**
      * Disables 2FA for a user by removing their secret.
      *
      * @param {string} uid - The user ID.

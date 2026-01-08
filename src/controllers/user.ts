@@ -4,7 +4,7 @@ import { v4 as uuid } from "uuid";
 import bcrypt from "bcrypt";
 import { prisma } from "utils/prisma.js";
 import type UserModel from "../models/user.js";
-import { type FastifyInstance, type FastifyReply, type FastifyRequest } from "fastify";
+import fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from "fastify";
 import type { UserRegisterInput, UserLoginInput, UserUpdateInput } from "../models/user.js";
 
 // ======  Heisenberg Part  ====== //
@@ -181,9 +181,6 @@ export const userLoginController = async (
                 createdAt: user.createdAt,
                 mfa_required: false
             };
-            token = req.jwt.sign(payload, {
-                expiresIn: "15m"
-            });
 
             const refresh_token = uuid();
             await prisma.refreshToken.create({
@@ -200,7 +197,9 @@ export const userLoginController = async (
                 });
             }
 
-            token = req.jwt.sign(payload);
+            token = req.jwt.sign(payload, {
+                expiresIn: "15m"
+            });
 
             if (!token) {
                 fastify.log.error('token not signed!');
@@ -284,39 +283,35 @@ export const userProfileUpdateController = async (
 }
 
 export const userLogoutController = async (
-    req: FastifyRequest, rep: FastifyReply
+  req: FastifyRequest,
+  rep: FastifyReply
 ): Promise<void> => {
-    const token = req.cookies.access_token;
-    if (!token) {
-        return rep.code(401).send({
-            statusCode: 401,
-            error: 'Unauthorized',
-            message: 'you\'re not logged in!'
-        })
-    }
+  const token = req.cookies.access_token;
 
-    try {
-        const decoded = req.jwt.decode<{ exp?: number }>(token);
-        if (decoded?.exp) {
-            await prisma.blacklistedToken.create({
-                data: {
-                    token,
-                    expiresAt: new Date(decoded.exp * 1000)
-                }
-            });
-        }
-        rep.clearCookie('access_token', { path: '/' });
-        rep.code(200).send({
-            message: 'logged-out successfully!'
-        });
-    } catch (error) {
-        rep.code(400).send({
-            statusCode: 400,
-            error: 'Bad Request!',
-            message: 'Invalid token'
-        });
-    }
-}
+  if (!token) {
+    return rep.code(200).send({
+      message: 'already logged out'
+    });
+  }
+
+  const isTokenBlackListed = await prisma.blacklistedToken.findUnique({
+    where: { token }
+  });
+
+  if (!isTokenBlackListed) {
+    await prisma.blacklistedToken.create({
+      data: {
+        token,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24h TTL
+      }
+    });
+  }
+
+  rep.clearCookie('access_token', { path: '/' });
+  rep.code(200).send({
+    message: 'logged-out successfully!'
+  });
+};
 
 export const userRefreshTokController = async (
     req: FastifyRequest, rep: FastifyReply

@@ -26,7 +26,9 @@ RUN npm install
 
 COPY . .
 
-RUN npx prisma migrate deploy --name init
+RUN npx prisma migrate reset -f
+RUN npx prisma migrate dev --name=pookie
+RUN npx prisma migrate deploy
 RUN npx prisma generate
 
 EXPOSE 3000

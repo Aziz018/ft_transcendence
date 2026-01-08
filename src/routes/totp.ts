@@ -5,9 +5,9 @@ import type {
 
 import {
     disable2FAController,
-    enable2FAController,
     getOTPAuthUrlController,
     getStatusController,
+    OTPConfirmController,
     OTPVerificationController
 } from "../controllers/totp.js";
 
@@ -40,12 +40,6 @@ export default async (fastify: FastifyInstance, opts: FastifyPluginOptions) => {
         preHandler: [fastify.authentication_jwt]
     })
 
-    fastify.put('/enable', {
-        schema: { tags: [ "totp" ] },
-        handler: enable2FAController,
-        preHandler: [fastify.authentication_jwt]
-    });
-
     fastify.put('/disable', {
         schema: { tags: [ "totp" ] },
         handler: disable2FAController,
@@ -55,6 +49,12 @@ export default async (fastify: FastifyInstance, opts: FastifyPluginOptions) => {
     fastify.get('/qr-code', {
         schema: { tags: [ "totp" ] },
         handler: getOTPAuthUrlController,
+        preHandler: [fastify.authentication_jwt]
+    })
+
+    fastify.post('/confirm', {
+        schema: { tags: [ "totp" ] },
+        handler: OTPConfirmController,
         preHandler: [fastify.authentication_jwt]
     })
 
