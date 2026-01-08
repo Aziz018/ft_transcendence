@@ -1,0 +1,1190 @@
+import type { FastifyInstance } from "fastify";
+import DataBaseWrapper from "../utils/prisma.js";
+import type {
+  PlayerMoveInput,
+  GameJoinInput,
+  MatchmakingInput,
+  GameReadyInput,
+  GameResultInput,
+  ScoreUpdateInput,
+  MatchEndInput,
+  GameSession,
+  GameStats,
+  Tournament,
+  TournamentPlayer,
+  TournamentMatch,
+  TournamentActionInput,
+  TournamentCreateInput
+} from "../models/game.js";
+
+type Timer = ReturnType<typeof setTimeout> | ReturnType<typeof setInterval>;
+
+/**
+ * GameService
+ *
+ * Manages real-time multiplayer Pong game sessions.
+ * Handles WebSocket connections, matchmaking, bot opponents, and game state.
+ *
+ * Responsibilities:
+ * - Manage active WebSocket connections
+ * - Handle matchmaking queue and player matching
+ * - Create and manage game sessions
+ * - Implement bot AI for single-player experience
+ * - Track scores and game results
+ * - Persist game history to database
+ */
+export default class GameService extends DataBaseWrapper {
+  private activeConnections = new Map<string, any>();
+  private gameSessions = new Map<string, GameSession>();
+  private matchmakingQueue: string[] = [];
+  private botConnections = new Map<string, any>();
+  private matchmakingJoinTimes = new Map<string, number>();
+  private botIntervals = new Map<string, Timer>();
+  private matchmakingInterval: Timer | null = null;
+
+  // Tournament system
+  private tournaments = new Map<string, Tournament>();
+  private playerTournaments = new Map<string, string>(); // playerId -> tournamentId
+
+  constructor(fastify: FastifyInstance) {
+    super('game.service', fastify);
+    this.startMatchmakingProcessor();
+  }
+
+  /**
+   * Starts the periodic matchmaking processor.
+   * Checks every 2 seconds for players to match or bots to assign.
+   */
+  private startMatchmakingProcessor(): void {
+    this.matchmakingInterval = setInterval(() => {
+      this.tryMatchPlayers('classic');
+    }, 2000);
+  }
+
+  /**
+   * Processes a player movement action in an active game.
+   */
+  async handlePlayerMove(userId: string, payload: PlayerMoveInput): Promise<{ success: boolean; message: string }> {
+    this.fastify.log.debug(`🎮 ${userId.startsWith('bot-') ? '🤖 Bot' : 'Player'} ${userId} moved`, payload);
+
+    const gameSession = this.gameSessions.get(payload.gameId);
+    if (gameSession) {
+      gameSession.players.forEach((playerId: string) => {
+        if (playerId !== userId) {
+          this.notifyPlayer(playerId, {
+            type: 'player_moved',
+            payload: {
+              userId,
+              ...payload,
+              isBot: userId.startsWith('bot-')
+            }
+          });
+        }
+      });
+    }
+
+    return { success: true, message: 'Movement processed' };
+  }
+
+  /**
+   * Handles real-time EXP score updates from the frontend during an active match.
+   */
+  async handleScoreUpdate(userId: string, payload: ScoreUpdateInput): Promise<{ success: boolean; message: string }> {
+    this.fastify.log.debug(`📊 Score update from ${userId}: EXP = ${payload.currentExp}`);
+
+    const gameSession = this.gameSessions.get(payload.gameId);
+    if (!gameSession) {
+      return { success: false, message: 'Game session not found' };
+    }
+
+    gameSession.expScores[userId] = payload.currentExp;
+
+    this.notifyPlayers(gameSession.players, {
+      type: 'score_update',
+      payload: {
+        gameId: payload.gameId,
+        scores: gameSession.expScores,
+        timestamp: payload.timestamp
+      }
+    });
+
+    return { success: true, message: 'Score updated' };
+  }
+
+  /**
+   * Handles the match end event when the 1-minute timer expires.
+   */
+  async handleMatchEnd(initiatorId: string, payload: MatchEndInput): Promise<any> {
+    this.fastify.log.info(`⏰ Match end signal from ${initiatorId}`, payload);
+
+    const gameSession = this.gameSessions.get(payload.gameId);
+    if (!gameSession) {
+      return { success: false, message: 'Game session not found' };
+    }
+
+    const { player1Id, player2Id, player1Exp, player2Exp } = payload;
+    const winnerId = player1Exp > player2Exp ? player1Id : (player1Exp === player2Exp ? null : player2Id);
+    const isTie = player1Exp === player2Exp;
+
+    this.fastify.log.info(`🏆 Match Result: ${player1Id} (${player1Exp} EXP) vs ${player2Id} (${player2Exp} EXP)`);
+    this.fastify.log.info(`🎯 Winner: ${isTie ? 'TIE' : winnerId}`);
+
+    gameSession.status = 'completed';
+    gameSession.finalScores = {
+      [player1Id]: player1Exp,
+      [player2Id]: player2Exp
+    };
+    gameSession.endedAt = new Date();
+    gameSession.matchDurationMs = payload.matchDurationMs || 60000;
+
+    if (gameSession.matchTimer) {
+      clearTimeout(gameSession.matchTimer);
+      gameSession.matchTimer = null;
+    }
+
+    this.notifyPlayers(gameSession.players, {
+      type: 'match_ended',
+      payload: {
+        gameId: payload.gameId,
+        winnerId,
+        isTie,
+        finalScores: gameSession.finalScores,
+        matchDurationMs: gameSession.matchDurationMs
+      }
+    });
+
+    // Save to database
+    await this.saveGameResult(gameSession, winnerId);
+
+    return {
+      success: true,
+      winnerId,
+      isTie,
+      finalScores: gameSession.finalScores
+    };
+  }
+
+  /**
+   * Handles a player's request to join a game.
+   */
+  async handleGameJoin(userId: string, payload: GameJoinInput): Promise<any> {
+    this.fastify.log.debug(`Player ${userId} wants to join game`, payload);
+
+    if (payload.gameId) {
+      return await this.joinExistingGame(userId, payload.gameId);
+    } else {
+      return await this.joinMatchmaking(userId, payload.gameType);
+    }
+  }
+
+  /**
+   * Processes matchmaking requests for joining or leaving the queue.
+   */
+  async handleMatchmaking(userId: string, payload: MatchmakingInput): Promise<any> {
+    this.fastify.log.debug(`🔍 Player ${userId} matchmaking`, payload);
+
+    if (payload.action === 'join') {
+      return await this.joinMatchmaking(userId, payload.gameType);
+    } else {
+      return await this.leaveMatchmaking(userId);
+    }
+  }
+
+  /**
+   * Handles a player's ready signal for starting a game.
+   */
+  async handleGameReady(userId: string, payload: GameReadyInput): Promise<{ success: boolean; message: string }> {
+    this.fastify.log.debug(`Player ${userId} is ready for game: ${payload.gameId}`);
+
+    const gameSession = this.gameSessions.get(payload.gameId);
+    if (gameSession) {
+      if (!gameSession.readyPlayers) gameSession.readyPlayers = new Set();
+      gameSession.readyPlayers.add(userId);
+
+      if (gameSession.readyPlayers.size === gameSession.players.length) {
+        this.startGame(payload.gameId);
+      }
+    }
+    return { success: true, message: 'Player ready' };
+  }
+
+  /**
+   * Allows a player to join a specific existing game session.
+   */
+  private async joinExistingGame(userId: string, gameId: string): Promise<any> {
+    const gameSession = this.gameSessions.get(gameId);
+    if (!gameSession) {
+      throw new Error('Game not found');
+    }
+
+    if (gameSession.players.includes(userId)) {
+      return { success: true, gameId, message: 'Already in game' };
+    }
+
+    if (gameSession.players.length >= 2) {
+      throw new Error('Game is full');
+    }
+
+    gameSession.players.push(userId);
+    this.notifyPlayers(gameSession.players, {
+      type: 'player_joined',
+      payload: { userId, gameId }
+    });
+
+    return { success: true, gameId };
+  }
+
+  /**
+   * Adds a player to the matchmaking queue.
+   */
+  private async joinMatchmaking(userId: string, gameType: string): Promise<any> {
+    if (!this.matchmakingQueue.includes(userId)) {
+      this.matchmakingQueue.push(userId);
+      this.matchmakingJoinTimes.set(userId, Date.now());
+    }
+
+    this.fastify.log.debug(`Matchmaking queue: ${this.matchmakingQueue.length} players`);
+
+    await this.tryMatchPlayers(gameType);
+
+    return {
+      success: true,
+      position: this.matchmakingQueue.indexOf(userId) + 1,
+      queueSize: this.matchmakingQueue.length
+    };
+  }
+
+  /**
+   * Removes a player from the matchmaking queue.
+   */
+  private async leaveMatchmaking(userId: string): Promise<{ success: boolean; message: string }> {
+    this.matchmakingQueue = this.matchmakingQueue.filter(id => id !== userId);
+    this.matchmakingJoinTimes.delete(userId);
+    return { success: true, message: 'Left matchmaking' };
+  }
+
+  /**
+   * Attempts to match players in the queue or assign bots.
+   */
+  private async tryMatchPlayers(gameType: string): Promise<void> {
+    if (this.matchmakingQueue.length >= 2) {
+      const player1 = this.matchmakingQueue.shift()!;
+      const player2 = this.matchmakingQueue.shift()!;
+      this.fastify.log.info(`Matched players: ${player1} vs ${player2}`);
+      await this.createGameSession(player1, player2, gameType);
+      return;
+    }
+
+    if (this.matchmakingQueue.length === 1) {
+      const playerId = this.matchmakingQueue[0];
+      if (!playerId) return;
+
+      const joinTime = this.matchmakingJoinTimes.get(playerId);
+      if (!joinTime) {
+        this.matchmakingJoinTimes.set(playerId, Date.now());
+        return;
+      }
+
+      const waitTime = Date.now() - joinTime;
+
+      if (waitTime > 10000) {
+        const player = this.matchmakingQueue.shift()!;
+        const botId = `bot-${Date.now()}`;
+        this.fastify.log.info(`🤖 Matching ${player} with bot ${botId}`);
+        await this.createGameSession(player, botId, gameType);
+        this.matchmakingJoinTimes.delete(playerId);
+      }
+    }
+  }
+
+  /**
+   * Creates a new game session between two players.
+   */
+  private async createGameSession(player1Id: string, player2Id: string, gameType: string): Promise<GameSession> {
+    const isPlayer2Bot = player2Id.startsWith('bot-');
+
+    const gameSession: GameSession = {
+      id: `game-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      players: [player1Id, player2Id],
+      gameType,
+      status: 'starting',
+      createdAt: new Date(),
+      isBotGame: isPlayer2Bot,
+      expScores: {
+        [player1Id]: 0,
+        [player2Id]: 0
+      },
+      matchStartTime: null,
+      matchTimer: null,
+      MATCH_DURATION_MS: 60000
+    };
+
+    this.gameSessions.set(gameSession.id, gameSession);
+
+    this.notifyPlayer(player1Id, {
+      type: 'game_matched',
+      payload: { ...gameSession, yourPlayerId: player1Id, opponentIsBot: isPlayer2Bot }
+    });
+
+    if (isPlayer2Bot) {
+      this.startBotBehavior(gameSession, player2Id);
+    } else {
+      this.notifyPlayer(player2Id, {
+        type: 'game_matched',
+        payload: { ...gameSession, yourPlayerId: player2Id, opponentIsBot: false }
+      });
+    }
+
+    return gameSession;
+  }
+
+  /**
+   * Starts autonomous behavior for a Pong bot opponent.
+   */
+  private startBotBehavior(gameSession: GameSession, botId: string): void {
+    this.fastify.log.debug(`Starting Pong bot behavior for bot ${botId} in game ${gameSession.id}`);
+
+    const pongDirections = ['up', 'down'] as const;
+
+    const botInterval = setInterval(() => {
+      if (!this.gameSessions.has(gameSession.id)) {
+        clearInterval(botInterval);
+        this.botIntervals.delete(gameSession.id);
+        return;
+      }
+
+      const moveDirection = pongDirections[Math.random() > 0.5 ? 0 : 1];
+      const moveMessage = {
+        gameId: gameSession.id,
+        direction: moveDirection,
+        timestamp: Date.now()
+      };
+
+      this.fastify.log.debug(`🤖 Pong Bot ${botId} moving ${moveDirection}`);
+      this.handlePlayerMove(botId, moveMessage);
+    }, 1500);
+
+    gameSession.botInterval = botInterval;
+    this.botIntervals.set(gameSession.id, botInterval);
+  }
+
+  /**
+   * Initiates an active game session when all players are ready.
+   */
+  private startGame(gameId: string): void {
+    const gameSession = this.gameSessions.get(gameId);
+    if (gameSession) {
+      gameSession.status = 'active';
+      gameSession.startedAt = new Date();
+      gameSession.matchStartTime = Date.now();
+
+      this.fastify.log.info(`🎮 Game ${gameId} started. 1-minute timer begins...`);
+
+      this.notifyPlayers(gameSession.players, {
+        type: 'game_start',
+        payload: {
+          gameId,
+          startedAt: gameSession.startedAt,
+          matchDurationMs: gameSession.MATCH_DURATION_MS
+        }
+      });
+
+      gameSession.matchTimer = setTimeout(() => {
+        this.fastify.log.info(`⏰ 1-minute timer expired for game ${gameId}`);
+      }, gameSession.MATCH_DURATION_MS);
+    }
+  }
+
+  /**
+   * Saves game result to database.
+   */
+  private async saveGameResult(gameSession: any, winnerId: string | null): Promise<void> {
+    try {
+      const player1Id = gameSession.players[0];
+      const player2Id = gameSession.players[1];
+
+      // Don't save bot games to database
+      if (player1Id?.startsWith('bot-') || player2Id?.startsWith('bot-')) {
+        this.fastify.log.debug('Skipping database save for bot game');
+        return;
+      }
+
+      // Create game session in database
+      await this.prisma.gameSession.create({
+        data: {
+          gameType: gameSession.gameType.toUpperCase(),
+          status: 'COMPLETED',
+          player1Id,
+          player2Id,
+          winnerId,
+          player1Score: gameSession.finalScores?.[player1Id] || 0,
+          player2Score: gameSession.finalScores?.[player2Id] || 0,
+          player1Exp: gameSession.finalScores?.[player1Id] || 0,
+          player2Exp: gameSession.finalScores?.[player2Id] || 0,
+          durationMs: gameSession.matchDurationMs || 60000,
+          startedAt: gameSession.startedAt,
+          completedAt: gameSession.endedAt
+        }
+      });
+
+      // Update player stats
+      await this.updatePlayerStats(player1Id, winnerId === player1Id, gameSession.matchDurationMs);
+      await this.updatePlayerStats(player2Id, winnerId === player2Id, gameSession.matchDurationMs);
+
+      this.fastify.log.info('✅ Game result saved to database');
+    } catch (error) {
+      this.fastify.log.error({ error }, 'Failed to save game result');
+    }
+  }
+
+  /**
+   * Updates player statistics after a game.
+   */
+  private async updatePlayerStats(userId: string, isWin: boolean, durationMs: number): Promise<void> {
+    try {
+      const stats = await this.prisma.playerStats.findUnique({ where: { userId } });
+
+      if (!stats) {
+        await this.prisma.playerStats.create({
+          data: {
+            userId,
+            totalGames: 1,
+            totalWins: isWin ? 1 : 0,
+            totalLosses: isWin ? 0 : 1,
+            winStreak: isWin ? 1 : 0,
+            bestWinStreak: isWin ? 1 : 0,
+            averageGameDuration: durationMs,
+          }
+        });
+      } else {
+        const newWinStreak = isWin ? stats.winStreak + 1 : 0;
+        await this.prisma.playerStats.update({
+          where: { userId },
+          data: {
+            totalGames: { increment: 1 },
+            totalWins: isWin ? { increment: 1 } : undefined,
+            totalLosses: !isWin ? { increment: 1 } : undefined,
+            winStreak: newWinStreak,
+            bestWinStreak: Math.max(stats.bestWinStreak, newWinStreak),
+            averageGameDuration: Math.floor(
+              (stats.averageGameDuration * stats.totalGames + durationMs) / (stats.totalGames + 1)
+            ),
+          }
+        });
+      }
+    } catch (error) {
+      this.fastify.log.error({ error }, 'Failed to update player stats');
+    }
+  }
+
+  /**
+   * Registers a new WebSocket connection for a player.
+   */
+  addConnection(userId: string, connection: any): void {
+    this.activeConnections.set(userId, connection);
+  }
+
+  /**
+   * Removes a player's WebSocket connection.
+   */
+  removeConnection(userId: string): void {
+    this.activeConnections.delete(userId);
+    this.leaveMatchmaking(userId);
+
+    this.gameSessions.forEach((session, gameId) => {
+      if (session.players.includes(userId)) {
+        this.handlePlayerDisconnect(userId);
+      }
+    });
+  }
+
+  /**
+   * Handles cleanup when a player disconnects.
+   */
+  private handlePlayerDisconnect(userId: string): void {
+    this.fastify.log.debug(`Player ${userId} disconnected`);
+
+    this.activeConnections.delete(userId);
+    this.matchmakingQueue = this.matchmakingQueue.filter(id => id !== userId);
+
+    for (const [gameId, gameSession] of this.gameSessions.entries()) {
+      if (gameSession.players.includes(userId)) {
+        this.fastify.log.debug(`Ending game ${gameId} due to player disconnect`);
+
+        if (gameSession.botInterval) {
+          clearInterval(gameSession.botInterval);
+        }
+        if (this.botIntervals.has(gameId)) {
+          clearInterval(this.botIntervals.get(gameId));
+          this.botIntervals.delete(gameId);
+        }
+
+        this.gameSessions.delete(gameId);
+        break;
+      }
+    }
+  }
+
+  /**
+   * Retrieves current service statistics.
+   */
+  getStats(): GameStats {
+    return {
+      activeConnections: this.activeConnections.size,
+      gameSessions: this.gameSessions.size,
+      matchmakingQueue: this.matchmakingQueue.length
+    };
+  }
+
+  /**
+   * Sends a message to a specific player.
+   */
+  notifyPlayer(userId: string, message: any): void {
+    const connection = this.activeConnections.get(userId);
+    if (connection?.readyState === 1) {
+      this.fastify.log.debug(`✅ Sending ${message.type} to ${userId}`);
+      connection.send(JSON.stringify(message));
+    } else {
+      this.fastify.log.debug(`❌ No active connection for ${userId}`);
+    }
+  }
+
+  /**
+   * Sends a message to multiple players.
+   */
+  notifyPlayers(userIds: string[], message: any): void {
+    userIds.forEach(userId => this.notifyPlayer(userId, message));
+  }
+
+  // ============================================================================
+  // TOURNAMENT METHODS
+  // ============================================================================
+
+  /**
+   * Handles tournament actions (create, join, leave, start, get_info)
+   */
+  async handleTournamentAction(userId: string, payload: TournamentActionInput): Promise<any> {
+    this.fastify.log.info(`🏆 Tournament action from ${userId}:`, payload);
+
+    switch (payload.action) {
+      case 'create':
+        if (!payload.tournamentData) {
+          throw new Error('Tournament data required for create action');
+        }
+        return await this.createTournament(userId, payload.tournamentData as TournamentCreateInput);
+
+      case 'join':
+        if (!payload.tournamentId) {
+          throw new Error('Tournament ID required for join action');
+        }
+        return await this.joinTournament(userId, payload.tournamentId, (payload.tournamentData as any)?.password);
+
+      case 'leave':
+        if (!payload.tournamentId) {
+          throw new Error('Tournament ID required for leave action');
+        }
+        return await this.leaveTournament(userId, payload.tournamentId);
+
+      case 'start':
+        if (!payload.tournamentId) {
+          throw new Error('Tournament ID required for start action');
+        }
+        return await this.startTournament(userId, payload.tournamentId);
+
+      case 'get_info':
+        if (!payload.tournamentId) {
+          throw new Error('Tournament ID required for get_info action');
+        }
+        return this.getTournamentInfo(payload.tournamentId);
+
+      default:
+        throw new Error(`Unknown tournament action: ${(payload as any).action}`);
+    }
+  }
+
+  /**
+   * Creates a new tournament
+   */
+  private async createTournament(creatorId: string, tournamentData: TournamentCreateInput): Promise<any> {
+    // Validate max players is power of 2
+    if (!this.isPowerOfTwo(tournamentData.maxPlayers)) {
+      throw new Error('Max players must be a power of 2 (4, 8, 16, 32, 64)');
+    }
+
+    const tournament: Tournament = {
+      id: `tournament-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      name: tournamentData.name,
+      creatorId,
+      maxPlayers: tournamentData.maxPlayers,
+      isPrivate: tournamentData.isPrivate,
+      status: 'waiting_for_players',
+      players: [],
+      bracket: [],
+      currentRound: 1,
+      winnerId: null,
+      createdAt: new Date(),
+      ...(tournamentData.description && { description: tournamentData.description }),
+      ...(tournamentData.password && { password: tournamentData.password })
+    };
+
+    this.tournaments.set(tournament.id, tournament);
+
+    // Automatically join the creator
+    await this.joinTournament(creatorId, tournament.id);
+
+    this.fastify.log.info(`🏆 Tournament "${tournament.name}" created with ID: ${tournament.id}`);
+
+    return {
+      success: true,
+      tournament: this.sanitizeTournamentForClient(tournament)
+    };
+  }
+
+  /**
+   * Allows a player to join a tournament
+   */
+  private async joinTournament(playerId: string, tournamentId: string, password?: string): Promise<any> {
+    const tournament = this.tournaments.get(tournamentId);
+    if (!tournament) {
+      throw new Error('Tournament not found');
+    }
+
+    // Check if player is already in a tournament
+    if (this.playerTournaments.has(playerId)) {
+      throw new Error('Player is already in a tournament');
+    }
+
+    // Check password for private tournaments
+    if (tournament.isPrivate && tournament.password !== password) {
+      throw new Error('Invalid password');
+    }
+
+    // Check if tournament is full
+    if (tournament.players.length >= tournament.maxPlayers) {
+      throw new Error('Tournament is full');
+    }
+
+    // Check if tournament has already started
+    if (tournament.status !== 'waiting_for_players') {
+      throw new Error('Tournament has already started');
+    }
+
+    // Check if player is already in the tournament
+    if (tournament.players.some(p => p.id === playerId)) {
+      throw new Error('Player is already in this tournament');
+    }
+
+    // Add player to tournament
+    const player: TournamentPlayer = {
+      id: playerId,
+      name: `Player ${playerId}`,
+      joinedAt: new Date(),
+      isEliminated: false
+    };
+
+    tournament.players.push(player);
+    this.playerTournaments.set(playerId, tournamentId);
+
+    // Notify all players in the tournament
+    this.notifyTournamentPlayers(tournamentId, {
+      type: 'tournament_player_joined',
+      payload: {
+        tournamentId,
+        player,
+        totalPlayers: tournament.players.length,
+        maxPlayers: tournament.maxPlayers
+      }
+    });
+
+    this.fastify.log.info(`🏆 Player ${playerId} joined tournament ${tournamentId} (${tournament.players.length}/${tournament.maxPlayers})`);
+
+    return {
+      success: true,
+      tournament: this.sanitizeTournamentForClient(tournament),
+      message: `Joined tournament "${tournament.name}"`
+    };
+  }
+
+  /**
+   * Removes a player from a tournament
+   */
+  private async leaveTournament(playerId: string, tournamentId: string): Promise<any> {
+    const tournament = this.tournaments.get(tournamentId);
+    if (!tournament) {
+      throw new Error('Tournament not found');
+    }
+
+    const playerIndex = tournament.players.findIndex(p => p.id === playerId);
+    if (playerIndex === -1) {
+      throw new Error('Player not in this tournament');
+    }
+
+    // Check if tournament has started
+    if (tournament.status === 'in_progress') {
+      // Mark player as eliminated instead of removing
+      const player = tournament.players[playerIndex];
+      if (player) {
+        player.isEliminated = true;
+      }
+      this.playerTournaments.delete(playerId);
+
+      this.notifyTournamentPlayers(tournamentId, {
+        type: 'tournament_player_eliminated',
+        payload: {
+          tournamentId,
+          playerId,
+          reason: 'disconnected'
+        }
+      });
+
+      return { success: true, message: 'Marked as eliminated due to leaving during tournament' };
+    }
+
+    // Remove player if tournament hasn't started
+    tournament.players.splice(playerIndex, 1);
+    this.playerTournaments.delete(playerId);
+
+    // If creator left and tournament is empty, delete tournament
+    if (tournament.creatorId === playerId && tournament.players.length === 0) {
+      this.tournaments.delete(tournamentId);
+      return { success: true, message: 'Left tournament (tournament deleted)' };
+    }
+
+    // If creator left but tournament has other players, transfer ownership
+    if (tournament.creatorId === playerId && tournament.players.length > 0) {
+      const newCreator = tournament.players[0];
+      if (newCreator) {
+        tournament.creatorId = newCreator.id;
+      }
+    }
+
+    this.notifyTournamentPlayers(tournamentId, {
+      type: 'tournament_player_left',
+      payload: {
+        tournamentId,
+        playerId,
+        totalPlayers: tournament.players.length,
+        maxPlayers: tournament.maxPlayers
+      }
+    });
+
+    return { success: true, message: 'Left tournament' };
+  }
+
+  /**
+   * Starts a tournament if conditions are met
+   */
+  private async startTournament(playerId: string, tournamentId: string): Promise<any> {
+    const tournament = this.tournaments.get(tournamentId);
+    if (!tournament) {
+      throw new Error('Tournament not found');
+    }
+
+    // Check if player is the creator
+    if (tournament.creatorId !== playerId) {
+      throw new Error('Only the tournament creator can start the tournament');
+    }
+
+    // Check if tournament has already started
+    if (tournament.status !== 'waiting_for_players') {
+      throw new Error('Tournament has already started or completed');
+    }
+
+    // Check minimum players (at least 4)
+    if (tournament.players.length < 4) {
+      throw new Error('Tournament needs at least 4 players to start');
+    }
+
+    // Check if player count is power of 2
+    if (!this.isPowerOfTwo(tournament.players.length)) {
+      throw new Error('Player count must be a power of 2 to create a proper bracket');
+    }
+
+    // Generate tournament bracket
+    this.generateTournamentBracket(tournament);
+
+    tournament.status = 'in_progress';
+    tournament.startedAt = new Date();
+
+    // Start first round matches
+    await this.startTournamentRound(tournamentId, 1);
+
+    this.notifyTournamentPlayers(tournamentId, {
+      type: 'tournament_started',
+      payload: {
+        tournamentId,
+        tournament: this.sanitizeTournamentForClient(tournament)
+      }
+    });
+
+    this.fastify.log.info(`🏆 Tournament ${tournamentId} started with ${tournament.players.length} players`);
+
+    return {
+      success: true,
+      tournament: this.sanitizeTournamentForClient(tournament),
+      message: 'Tournament started!'
+    };
+  }
+
+  /**
+   * Gets tournament information
+   */
+  private getTournamentInfo(tournamentId: string): any {
+    const tournament = this.tournaments.get(tournamentId);
+    if (!tournament) {
+      throw new Error('Tournament not found');
+    }
+
+    return {
+      success: true,
+      tournament: this.sanitizeTournamentForClient(tournament)
+    };
+  }
+
+  /**
+   * Get available tournaments (public or waiting)
+   */
+  getAvailableTournaments(): any {
+    const tournaments = Array.from(this.tournaments.values())
+      .filter(t => !t.isPrivate || t.status === 'waiting_for_players')
+      .map(t => this.sanitizeTournamentForClient(t));
+
+    return { success: true, tournaments };
+  }
+
+  /**
+   * Get tournaments where the user is owner or participant
+   */
+  getUserTournaments(userId: string): any {
+    const tournaments = Array.from(this.tournaments.values())
+      .filter(t => t.creatorId === userId || t.players.some(p => p.id === userId))
+      .map(t => this.sanitizeTournamentForClient(t));
+
+    return { success: true, tournaments };
+  }
+
+  /**
+   * Report a match result by tournament and match id
+   */
+  async reportMatchResultById(tournamentId: string, matchId: string, winnerId: string): Promise<any> {
+    const tournament = this.tournaments.get(tournamentId);
+    if (!tournament) throw new Error('Tournament not found');
+
+    const match = tournament.bracket.find(m => m.id === matchId);
+    if (!match) throw new Error('Match not found');
+
+    if (!match.gameId) throw new Error('Match has no associated game session');
+
+    return await this.processTournamentGameResult(tournamentId, { gameId: match.gameId, winnerId });
+  }
+
+  /**
+   * Generates a tournament bracket with proper seeding
+   */
+  private generateTournamentBracket(tournament: Tournament): void {
+    const players = [...tournament.players];
+    const totalRounds = Math.log2(players.length);
+
+    // Shuffle players for random seeding
+    for (let i = players.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const playerI = players[i];
+      const playerJ = players[j];
+      if (playerI && playerJ) {
+        [players[i], players[j]] = [playerJ, playerI];
+      }
+    }
+
+    // Generate first round matches
+    for (let i = 0; i < players.length; i += 2) {
+      const player1 = players[i];
+      const player2 = players[i + 1];
+
+      const match: TournamentMatch = {
+        id: `match-${tournament.id}-1-${i / 2 + 1}`,
+        round: 1,
+        player1: player1 || null,
+        player2: player2 || null,
+        winner: null,
+        gameId: null,
+        status: 'waiting'
+      };
+      tournament.bracket.push(match);
+    }
+
+    // Generate subsequent rounds (empty matches to be filled by winners)
+    let matchesInRound = players.length / 2;
+    for (let round = 2; round <= totalRounds; round++) {
+      matchesInRound = matchesInRound / 2;
+      for (let i = 0; i < matchesInRound; i++) {
+        const match: TournamentMatch = {
+          id: `match-${tournament.id}-${round}-${i + 1}`,
+          round,
+          player1: null,
+          player2: null,
+          winner: null,
+          gameId: null,
+          status: 'waiting'
+        };
+        tournament.bracket.push(match);
+      }
+    }
+  }
+
+  /**
+   * Starts a tournament round by creating game sessions for all matches
+   */
+  private async startTournamentRound(tournamentId: string, round: number): Promise<void> {
+    const tournament = this.tournaments.get(tournamentId);
+    if (!tournament) return;
+
+    const roundMatches = tournament.bracket.filter(m => m.round === round && m.status === 'waiting');
+
+    for (const match of roundMatches) {
+      if (match.player1 && match.player2) {
+        // Create game session for this match
+        const gameSession = await this.createTournamentGameSession(
+          match.player1.id,
+          match.player2.id,
+          tournamentId,
+          match.id
+        );
+
+        match.gameId = gameSession.id;
+        match.status = 'in_progress';
+
+        this.fastify.log.info(`🎮 Started tournament match: ${match.player1.name} vs ${match.player2.name}`);
+      }
+    }
+
+    this.notifyTournamentPlayers(tournamentId, {
+      type: 'tournament_round_started',
+      payload: {
+        tournamentId,
+        round,
+        matches: roundMatches.map(m => this.sanitizeMatchForClient(m))
+      }
+    });
+  }
+
+  /**
+   * Creates a game session specifically for tournament matches
+   */
+  private async createTournamentGameSession(player1Id: string, player2Id: string, tournamentId: string, matchId: string): Promise<any> {
+    const gameSession = {
+      id: `game-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      players: [player1Id, player2Id],
+      gameType: 'tournament',
+      status: 'starting' as const,
+      createdAt: new Date(),
+      tournamentId,
+      matchId,
+      isBotGame: false,
+      expScores: {
+        [player1Id]: 0,
+        [player2Id]: 0
+      },
+      matchStartTime: null,
+      matchTimer: null,
+      MATCH_DURATION_MS: 60000,
+      readyPlayers: new Set([player1Id, player2Id])
+    };
+
+    this.gameSessions.set(gameSession.id, gameSession as any);
+
+    // Notify both players that match is ready
+    this.notifyPlayer(player1Id, {
+      type: 'tournament_match_ready',
+      payload: { ...gameSession, yourPlayerId: player1Id }
+    });
+
+    this.notifyPlayer(player2Id, {
+      type: 'tournament_match_ready',
+      payload: { ...gameSession, yourPlayerId: player2Id }
+    });
+
+    // Auto-start tournament games after a brief delay
+    setTimeout(() => {
+      this.fastify.log.info(`🚀 Auto-starting tournament game: ${gameSession.id}`);
+      this.startGame(gameSession.id);
+    }, 2000);
+
+    return gameSession;
+  }
+
+  /**
+   * Processes game results for tournament matches
+   */
+  private async processTournamentGameResult(tournamentId: string, result: GameResultInput): Promise<any> {
+    const tournament = this.tournaments.get(tournamentId);
+    if (!tournament) {
+      throw new Error('Tournament not found');
+    }
+
+    const gameSession = this.gameSessions.get(result.gameId);
+    if (!gameSession || !(gameSession as any).matchId) {
+      throw new Error('Tournament match not found');
+    }
+
+    const match = tournament.bracket.find(m => m.id === (gameSession as any).matchId);
+    if (!match) {
+      throw new Error('Tournament match not found in bracket');
+    }
+
+    // Find winner player object
+    const winnerPlayer = tournament.players.find(p => p.id === result.winnerId);
+    if (!winnerPlayer) {
+      throw new Error('Winner not found in tournament');
+    }
+
+    // Update match result
+    match.winner = winnerPlayer;
+    match.status = 'completed';
+
+    // Mark loser as eliminated
+    const loserId = gameSession.players.find((id: string) => id !== result.winnerId);
+    if (loserId) {
+      const loserPlayer = tournament.players.find(p => p.id === loserId);
+      if (loserPlayer) {
+        loserPlayer.isEliminated = true;
+      }
+    }
+
+    this.fastify.log.info(`🏆 Tournament match completed: ${winnerPlayer.name} won!`);
+
+    // Check if round is complete
+    const currentRoundMatches = tournament.bracket.filter(m => m.round === tournament.currentRound);
+    const completedMatches = currentRoundMatches.filter(m => m.status === 'completed');
+
+    if (completedMatches.length === currentRoundMatches.length) {
+      // Round completed, advance to next round or end tournament
+      await this.advanceTournamentRound(tournamentId);
+    }
+
+    this.notifyTournamentPlayers(tournamentId, {
+      type: 'tournament_match_completed',
+      payload: {
+        tournamentId,
+        matchId: match.id,
+        winner: winnerPlayer,
+        match: this.sanitizeMatchForClient(match)
+      }
+    });
+
+    return { success: true, message: 'Tournament match result processed' };
+  }
+
+  /**
+   * Advances tournament to the next round or completes it
+   */
+  private async advanceTournamentRound(tournamentId: string): Promise<void> {
+    const tournament = this.tournaments.get(tournamentId);
+    if (!tournament) return;
+
+    const currentRoundMatches = tournament.bracket.filter(m => m.round === tournament.currentRound);
+    const winners = currentRoundMatches.map(m => m.winner).filter(Boolean);
+
+    // Check if this was the final
+    if (winners.length === 1) {
+      // Tournament completed
+      tournament.status = 'completed';
+      tournament.winnerId = winners[0]!.id;
+      tournament.completedAt = new Date();
+
+      // Clean up player tournament mapping
+      tournament.players.forEach(player => {
+        this.playerTournaments.delete(player.id);
+      });
+
+      this.notifyTournamentPlayers(tournamentId, {
+        type: 'tournament_completed',
+        payload: {
+          tournamentId,
+          winner: winners[0],
+          tournament: this.sanitizeTournamentForClient(tournament)
+        }
+      });
+
+      this.fastify.log.info(`🏆 Tournament ${tournamentId} completed! Winner: ${winners[0]!.name}`);
+      return;
+    }
+
+    // Advance to next round
+    tournament.currentRound++;
+    const nextRoundMatches = tournament.bracket.filter(m => m.round === tournament.currentRound);
+
+    // Pair up winners for next round
+    for (let i = 0; i < winners.length; i += 2) {
+      const match = nextRoundMatches[i / 2];
+      if (match) {
+        match.player1 = winners[i] || null;
+        match.player2 = winners[i + 1] || null;
+      }
+    }
+
+    // Start next round
+    await this.startTournamentRound(tournamentId, tournament.currentRound);
+
+    this.fastify.log.info(`🏆 Tournament ${tournamentId} advanced to round ${tournament.currentRound}`);
+  }
+
+  /**
+   * Utility to check if a number is a power of 2
+   */
+  private isPowerOfTwo(n: number): boolean {
+    return n > 0 && (n & (n - 1)) === 0;
+  }
+
+  /**
+   * Sanitizes tournament data for client consumption
+   */
+  private sanitizeTournamentForClient(tournament: Tournament): any {
+    const { password, ...sanitized } = tournament;
+    return sanitized;
+  }
+
+  /**
+   * Sanitizes match data for client consumption
+   */
+  private sanitizeMatchForClient(match: TournamentMatch): any {
+    return {
+      id: match.id,
+      round: match.round,
+      player1: match.player1 ? { id: match.player1.id, name: match.player1.name } : null,
+      player2: match.player2 ? { id: match.player2.id, name: match.player2.name } : null,
+      winner: match.winner ? { id: match.winner.id, name: match.winner.name } : null,
+      status: match.status
+    };
+  }
+
+  /**
+   * Sends a message to all players in a tournament
+   */
+  private notifyTournamentPlayers(tournamentId: string, message: any): void {
+    const tournament = this.tournaments.get(tournamentId);
+    if (tournament) {
+      tournament.players.forEach(player => {
+        this.notifyPlayer(player.id, message);
+      });
+    }
+  }
+
+  /**
+   * Cleans up all service resources.
+   */
+  destroy(): void {
+    if (this.matchmakingInterval) {
+      clearInterval(this.matchmakingInterval);
+    }
+
+    this.botIntervals.forEach((interval) => {
+      clearInterval(interval);
+    });
+    this.botIntervals.clear();
+    this.gameSessions.clear();
+    this.activeConnections.clear();
+    this.botConnections.clear();
+    this.tournaments.clear();
+    this.playerTournaments.clear();
+  }
+}
