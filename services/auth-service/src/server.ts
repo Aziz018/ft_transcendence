@@ -45,7 +45,7 @@ fastify.decorate('authentication_jwt', async (req: any, rep: any) => {
   if (!token) {
     return rep.status(401).send({ message: 'Authentication required' });
   }
-  
+
   const isBlackListed = await prisma.blacklistedToken.findUnique({ where: { token } });
   if (isBlackListed) {
     return rep.code(401).send({
@@ -54,10 +54,10 @@ fastify.decorate('authentication_jwt', async (req: any, rep: any) => {
       message: 'Token blacklisted, please login again!',
     });
   }
-  
+
   try {
     const decoded = req.jwt.verify(token);
-    
+
     if (req.url === '/totp/verify') {
       if (!decoded.mfa_required) {
         return rep.code(401).send({
@@ -73,7 +73,7 @@ fastify.decorate('authentication_jwt', async (req: any, rep: any) => {
         message: 'MFA verification required!',
       });
     }
-    
+
     req.user = decoded;
   } catch (err) {
     return rep.status(401).send({ message: 'Invalid token' });
@@ -83,12 +83,17 @@ fastify.decorate('authentication_jwt', async (req: any, rep: any) => {
 // Register routes
 import authRoutes from './routes/auth.js';
 import totpRoutes from './routes/totp.js';
+import metricsPlugin from "fastify-metrics";
 
+await fastify.register(metricsPlugin, {
+    endpoint: "/metrics",
+    routeMetrics: {
+        enabled: true,
+        routeBlacklist: ["/metrics"],
+    },
+});
 await fastify.register(authRoutes, { prefix: '/auth' });
 await fastify.register(totpRoutes, { prefix: '/totp' });
-
-// Health check
-fastify.get('/health', async () => ({ status: 'ok', service: 'auth', timestamp: new Date().toISOString() }));
 
 // Connect to database
 await prisma.$connect();

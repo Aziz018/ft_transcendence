@@ -1,175 +1,67 @@
-import type { FastifyInstance, FastifyPluginOptions } from 'fastify';
-import { authenticator } from 'otplib';
-import qrcode from 'qrcode';
+import type {
+	FastifyInstance,
+	FastifyPluginOptions
+} from "fastify";
 
-export default async (fastify: FastifyInstance, opts: FastifyPluginOptions): Promise<void> => {
-  // Get 2FA status
-  fastify.get('/status', {
-    preHandler: [(fastify as any).authentication_jwt],
-    handler: async (req: any, reply: any) => {
-      try {
-        const user = await (fastify as any).prisma.user.findUnique({
-          where: { id: req.user.id },
-          select: { totpSecret: true, totpEnabled: true },
-        });
+import {
+	disable2FAController,
+	enable2FAController,
+	getOTPAuthUrlController,
+	getStatusController,
+	OTPVerificationController
+} from "../totp.js";
 
-        if (!user) {
-          return reply.code(404).send({ message: 'User not found' });
-        }
 
-        return reply.code(200).send({
-          enabled: user.totpEnabled || false,
-          hasSecret: !!user.totpSecret,
-        });
-      } catch (error: any) {
-        fastify.log.error(error);
-        return reply.code(500).send({ message: error });
-      }
-    },
-  });
 
-  // Enable 2FA
-  fastify.put('/enable', {
-    preHandler: [(fastify as any).authentication_jwt],
-    handler: async (req: any, reply: any) => {
-      try {
-        const user = await (fastify as any).prisma.user.findUnique({
-          where: { id: req.user.id },
-        });
+/**
+ * Fastify plugin for two-factor authentication (2FA) routes.
+ *
+ * This module registers all routes related to managing and verifying TOTP-based 2FA.
+ * It provides endpoints for enabling/disabling 2FA, fetching QR codes for setup,
+ * checking 2FA status, and verifying OTP codes. All routes are protected with
+ * JWT authentication via the `authentication_jwt` preHandler.
+ *
+ * Routes:
+ *   - GET    /status    → Get current 2FA status for the authenticated user.
+ *   - PUT    /enable    → Enable 2FA for the authenticated user.
+ *   - PUT    /disable   → Disable 2FA for the authenticated user.
+ *   - GET    /qr-code   → Get a QR code (as bytes) for setting up 2FA in an authenticator app.
+ *   - POST   /verify    → Verify a submitted TOTP code for the authenticated user.
+ *
+ * @param {FastifyInstance} fastify - The Fastify server instance.
+ * @param {FastifyPluginOptions} opts - Plugin options passed when registering this route.
+ * @returns {Promise<void>} Registers routes asynchronously.
+ */
+export default async (fastify: FastifyInstance, opts: FastifyPluginOptions) => {
 
-        if (!user) {
-          return reply.code(404).send({ message: 'User not found' });
-        }
+	fastify.get('/status', {
+		schema: { tags: ["totp"] },
+		handler: getStatusController,
+		preHandler: [fastify.authentication_jwt]
+	})
 
-        if (!user.totpSecret) {
-          return reply.code(400).send({ message: 'TOTP secret not generated' });
-        }
+	fastify.put('/enable', {
+		schema: { tags: ["totp"] },
+		handler: enable2FAController,
+		preHandler: [fastify.authentication_jwt]
+	});
 
-        await (fastify as any).prisma.user.update({
-          where: { id: req.user.id },
-          data: { totpEnabled: true },
-        });
+	fastify.put('/disable', {
+		schema: { tags: ["totp"] },
+		handler: disable2FAController,
+		preHandler: [fastify.authentication_jwt]
+	});
 
-        return reply.code(200).send({ message: '2FA enabled successfully' });
-      } catch (error: any) {
-        fastify.log.error(error);
-        return reply.code(500).send({ message: error });
-      }
-    },
-  });
+	fastify.get('/qr-code', {
+		schema: { tags: ["totp"] },
+		handler: getOTPAuthUrlController,
+		preHandler: [fastify.authentication_jwt]
+	})
 
-  // Disable 2FA
-  fastify.put('/disable', {
-    preHandler: [(fastify as any).authentication_jwt],
-    handler: async (req: any, reply: any) => {
-      try {
-        await (fastify as any).prisma.user.update({
-          where: { id: req.user.id },
-          data: { totpEnabled: false },
-        });
+	fastify.post('/verify', {
+		schema: { tags: ["totp"] },
+		handler: OTPVerificationController,
+		preHandler: [fastify.authentication_jwt]
+	})
 
-        return reply.code(200).send({ message: '2FA disabled successfully' });
-      } catch (error: any) {
-        fastify.log.error(error);
-        return reply.code(500).send({ message: error });
-      }
-    },
-  });
-
-  // Get QR code for 2FA setup
-  fastify.get('/qr-code', {
-    preHandler: [(fastify as any).authentication_jwt],
-    handler: async (req: any, reply: any) => {
-      try {
-        const user = await (fastify as any).prisma.user.findUnique({
-          where: { id: req.user.id },
-        });
-
-        if (!user) {
-          return reply.code(404).send({ message: 'User not found' });
-        }
-
-        let secret = user.totpSecret;
-
-        if (!secret) {
-          secret = authenticator.generateSecret();
-          await (fastify as any).prisma.user.update({
-            where: { id: req.user.id },
-            data: { totpSecret: secret },
-          });
-        }
-
-        const otpauthUrl = authenticator.keyuri(
-          user.email,
-          'ft_transcendence',
-          secret
-        );
-
-        const qrCodeDataURL = await qrcode.toDataURL(otpauthUrl);
-
-        return reply.code(200).send({
-          qrCode: qrCodeDataURL,
-          secret: secret,
-        });
-      } catch (error: any) {
-        fastify.log.error(error);
-        return reply.code(500).send({ message: error });
-      }
-    },
-  });
-
-  // Verify TOTP code
-  fastify.post('/verify', {
-    preHandler: [(fastify as any).authentication_jwt],
-    handler: async (req: any, reply: any) => {
-      try {
-        const { code } = req.body;
-
-        if (!code) {
-          return reply.code(400).send({ message: 'Code is required' });
-        }
-
-        const user = await (fastify as any).prisma.user.findUnique({
-          where: { id: req.user.id },
-        });
-
-        if (!user || !user.totpSecret) {
-          return reply.code(400).send({ message: 'TOTP not configured' });
-        }
-
-        const isValid = authenticator.verify({
-          token: code,
-          secret: user.totpSecret,
-        });
-
-        if (!isValid) {
-          return reply.code(401).send({ message: 'Invalid code' });
-        }
-
-        // Generate new token without mfa_required flag
-        const newToken = fastify.jwt.sign({
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          mfa_required: false,
-        });
-
-        reply.setCookie('access_token', newToken, {
-          path: '/',
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-          maxAge: 7 * 24 * 60 * 60,
-        });
-
-        return reply.code(200).send({
-          message: 'Verification successful',
-          access_token: newToken,
-        });
-      } catch (error: any) {
-        fastify.log.error(error);
-        return reply.code(500).send({ message: error });
-      }
-    },
-  });
 };

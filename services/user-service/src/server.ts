@@ -7,11 +7,21 @@ import fastifyStatic from '@fastify/static';
 import { PrismaClient } from './generated/prisma/index.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import Ajv2020 from 'ajv/dist/2020.js'
+import addErrors from 'ajv-errors'
+import addFormats from 'ajv-formats'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const fastify = Fastify({ logger: true });
 const prisma = new PrismaClient();
+
+fastify.setValidatorCompiler(({ schema }) => {
+  const ajv = new Ajv2020({ allErrors: true })
+  addErrors(ajv)
+  addFormats(ajv)
+  return ajv.compile(schema)
+})
 
 await fastify.register(cors, {
   origin: (origin, cb) => {
@@ -26,7 +36,15 @@ await fastify.register(cors, {
   preflight: true,
   optionsSuccessStatus: 204,
 });
+import metricsPlugin from "fastify-metrics";
 
+await fastify.register(metricsPlugin, {
+    endpoint: "/metrics",
+    routeMetrics: {
+        enabled: true,
+        routeBlacklist: ["/metrics"],
+    },
+});
 await fastify.register(jwt, { secret: process.env.JWT_SECRET || 'supersecret' });
 await fastify.register(cookie, { secret: process.env.CKE_SECRET || 'supersecret' });
 await fastify.register(multipart, { limits: { fileSize: 10485760 } });

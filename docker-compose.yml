@@ -134,6 +134,7 @@ services:
 
 networks:
   transcendence-network:
+    name: transcendence-network
     driver: bridge
 
 volumes:

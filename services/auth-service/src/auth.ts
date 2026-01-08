@@ -11,7 +11,7 @@
  */
 
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { authHelper } from "../utils/auth.js";
+import { authHelper } from "./utils/auth.js";
 
 export const googleOAuthCallbackController = async (
   req: FastifyRequest,

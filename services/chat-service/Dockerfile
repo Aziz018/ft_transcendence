@@ -7,8 +7,8 @@ COPY prisma ./prisma/
 
 RUN npm install
 COPY . .
-RUN mkdir -p src/generated && npx prisma generate
 
+RUN npx prisma generate
 EXPOSE 3004
 
 CMD ["sh", "-c", "npx prisma migrate deploy && npm start"]

@@ -1,39 +1,32 @@
-import type { FastifyInstance, FastifyPluginOptions } from 'fastify';
 
-export default async (fastify: FastifyInstance, opts: FastifyPluginOptions): Promise<void> => {
-  // OAuth callback routes would go here
-  // These are typically handled by the OAuth2 plugin in fastify
+import type { FastifyInstance, FastifyPluginOptions } from "fastify";
+import {
+	facebookOAuthCallbackController,
+	googleOAuthCallbackController,
+} from "../auth.js";
 
-  // Placeholder for Google OAuth callback
-  fastify.get('/google/callback', async (req: any, reply: any) => {
-    try {
-      // This is handled by the oauth2 plugin
-      return reply.send({ message: 'OAuth callback handled by plugin' });
-    } catch (error: any) {
-      fastify.log.error(error);
-      return reply.code(500).send({ message: error });
-    }
-  });
+/**
+ * Fastify plugin for OAuth callback routes.
+ *
+ * This module registers the callback endpoints for external OAuth providers.
+ * It handles the provider's response after the user authorizes the application.
+ * The handlers exchange authorization codes for access tokens and fetch user info.
+ *
+ * @param {FastifyInstance} fastify - The Fastify server instance.
+ * @param {FastifyPluginOptions} opts - Plugin options passed when registering this plugin.
+ * @returns {Promise<void>} Registers OAuth callback routes asynchronously.
+ */
+export default async (
+	fastify: FastifyInstance,
+	opts: FastifyPluginOptions
+): Promise<void> => {
+	fastify.get("/google/callback", {
+		schema: { tags: ["oauth"] },
+		handler: googleOAuthCallbackController,
+	});
 
-  // Placeholder for Facebook OAuth callback
-  fastify.get('/facebook/callback', async (req: any, reply: any) => {
-    try {
-      // This is handled by the oauth2 plugin
-      return reply.send({ message: 'OAuth callback handled by plugin' });
-    } catch (error: any) {
-      fastify.log.error(error);
-      return reply.code(500).send({ message: error });
-    }
-  });
-
-  // Placeholder for 42 Intra OAuth callback
-  fastify.get('/intra42/callback', async (req: any, reply: any) => {
-    try {
-      // This is handled by the oauth2 plugin
-      return reply.send({ message: 'OAuth callback handled by plugin' });
-    } catch (error: any) {
-      fastify.log.error(error);
-      return reply.code(500).send({ message: error });
-    }
-  });
+	fastify.get("/facebook/callback", {
+		schema: { tags: ["oauth"] },
+		handler: facebookOAuthCallbackController,
+	});
 };

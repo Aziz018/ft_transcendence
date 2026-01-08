@@ -4,6 +4,8 @@ import jwt from '@fastify/jwt';
 import cookie from '@fastify/cookie';
 import { PrismaClient } from './generated/prisma/index.js';
 
+export const wsValidators: Record<string, Ajv.ValidateFunction> = {};
+
 const fastify = Fastify({ logger: true });
 const prisma = new PrismaClient();
 
@@ -70,7 +72,16 @@ fastify.decorate('authentication_jwt', async (req: any, rep: any) => {
 });
 
 // Register routes
-// import friendRoutes from './routes/friend.js';
+import friendRoutes from './routes/friend.js';
+import metricsPlugin from "fastify-metrics";
+
+await fastify.register(metricsPlugin, {
+    endpoint: "/metrics",
+    routeMetrics: {
+        enabled: true,
+        routeBlacklist: ["/metrics"],
+    },
+});
 
 // await fastify.register(friendRoutes, { prefix: '/friend' });
 

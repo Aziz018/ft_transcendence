@@ -1,147 +1,84 @@
-import type { FastifyInstance, FastifyPluginOptions } from 'fastify';
-import bcrypt from 'bcrypt';
+import {
+  userRegisterController,
+  userUploadHandler,
+  userLoginController,
+  userProfileUpdateController,
+  userProfileController,
+  userLogoutController,
+  userRefreshTokController,
+  userSearchController,
+  getUserByIdController,
+} from "../controllers/user.js";
+import type { FastifyInstance, FastifyPluginOptions } from "fastify";
+import {
+  userRegisterSchema,
+  userLoginSchema,
+  userProfileSchema,
+  userProfileUpdateSchema,
+  userLogoutSchema,
+} from "../schemas/user.js";
 
-export default async (fastify: FastifyInstance, opts: FastifyPluginOptions): Promise<void> => {
-  // Register new user
-  fastify.post('/register', async (req: any, reply: any) => {
-    try {
-      const { email, name, password } = req.body;
-
-      if (!email || !name || !password) {
-        return reply.code(400).send({ message: 'Email, name, and password are required' });
-      }
-
-      // Check if user already exists
-      const existingUser = await (fastify as any).prisma.user.findUnique({
-        where: { email },
-      });
-
-      if (existingUser) {
-        return reply.code(409).send({ message: 'User already exists' });
-      }
-
-      // Hash password
-      const hashedPassword = await bcrypt.hash(password, 10);
-
-      // Create user
-      const user = await (fastify as any).prisma.user.create({
-        data: {
-          email,
-          name,
-          password: hashedPassword,
-        },
-      });
-
-      // Generate JWT token
-      const token = fastify.jwt.sign({
-        id: user.id,
-        email: user.email,
-        name: user.name,
-      });
-
-      // Set cookie
-      reply.setCookie('access_token', token, {
-        path: '/',
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 7 * 24 * 60 * 60,
-      });
-
-      return reply.code(201).send({
-        message: 'User registered successfully',
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-        },
-        access_token: token,
-      });
-    } catch (error: any) {
-      fastify.log.error(error);
-      return reply.code(500).send({ message: 'Internal server error' });
-    }
+/**
+ * Fastify plugin for user-related routes.
+ *
+ * This module registers all routes related to user operations (CRUD, filtering, etc.)
+ * with the Fastify instance. It can access services, middlewares, and request handlers
+ * through the Fastify instance and plugin options.
+ *
+ * @param {FastifyInstance} fastify - The Fastify server instance.
+ * @param {FastifyPluginOptions} options - Plugin options passed when registering this route.
+ * @returns {Promise<void>} Registers routes asynchronously.
+ */
+export default async (
+  fastify: FastifyInstance,
+  options: FastifyPluginOptions
+): Promise<void> => {
+  fastify.post("/register", {
+    schema: userRegisterSchema,
+    handler: userRegisterController,
   });
 
-  // Login user
-  fastify.post('/login', async (req: any, reply: any) => {
-    try {
-      const { email, password } = req.body;
-
-      if (!email || !password) {
-        return reply.code(400).send({ message: 'Email and password are required' });
-      }
-
-      // Find user
-      const user = await (fastify as any).prisma.user.findUnique({
-        where: { email },
-      });
-
-      if (!user || !user.password) {
-        return reply.code(401).send({ message: 'Invalid credentials' });
-      }
-
-      // Verify password
-      const isValidPassword = await bcrypt.compare(password, user.password);
-
-      if (!isValidPassword) {
-        return reply.code(401).send({ message: 'Invalid credentials' });
-      }
-
-      // Generate JWT token
-      const token = fastify.jwt.sign({
-        id: user.id,
-        email: user.email,
-        name: user.name,
-      });
-
-      // Set cookie
-      reply.setCookie('access_token', token, {
-        path: '/',
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 7 * 24 * 60 * 60,
-      });
-
-      return reply.code(200).send({
-        message: 'Login successful',
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-        },
-        access_token: token,
-      });
-    } catch (error: any) {
-      fastify.log.error(error);
-      // return reply.code(500).send({ message: 'Internal server error' });
-      return reply.code(500).send({ message: error });
-    }
+  fastify.post("/avatar", {
+    schema: { tags: ["users"] },
+    preHandler: [fastify.authentication_jwt],
+    handler: userUploadHandler,
   });
 
-  // Get user profile
-  fastify.get('/profile', { preHandler: (fastify as any).authentication_jwt }, async (req: any, reply: any) => {
-    try {
-      const user = await (fastify as any).prisma.user.findUnique({
-        where: { id: req.user.id },
-        select: {
-          uid: true,
-          email: true,
-          name: true,
-          avatar: true,
-          createdAt: true,
-        },
-      });
+  fastify.post("/login", {
+    schema: userLoginSchema,
+    handler: userLoginController,
+  });
 
-      if (!user) {
-        return reply.code(404).send({ message: 'User not found' });
-      }
+  fastify.get("/profile", {
+    schema: userProfileSchema,
+    handler: userProfileController,
+    preHandler: [fastify.authentication_jwt],
+  });
 
-      return reply.code(200).send(user);
-    } catch (error: any) {
-      fastify.log.error(error);
-      return reply.code(500).send({ message: 'Internal server error' });
-    }
+  fastify.get("/search", {
+    schema: { tags: ["users"] },
+    handler: userSearchController,
+    preHandler: [fastify.authentication_jwt],
+  });
+
+  fastify.put("/profile", {
+    schema: userProfileUpdateSchema,
+    handler: userProfileUpdateController,
+    preHandler: [fastify.authentication_jwt],
+  });
+
+  fastify.post("/logout", {
+    schema: userLogoutSchema,
+    handler: userLogoutController,
+  });
+
+  fastify.get("/refresh", {
+    handler: userRefreshTokController,
+  });
+
+  fastify.get("/:userId", {
+    schema: { tags: ["users"] },
+    handler: getUserByIdController,
+    preHandler: [fastify.authentication_jwt],
   });
 };

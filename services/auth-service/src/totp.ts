@@ -1,7 +1,7 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 
-import type UserModel from "../models/user.js";
-import { prisma } from "../utils/prisma.js";
+import type UserModel from "./models/user.js";
+import { prisma } from "./utils/prisma.js";
 
 export const getStatusController = async (
   req: FastifyRequest,
