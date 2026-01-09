@@ -36,6 +36,11 @@ const Dashboard = () => {
       setIsAuthenticated(false);
       redirect("/");
     } else {
+      const payload = decodeTokenPayload(token);
+      if (payload && payload.mfa_required) {
+        redirect("/secondary-login");
+        return;
+      }
       fetchUserProfile();
     }
   }, []);

@@ -2,7 +2,7 @@
 import Fuego, { useState, useEffect, useRef } from "../../index";
 
 import Avatar from "../../assets/Ellipse 46.svg";
-import { getToken } from "../../lib/auth";
+import { getToken, decodeTokenPayload } from "../../lib/auth";
 import { redirect } from "../../library/Router/Router";
 
 const navigationItems = [
@@ -50,6 +50,11 @@ export const Game = () => {
       setIsAuthenticated(false);
       redirect("/");
     } else {
+      const payload = decodeTokenPayload(token);
+      if (payload && payload.mfa_required) {
+        redirect("/secondary-login");
+        return;
+      }
       fetchUserProfile();
       loadGameInvitation();
     }

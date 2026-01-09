@@ -2,9 +2,10 @@ import Fuego from "../../index";
 import { useState } from "../../library/hooks/useState";
 import { useEffect } from "../../library/hooks/useEffect";
 import { Link, redirect } from "../../library/Router/Router";
-import { getToken, clearToken } from "../../lib/auth";
+import { getToken, clearToken, decodeTokenPayload } from "../../lib/auth";
 import { wsService } from "../../services/wsService";
 import TopRightBlurEffect from "../../components/ui/BlurEffect/TopRightBlurEffect";
+import QRCode from "qrcode";
 
 import DashboardIcon from "../../assets/dd.svg";
 import LeaderboardIcon from "../../assets/Leaderboard.svg";
@@ -53,6 +54,11 @@ const Settings = () => {
       setIsAuthenticated(false);
       redirect("/");
     } else {
+      const payload = decodeTokenPayload(token);
+      if (payload && payload.mfa_required) {
+        redirect("/secondary-login");
+        return;
+      }
       wsService.connect();
       fetchUserProfile();
     }
@@ -172,7 +178,31 @@ const Settings = () => {
   };
 
   const handleActivate2FA = async () => {
-    setShowTwoFactorModal(true);
+    try {
+      const backend =
+        (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
+        "http://localhost:3001";
+      const token = getToken();
+
+      const res = await fetch(`${backend}/v1/totp/qr-code`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.url) {
+          const qrCodeDataUrl = await QRCode.toDataURL(data.url);
+          setQrCode(qrCodeDataUrl);
+          setShowTwoFactorModal(true);
+        }
+      } else {
+        console.error("Failed to fetch QR code");
+      }
+    } catch (error) {
+      console.error("Error fetching QR code:", error);
+    }
   };
 
   const handleLogout = async () => {
@@ -474,11 +504,13 @@ const Settings = () => {
             </p>
 
             <div className="bg-white p-4 rounded-lg mb-6 flex items-center justify-center">
-              <div className="w-48 h-48 bg-gray-200 rounded flex items-center justify-center">
-                <span className="text-gray-500 text-sm">
-                  QR Code Placeholder
-                </span>
-              </div>
+              {qrCode ? (
+                <img src={qrCode} alt="2FA QR Code" className="w-48 h-48" />
+              ) : (
+                <div className="w-48 h-48 bg-gray-200 rounded flex items-center justify-center">
+                  <span className="text-gray-500 text-sm">Loading...</span>
+                </div>
+              )}
             </div>
 
             <div className="flex gap-3">

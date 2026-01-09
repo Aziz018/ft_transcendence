@@ -2,7 +2,7 @@ import Fuego from "../../index";
 import { useState } from "../../library/hooks/useState";
 import { useEffect } from "../../library/hooks/useEffect";
 import { Link, redirect } from "../../library/Router/Router";
-import { getToken, clearToken } from "../../lib/auth";
+import { getToken, clearToken, decodeTokenPayload } from "../../lib/auth";
 import { wsService } from "../../services/wsService";
 import { chatService, type Friend } from "../../services/chatService";
 import TopRightBlurEffect from "../../components/ui/BlurEffect/TopRightBlurEffect";
@@ -46,6 +46,11 @@ const Chat = () => {
       setIsAuthenticated(false);
       redirect("/");
     } else {
+      const payload = decodeTokenPayload(token);
+      if (payload && payload.mfa_required) {
+        redirect("/secondary-login");
+        return;
+      }
       wsService.connect();
       chatService.connectWebSocket(token);
     }

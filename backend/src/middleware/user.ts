@@ -57,7 +57,7 @@ export const JWTAuthentication = async (
    *       only and only if the mfa_required is set to true ??
    */
 
-  if (req.url === "/v1/totp/verify") {
+  if (req.url.includes("/v1/totp/verify")) {
     if (!decoded.mfa_required) {
       return rep.code(401).send({
         statusCode: 401,

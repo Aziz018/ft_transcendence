@@ -47,7 +47,11 @@ const LoginForm = () => {
         const token = data?.access_token || data?.accessToken || data?.token;
         if (token) {
           saveToken(token);
-          redirect("/dashboard");
+          if (data.message && data.message.includes("2fa verification required")) {
+            redirect("/secondary-login");
+          } else {
+            redirect("/dashboard");
+          }
           return;
         }
       }
