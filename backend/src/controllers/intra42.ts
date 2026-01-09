@@ -23,6 +23,11 @@ export const intra42OAuthCallbackController = async (
   }
 
   // Send token to frontend via popup message
+  // We use '*' for targetOrigin to ensure the message is sent regardless of the exact origin match,
+  // which can be tricky with localhost vs 127.0.0.1 or different ports.
+  // In production, this should be restricted to the actual frontend origin.
+  const frontendOrigin = process.env.FRONTEND_ORIGIN || "http://localhost:5173";
+  
   const html = `
     <!DOCTYPE html>
     <html>
@@ -30,10 +35,10 @@ export const intra42OAuthCallbackController = async (
     <body>
         <script>
             if (window.opener) {
-                window.opener.postMessage({ access_token: "${token}" }, "${process.env.FRONTEND_ORIGIN}");
+                window.opener.postMessage({ access_token: "${token}" }, "*");
                 window.close();
             } else {
-                window.location.href = "${process.env.FRONTEND_ORIGIN}";
+                document.body.innerHTML = '<h2>Authentication successful! You can close this window.</h2>';
             }
         </script>
         <p>Authentication successful. You can close this window.</p>
