@@ -118,7 +118,8 @@ export default class UserService extends DataBaseWrapper {
                 data: {
                     name: user.name,
                     email: user.email,
-                    password: user.password
+                    password: user.password,
+                    avatar: user.avatar // Added avatar field
                 }
             });
         } catch (error: any) {

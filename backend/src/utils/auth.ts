@@ -51,8 +51,9 @@ export const authHelper = async (
   );
 
   // Check if user exists for 2FA verification
-  const user = await prisma.user.findUnique({
-    where: { email: user_info.email },
+  // We use the service instead of direct prisma access to avoid potential issues if prisma client isn't fully ready or if we want to use the service layer abstraction
+  const user = await req.server.service.user.fetchBy({
+    email: user_info.email,
   });
 
   // Only check 2FA status if user already exists
@@ -78,10 +79,20 @@ export const authHelper = async (
         secure: true,
       });
 
-      return res.code(200).send({
-        access_token: token,
-        message: "2fa verification required, head to /v1/totp/verify",
-      });
+      // We need to return the token here, but the controller expects a string token return from authHelper
+      // However, we are sending a response here. This might be tricky.
+      // The controller calls authHelper and then sends HTML.
+      // If we send response here, the controller will try to send another response.
+      // Let's NOT send response here, but return a special token or handle it in controller.
+      // Actually, authHelper is designed to return the token string.
+      // The controller uses that token to send the HTML with postMessage.
+      
+      // If 2FA is required, we return this temporary token.
+      // The frontend will receive it, save it, and then redirect to dashboard.
+      // Dashboard will see mfa_required and redirect to secondary login.
+      // So we just need to return this token.
+      
+      return token;
     }
   }
 
