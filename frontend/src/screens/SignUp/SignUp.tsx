@@ -14,7 +14,7 @@ const SignUp = () => {
   }, []);
 
   return (
-    <div className="bg-[#141517] overflow-hidden w-full min-h-screen relative flex items-center justify-center">
+    <div className="bg-theme-bg-primary overflow-hidden w-full min-h-screen relative flex items-center justify-center">
       <BackgroundBlurEffect />
       <Main />
     </div>

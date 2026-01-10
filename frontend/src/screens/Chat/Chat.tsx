@@ -85,7 +85,7 @@ const Chat = () => {
   }
 
   return (
-    <div className="bg-[#141517] w-full h-screen flex overflow-hidden">
+    <div className="bg-theme-bg-primary w-full h-screen flex overflow-hidden">
       <TopRightBlurEffect />
       <div className="absolute top-[991px] left-[-285px] w-[900px] h-[900px] bg-[#f9f9f980] rounded-[450px] blur-[153px] pointer-events-none" />
       <img

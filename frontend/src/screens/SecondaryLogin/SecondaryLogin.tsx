@@ -7,7 +7,7 @@ import Shape from "../../assets/vec.svg";
 
 const SecondaryLogin = () => {
   return (
-    <div className="bg-[#141517] overflow-hidden w-full min-h-screen relative flex items-center justify-center">
+    <div className="bg-theme-bg-primary overflow-hidden w-full min-h-screen relative flex items-center justify-center">
       <BackgroundBlurEffect />
       <div className="absolute inset-0 opacity-[0.01] flex items-center justify-center pointer-events-none animate-[spin_30s_linear_infinite]">
         <img

@@ -3,9 +3,7 @@ import { useState } from "../../index";
 import { redirect } from "../../library/Router/Router";
 import { saveToken } from "../../lib/auth";
 import SignUpFormContainer from "./components/SignUpFormContainer";
-
-const BACKEND_ORIGIN =
-  (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3001";
+import API_CONFIG from "../../config/api";
 
 const Main = () => {
   const [name, setName] = useState("");
@@ -43,7 +41,7 @@ const Main = () => {
     setLoading(true);
 
     try {
-      const response = await fetch(`${BACKEND_ORIGIN}/v1/user/register`, {
+      const response = await fetch(`${API_CONFIG.AUTH.REGISTER}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

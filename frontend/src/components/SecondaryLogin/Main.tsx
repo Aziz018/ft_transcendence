@@ -7,9 +7,7 @@ import SecondaryButton from "../ui/SecondaryButton";
 import { saveToken } from "../../lib/auth";
 import { useState } from "../../library/hooks/useState";
 import { getToken } from "../../lib/auth";
-
-const BACKEND_ORIGIN =
-  (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3001";
+import API_CONFIG from "../../config/api";
 
 const Main = () => {
   const [code, setCode] = useState("");
@@ -23,7 +21,7 @@ const Main = () => {
 
     try {
       const token = getToken();
-      const res = await fetch(`${BACKEND_ORIGIN}/v1/totp/verify`, {
+      const res = await fetch(`${API_CONFIG.AUTH.VERIFY_2FA}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

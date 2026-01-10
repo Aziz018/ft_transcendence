@@ -1,5 +1,6 @@
 import { getToken } from "../lib/auth";
 import { notificationService } from "./notificationService";
+import API_CONFIG from "../config/api";
 
 interface WebSocketMessage {
   type: string;
@@ -15,11 +16,7 @@ class WebSocketService {
   private messageListeners: Map<string, (payload: any) => void> = new Map();
 
   constructor() {
-
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const hostname = window.location.hostname;
-    const backendUrl = `${hostname}:3001`;
-    this.url = `${protocol}//${backendUrl}/v1/chat/ws`;
+    this.url = API_CONFIG.WS_URL;
   }
 
   connect(): Promise<void> {

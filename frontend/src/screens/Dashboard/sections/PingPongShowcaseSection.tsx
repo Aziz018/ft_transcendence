@@ -84,7 +84,7 @@ const PingPongShowcaseSection = () => {
               <img alt="Stars filled" src={StarsFilled} />
             </div>
             <div className="pt-2">
-              <h2 className="[font-family:'Questrial',Helvetica] font-normal text-[#f9f9f9] text-4xl tracking-[0] leading-[50px] whitespace-nowrap">
+              <h2 className="[font-family:'Questrial',Helvetica] font-normal text-theme-text-primary text-4xl tracking-[0] leading-[50px] whitespace-nowrap">
                 My Ping Pong <br /> Evolution
               </h2>
             </div>
@@ -96,7 +96,7 @@ const PingPongShowcaseSection = () => {
             <p className="[font-family:'Questrial',Helvetica] font-normal text-[#f9f9f980] text-base tracking-[0] leading-[15px] whitespace-nowrap">
               You&apos;ve earned – keep going!
             </p>
-            <p className="pt-3 font-family:'Questrial',Helvetica] font-normal text-[#f9f9f9] text-5xl tracking-[0] leading-[15px] whitespace-nowrap">
+            <p className="pt-3 font-family:'Questrial',Helvetica] font-normal text-theme-text-primary text-5xl tracking-[0] leading-[15px] whitespace-nowrap">
               {formatXP(displayedXP)}xp
             </p>
           </div>
@@ -105,7 +105,7 @@ const PingPongShowcaseSection = () => {
 
           <Link
             to="/leaderboard"
-            className="flex items-center gap-2 [font-family:'Questrial',Helvetica] font-normal text-[#f9f9f9] text-[18px] tracking-[0] leading-[15px] underline whitespace-nowrap">
+            className="flex items-center gap-2 [font-family:'Questrial',Helvetica] font-normal text-theme-text-primary text-[18px] tracking-[0] leading-[15px] underline whitespace-nowrap">
             View Full Leaderboard
             <img src={ArrowSvg} alt="arrow right icon" className="w-4 h-4" />
             {/* <ArrowRightIcon className="w-4 h-4" /> */}

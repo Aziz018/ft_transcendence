@@ -1,5 +1,6 @@
 @import url("https://fonts.googleapis.com/css2?family=Questrial&display=swap");
 @import "../styles/theme-utilities.css";
+@import "../styles/css-variables.css";
 
 @tailwind base;
 @tailwind components;
@@ -10,40 +11,39 @@
   padding: 0;
   box-sizing: border-box;
 }
+
 html,
 body {
   height: 100vh;
   width: 100%;
   overflow: hidden;
-  transition: background-color 500ms ease, color 500ms ease;
+  transition: background-color 300ms ease, color 300ms ease;
 }
+
 body {
   font-family: "Questrial", sans-serif;
   font-size: 16px;
-  background-color: #f5f7fa;
-}
-
-html.dark body {
-  background-color: #141517;
-}
-
-html.light body {
-  background-color: #f5f7fa;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 * {
-  transition: background-color 500ms ease, border-color 500ms ease,
-    color 500ms ease;
+  transition: background-color 300ms ease, border-color 300ms ease,
+    color 300ms ease, box-shadow 300ms ease;
 }
+
 a {
   text-decoration: none;
 }
+
 ul {
   list-style: none;
 }
+
 img {
   max-width: 100%;
 }
+
 button {
   outline: none;
   border: none;

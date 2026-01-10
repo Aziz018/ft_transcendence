@@ -16,6 +16,7 @@ import TopRightBlurEffect from "../../components/ui/BlurEffect/TopRightBlurEffec
 import { getToken, decodeTokenPayload, clearToken } from "../../lib/auth";
 import { Link, redirect } from "../../library/Router/Router";
 import { useEffect } from "../../library/hooks/useEffect";
+// import { Button } from "../../components/ui/button";
 
 const navigationItems = [
   { label: "Dashboard", active: false, icon: DashboardIcon },
@@ -30,17 +31,13 @@ const Dashboard = () => {
   const [isAuthenticated, setIsAuthenticated] = Fuego.useState(true);
   const [userAvatar, setUserAvatar] = Fuego.useState("");
 
+  // Check if user is authenticated and fetch profile
   useEffect(() => {
     const token = getToken();
     if (!token) {
       setIsAuthenticated(false);
       redirect("/");
     } else {
-      const payload = decodeTokenPayload(token);
-      if (payload && payload.mfa_required) {
-        redirect("/secondary-login");
-        return;
-      }
       fetchUserProfile();
     }
   }, []);
@@ -67,6 +64,7 @@ const Dashboard = () => {
     }
   };
 
+  // Only show content if authenticated
   if (!isAuthenticated) {
     return null;
   }
@@ -110,7 +108,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="bg-[#141517] overflow-hidden w-full min-w-[1431px] min-h-[1024px] relative flex">
+    <div className="bg-theme-bg-primary overflow-hidden w-full min-w-[1431px] min-h-[1024px] relative flex">
       {/* Background decorative elements */}
       <TopRightBlurEffect />
       <div className="absolute top-[991px] left-[-285px] w-[900px] h-[900px] bg-[#f9f9f980] rounded-[450px] blur-[153px] pointer-events-none" />

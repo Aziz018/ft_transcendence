@@ -9,7 +9,7 @@ const WelcomeHeaderSection = () => {
           {/* Here&apos;s what&apos;s waiting for you today. */}
         </div>
 
-        <div className="w-[397px] h-[15px] [font-family:'Questrial',Helvetica] font-normal text-[#f9f9f9] text-4xl tracking-[0] leading-[15px] whitespace-nowrap">
+        <div className="w-[397px] h-[15px] [font-family:'Questrial',Helvetica] font-normal text-theme-text-primary text-4xl tracking-[0] leading-[15px] whitespace-nowrap">
           {/* Welcome Back, Evaplea! */}
         </div>
       </div>
@@ -29,12 +29,12 @@ const WelcomeHeaderSection = () => {
               variant="ghost"
               size="icon"
               className="w-[43px] h-10 bg-transparent rounded-[14px] border border-solid border-[#f9f9f933] hover:bg-transparent">
-              <BellIcon className="w-[22px] h-[22px] text-[#f9f9f9]" />
+              <BellIcon className="w-[22px] h-[22px] text-theme-text-primary" />
             </Button> */}
             <div className="absolute top-[9px] right-[11px] w-[5px] h-[5px] bg-[#b7f272] rounded-[2.5px]" />
           </div>
 
-          {/* <Button className="w-[117px] h-10 bg-[#dda15e] rounded-[14px] border border-solid border-[#f9f9f933] hover:bg-[#dda15e]/90 [font-family:'Questrial',Helvetica] font-normal text-[#f9f9f9] text-sm tracking-[0] leading-[15px] h-auto">
+          {/* <Button className="w-[117px] h-10 bg-[#dda15e] rounded-[14px] border border-solid border-[#f9f9f933] hover:bg-[#dda15e]/90 [font-family:'Questrial',Helvetica] font-normal text-theme-text-primary text-sm tracking-[0] leading-[15px] h-auto">
             Switch Mode
           </Button> */}
         </div>

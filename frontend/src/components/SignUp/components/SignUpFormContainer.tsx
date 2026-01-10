@@ -50,6 +50,7 @@ const SignUpFormContainer = ({
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   disabled={loading}
+                  autoComplete="name"
                   className="w-full h-12 px-4 bg-[#2a2c2e] border border-[#444] rounded-lg text-light placeholder-[#ffffff60] focus:outline-none focus:border-[#dda15e] transition-colors [font-family:'Questrial',Helvetica] disabled:opacity-50"
                   placeholder="First name"
                   required
@@ -67,6 +68,7 @@ const SignUpFormContainer = ({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={loading}
+                autoComplete="email"
                 className="w-full h-12 px-4 bg-[#2a2c2e] border border-[#444] rounded-lg text-light placeholder-[#ffffff60] focus:outline-none focus:border-[#dda15e] transition-colors [font-family:'Questrial',Helvetica] disabled:opacity-50"
                 placeholder="Enter your email"
                 required
@@ -83,6 +85,7 @@ const SignUpFormContainer = ({
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={loading}
+                autoComplete="new-password"
                 className="w-full h-12 px-4 bg-[#2a2c2e] border border-[#444] rounded-lg text-light placeholder-[#ffffff60] focus:outline-none focus:border-[#dda15e] transition-colors [font-family:'Questrial',Helvetica] disabled:opacity-50"
                 placeholder="Create a password"
                 required
@@ -99,6 +102,7 @@ const SignUpFormContainer = ({
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 disabled={loading}
+                autoComplete="new-password"
                 className="w-full h-12 px-4 bg-[#2a2c2e] border border-[#444] rounded-lg text-light placeholder-[#ffffff60] focus:outline-none focus:border-[#dda15e] transition-colors [font-family:'Questrial',Helvetica] disabled:opacity-50"
                 placeholder="Confirm your password"
                 required

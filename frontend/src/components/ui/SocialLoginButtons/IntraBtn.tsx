@@ -1,16 +1,14 @@
 import Fuego from "../../../index";
 import { saveToken } from "../../../lib/auth";
 import { redirect } from "../../../library/Router/Router";
-
-const BACKEND_ORIGIN =
-  (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3001";
+import API_CONFIG from "../../../config/api";
 
 function openIntraPopup() {
   const w = 520;
   const h = 640;
   const left = window.screenX + (window.innerWidth - w) / 2;
   const top = window.screenY + (window.innerHeight - h) / 2;
-  const authEndpoint = `${BACKEND_ORIGIN}/v1/auth/intra42`;
+  const authEndpoint = `${API_CONFIG.BASE_URL}/v1/auth/intra42`;
   const popup = window.open(
     authEndpoint,
     "Intra Login",
@@ -18,7 +16,7 @@ function openIntraPopup() {
   );
 
   function handleMessage(e: MessageEvent) {
-    if (!e.origin.startsWith(new URL(BACKEND_ORIGIN).origin)) {
+    if (!e.origin.startsWith(new URL(API_CONFIG.BASE_URL).origin)) {
       return;
     }
     const data = e.data as any;
