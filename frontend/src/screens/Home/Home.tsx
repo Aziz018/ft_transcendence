@@ -6,7 +6,7 @@ import BackgroundBlurEffect from "../../components/ui/BlurEffect/BackgroundBlurE
 
 const Home = () => {
   return (
-    <div className="bg-[#141517] overflow-hidden w-full min-h-screen relative">
+    <div className="bg-theme-bg-primary overflow-hidden w-full min-h-screen relative">
       <BackgroundBlurEffect />
       <div className="max-w-layout m-auto">
         <Header />

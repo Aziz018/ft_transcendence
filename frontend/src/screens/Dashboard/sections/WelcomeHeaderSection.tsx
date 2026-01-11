@@ -253,7 +253,7 @@ const WelcomeHeaderSection = () => {
           Here&apos;s what&apos;s waiting for you today.
         </p>
 
-        <h1 className="[font-family:'Questrial',Helvetica] font-normal text-[#f9f9f9] text-4xl tracking-[0] leading-[15px] whitespace-nowrap">
+        <h1 className="[font-family:'Questrial',Helvetica] font-normal text-theme-text-primary text-4xl tracking-[0] leading-[15px] whitespace-nowrap">
           Welcome Back, {name}!
         </h1>
       </div>

@@ -2,7 +2,7 @@ import Fuego from "../../index";
 import { useState } from "../../library/hooks/useState";
 import { useEffect } from "../../library/hooks/useEffect";
 import { Link, redirect } from "../../library/Router/Router";
-import { getToken, clearToken } from "../../lib/auth";
+import { getToken, clearToken, decodeTokenPayload } from "../../lib/auth";
 import { wsService } from "../../services/wsService";
 import { chatService, type Friend } from "../../services/chatService";
 import TopRightBlurEffect from "../../components/ui/BlurEffect/TopRightBlurEffect";
@@ -46,6 +46,11 @@ const Chat = () => {
       setIsAuthenticated(false);
       redirect("/");
     } else {
+      const payload = decodeTokenPayload(token);
+      if (payload && payload.mfa_required) {
+        redirect("/secondary-login");
+        return;
+      }
       wsService.connect();
       chatService.connectWebSocket(token);
     }
@@ -80,7 +85,7 @@ const Chat = () => {
   }
 
   return (
-    <div className="bg-[#141517] w-full h-screen flex overflow-hidden">
+    <div className="bg-theme-bg-primary w-full h-screen flex overflow-hidden">
       <TopRightBlurEffect />
       <div className="absolute top-[991px] left-[-285px] w-[900px] h-[900px] bg-[#f9f9f980] rounded-[450px] blur-[153px] pointer-events-none" />
       <img

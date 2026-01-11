@@ -2,8 +2,12 @@ import Fuego from "../../index";
 import Shape from "../../assets/Shape.svg";
 import { Link } from "../../library/Router/Router";
 import PrimaryButton from "../ui/PrimaryButton";
+import { getToken } from "../../lib/auth";
 
 const Main = () => {
+  const token = getToken();
+  const destination = token ? "/dashboard" : "/login";
+
   return (
     <div className="pt-[11%] pb-[9%] relative">
       <div className="absolute opacity-[0.02] left-[530px] top-[30px] animate-[spin_20s_linear_infinite]">
@@ -18,7 +22,7 @@ const Main = () => {
         One Swing to Rule the Table A Power Move to Conquer Every Rally.
       </h1>
       <div className="animate-[fadeInUp_0.8s_ease-out_0.6s_both]">
-        <Link to="/login">
+        <Link to={destination}>
           <PrimaryButton data="Get Started" />
         </Link>
       </div>

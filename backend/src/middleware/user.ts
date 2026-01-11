@@ -66,21 +66,21 @@ export const JWTAuthentication = async (
      *       only and only if the mfa_required is set to true ??
      */
 
-    if (req.url === "/v1/totp/verify") {
-      if (!decoded.mfa_required) {
-        return rep.code(401).send({
-          statusCode: 401,
-          error: "Unauthorized!",
-          message: "you are not supposed to be here, you are already verified!",
-        });
-      }
-    } else if (decoded.mfa_required) {
+  if (req.url.includes("/v1/totp/verify")) {
+    if (!decoded.mfa_required) {
       return rep.code(401).send({
         statusCode: 401,
         error: "Unauthorized!",
-        message: "you are not supposed to be here, you are not verified!",
+        message: "you are not supposed to be here, you are already verified!",
       });
     }
+  } else if (decoded.mfa_required) {
+    return rep.code(401).send({
+      statusCode: 401,
+      error: "Unauthorized!",
+      message: "you are not supposed to be here, you are not verified!",
+    });
+  }
 
     req.user = decoded;
   } catch (error) {

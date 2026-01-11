@@ -32,7 +32,7 @@ const DashboardSection = () => {
             <p className="[-webkit-text-stroke:1px_#87878766] text-white text-[10px] leading- 10 [font-family:'Questrial',Helvetica] font-normal tracking-[0] mb-1">
               {sections[0].label}
             </p>
-            <h2 className="[-webkit-text-stroke:1px_#87878766] pt-[10px] [font-family:'Questrial',Helvetica] font-normal text-[#f9f9f9] text-4xl tracking-[0] leading-[60px] max-w-96">
+            <h2 className="[-webkit-text-stroke:1px_#87878766] pt-[10px] [font-family:'Questrial',Helvetica] font-normal text-theme-text-primary text-4xl tracking-[0] leading-[60px] max-w-96">
               {sections[0].title}
             </h2>
           </header>
@@ -47,7 +47,7 @@ const DashboardSection = () => {
               alt="Join icon"
               src={sections[1].buttonIcon}
             /> */}
-            {/* <Button className="bg-[#dda15e] hover:bg-[#dda15e]/90 text-[#f9f9f9] rounded-[30px] h-[37px] px-6 [-webkit-text-stroke:1px_#87878766] [font-family:'Questrial',Helvetica] font-normal text-base tracking-[0] leading-[15px]">
+            {/* <Button className="bg-[#dda15e] hover:bg-[#dda15e]/90 text-theme-text-primary rounded-[30px] h-[37px] px-6 [-webkit-text-stroke:1px_#87878766] [font-family:'Questrial',Helvetica] font-normal text-base tracking-[0] leading-[15px]">
               {sections[1].buttonText}
             </Button> */}
             <Link to="/leaderboard">
@@ -62,7 +62,7 @@ const DashboardSection = () => {
             <p className="[-webkit-text-stroke:1px_#87878766] text-white text-[10px] leading- 10 [font-family:'Questrial',Helvetica] font-normal tracking-[0] mb-1">
               {sections[1].label}
             </p>
-            <h2 className="[-webkit-text-stroke:1px_#87878766] pt-[10px] [font-family:'Questrial',Helvetica] font-normal text-[#f9f9f9] text-4xl tracking-[0] leading-[60px] max-w-96">
+            <h2 className="[-webkit-text-stroke:1px_#87878766] pt-[10px] [font-family:'Questrial',Helvetica] font-normal text-theme-text-primary text-4xl tracking-[0] leading-[60px] max-w-96">
               {sections[1].title}
             </h2>
           </header>
@@ -77,7 +77,7 @@ const DashboardSection = () => {
               alt="Join icon"
               src={sections[1].buttonIcon}
             /> */}
-            {/* <Button className="bg-[#dda15e] hover:bg-[#dda15e]/90 text-[#f9f9f9] rounded-[30px] h-[37px] px-6 [-webkit-text-stroke:1px_#87878766] [font-family:'Questrial',Helvetica] font-normal text-base tracking-[0] leading-[15px]">
+            {/* <Button className="bg-[#dda15e] hover:bg-[#dda15e]/90 text-theme-text-primary rounded-[30px] h-[37px] px-6 [-webkit-text-stroke:1px_#87878766] [font-family:'Questrial',Helvetica] font-normal text-base tracking-[0] leading-[15px]">
               {sections[1].buttonText}
             </Button> */}
             <Link to="/tournament">

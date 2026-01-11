@@ -5,6 +5,21 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Dynamic colors from CSS variables
+        theme: {
+          "bg-primary": "var(--bg-primary)",
+          "bg-secondary": "var(--bg-secondary)",
+          "bg-tertiary": "var(--bg-tertiary)",
+          "text-primary": "var(--text-primary)",
+          "text-secondary": "var(--text-secondary)",
+          "text-tertiary": "var(--text-tertiary)",
+          "text-inverse": "var(--text-inverse)",
+          "accent-primary": "var(--accent-primary)",
+          "accent-secondary": "var(--accent-secondary)",
+          "border-primary": "var(--border-primary)",
+          "border-light": "var(--border-light)",
+        },
+        // Static fallback colors
         dark: {
           900: "#1B1D22",
           950: "#141517",
@@ -40,3 +55,4 @@ export default {
   },
   plugins: [],
 };
+

@@ -3,6 +3,8 @@
  * Handles all chat-related API calls and WebSocket messages
  */
 
+import API_CONFIG from "../config/api";
+
 interface Message {
   id: string;
   content: string;
@@ -39,10 +41,8 @@ class ChatService {
   private reconnectDelay = 3000;
 
   constructor() {
-    this.baseUrl =
-      (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3001";
-    this.wsUrl =
-      (import.meta as any).env?.VITE_WS_URL || "ws://localhost:3001/v1/chat/ws";
+    this.baseUrl = API_CONFIG.BASE_URL;
+    this.wsUrl = API_CONFIG.WS_URL;
   }
 
   /**

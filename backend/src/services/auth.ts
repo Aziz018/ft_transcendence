@@ -93,7 +93,16 @@ class FacebookOAuthProvider implements OAuthProvider {
         },
       }
     );
-    return await response.json();
+    const data = await response.json();
+    return {
+      id: data.id,
+      name: data.name,
+      email: data.email,
+      picture: data.picture?.data?.url || null, // Facebook returns picture in a nested object
+      verfied_email: true,
+      given_name: data.name.split(" ")[0],
+      family_name: data.name.split(" ")[1] || "",
+    };
   }
 }
 
@@ -146,13 +155,6 @@ class Intra42OAuthProvider implements OAuthProvider {
     };
   }
 }
-
-/**
- * Specialized error handler for the authentication service.
- * Extends base `ServiceError` and registers error codes.
-```
-
-};
 
 /**
  * Specialized error handler for the authentication service.
@@ -250,6 +252,7 @@ export default class AuthService extends DataBaseWrapper {
       name: user_info.name,
       email: user_info.email,
       password: rndpwd,
+      avatar: user_info.picture, // Save the avatar URL from the provider
     });
   }
 

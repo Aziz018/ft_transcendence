@@ -14,8 +14,8 @@ export const userRegisterSchema = {
       },
       password: {
         type: "string",
-        minLength: 8,
-        errorMessage: "passwors too weak",
+        minLength: 6,
+        errorMessage: "password too weak",
       },
     },
     errorMessage: "The body must have name, email, and a strong password",
@@ -53,7 +53,7 @@ export const userLoginSchema = {
       },
       password: {
         type: "string",
-        minLength: 8,
+        minLength: 6,
       },
     },
   },

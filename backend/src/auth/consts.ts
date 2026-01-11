@@ -1,4 +1,4 @@
-const baseURL: string = "http://localhost:3000";
+const baseURL: string = "http://localhost:3001";
 
 /**
  * Type definition for OAuth redirect options.

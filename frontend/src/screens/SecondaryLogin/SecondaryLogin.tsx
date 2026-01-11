@@ -1,4 +1,3 @@
-
 import Fuego from "../../index";
 import Footer from "../../components/SecondaryLogin/Footer";
 import Header from "../../components/SecondaryLogin/Header";
@@ -8,7 +7,7 @@ import Shape from "../../assets/vec.svg";
 
 const SecondaryLogin = () => {
   return (
-    <div className="bg-[#141517] overflow-hidden w-full min-h-screen relative">
+    <div className="bg-theme-bg-primary overflow-hidden w-full min-h-screen relative flex items-center justify-center">
       <BackgroundBlurEffect />
       <div className="absolute inset-0 opacity-[0.01] flex items-center justify-center pointer-events-none animate-[spin_30s_linear_infinite]">
         <img
@@ -17,10 +16,8 @@ const SecondaryLogin = () => {
           alt="background shape"
         />
       </div>
-      <div className="max-w-layout m-auto flex flex-col min-h-[calc(100vh-80px)] justify-between">
-        <Header />
+      <div className="w-full max-w-layout m-auto">
         <Main />
-        <Footer />
       </div>
     </div>
   );

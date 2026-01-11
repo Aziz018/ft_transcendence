@@ -10,6 +10,7 @@ import IntraBtn from "../../../ui/SocialLoginButtons/IntraBtn";
 import { saveToken } from "../../../../lib/auth";
 import { redirect, Link } from "../../../../library/Router/Router";
 import { useState } from "../../../../index";
+import API_CONFIG from "../../../../config/api";
 
 const LoginForm = () => {
   const [error, setError] = useState("");
@@ -31,11 +32,11 @@ const LoginForm = () => {
     }
 
     const backend =
-      (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3001";
+      (import.meta as any).env?.VITE_API_URL || "http://localhost:3000";
 
     try {
 
-      const res = await fetch(`${backend}/v1/user/login`, {
+      const res = await fetch(`${API_CONFIG.AUTH.LOGIN}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -47,7 +48,11 @@ const LoginForm = () => {
         const token = data?.access_token || data?.accessToken || data?.token;
         if (token) {
           saveToken(token);
-          redirect("/dashboard");
+          if (data.message && data.message.includes("2fa verification required")) {
+            redirect("/secondary-login");
+          } else {
+            redirect("/dashboard");
+          }
           return;
         }
       }
