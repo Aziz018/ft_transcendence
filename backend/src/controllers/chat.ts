@@ -1869,6 +1869,8 @@ const sendDirectMessage = async (
               receiverId,
               text: sanitizedText,
               createdAt: message.createdAt,
+              senderName: sender.name,
+              senderAvatar: sender.avatar,
             },
           })
         );
@@ -2499,6 +2501,9 @@ export const websocketHandler = async (
     `[WEBSOCKET] User ${userName} (${userId}) connected to WebSocket`
   );
 
+  // Broadcast online status to all friends
+  broadcastStatusChange(userId, true);
+
   connection.on("message", async (rawMessage) => {
     let msg: WSMessage;
     try {
@@ -2736,7 +2741,15 @@ export const websocketHandler = async (
       if (userConns) {
         userConns.delete(connection);
         if (userConns.size === 0) {
-          userConnections.delete(connection.authenticatedUser.uid);
+          // Debounce offline status broadcast
+          setTimeout(() => {
+            const currentConns = userConnections.get(connection.authenticatedUser.uid);
+            // Check if there are NO connections now
+            if (!currentConns || currentConns.size === 0) {
+              userConnections.delete(connection.authenticatedUser.uid);
+              broadcastStatusChange(userId, false);
+            }
+          }, 2000); // 2 second delay
         }
       }
     }
@@ -2869,6 +2882,65 @@ export const notifyFriendRequestDeclined = async (
       );
     }
   });
+};
+
+/**
+ * Broadcast user status change to all friends
+ */
+const broadcastStatusChange = async (userId: string, isOnline: boolean) => {
+  try {
+    // 1. Update user status in database
+    await prisma.user.update({
+      where: { id: userId },
+      data: { status: isOnline ? "ONLINE" : "OFFLINE" }
+    });
+
+    // 2. Find all friends of this user
+    // We need to check both sent and received accepted requests
+    const friendships = await prisma.friendRequest.findMany({
+      where: {
+        OR: [
+          { requesterId: userId, status: "ACCEPTED" },
+          { requestedId: userId, status: "ACCEPTED" }
+        ]
+      },
+      select: {
+        requesterId: true,
+        requestedId: true
+      }
+    });
+
+    // Extract friend IDs
+    const friendIds = friendships.map(f => 
+      f.requesterId === userId ? f.requestedId : f.requesterId
+    );
+
+    if (friendIds.length === 0) return;
+
+    // 3. Notify each online friend
+    const notification = {
+      type: "user_status_changed",
+      payload: {
+        userId,
+        isOnline,
+        timestamp: new Date().toISOString()
+      }
+    };
+
+    friendIds.forEach(friendId => {
+      const connections = userConnections.get(friendId);
+      if (connections) {
+        connections.forEach(ws => {
+          if (ws.readyState === WS.OPEN) {
+            ws.send(JSON.stringify(notification));
+          }
+        });
+      }
+    });
+
+  } catch (error) {
+    console.error(`Error broadcasting status change for user ${userId}:`, error);
+  }
 };
 
 // Cleanup on process exit

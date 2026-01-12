@@ -27,6 +27,19 @@ interface Friend {
   status?: string;
 }
 
+interface FriendRequest {
+  id: string;
+  senderId: string;
+  receiverId: string;
+  status: string;
+  createdAt: string;
+  sender?: {
+    id: string;
+    name: string;
+    avatar?: string;
+  };
+}
+
 type MessageListener = (message: Message) => void;
 type OnlineStatusListener = (userId: string, isOnline: boolean) => void;
 
@@ -96,7 +109,18 @@ class ChatService {
     switch (data.type) {
       case "direct_message":
       case "message":
-        this.notifyMessageListeners(data.payload);
+        // Ensure the payload matches the Message interface
+        const message = data.payload;
+        // If sender info is missing but senderId is present, we might need to fetch it or rely on frontend to handle it
+        // The backend now sends senderName and senderAvatar in payload, so we can construct sender object if needed
+        if (!message.sender && message.senderName) {
+            message.sender = {
+                id: message.senderId,
+                name: message.senderName,
+                avatar: message.senderAvatar
+            };
+        }
+        this.notifyMessageListeners(message);
         break;
 
       case "user_status_changed":
@@ -324,6 +348,7 @@ class ChatService {
             name: userData.name || "Unknown User",
             email: userData.email || "",
             avatar: userData.avatar,
+            status: userData.status || "OFFLINE", // Include status from backend
           } as Friend;
         } catch (error) {
           console.error(
@@ -343,6 +368,31 @@ class ChatService {
       return validFriends;
     } catch (error) {
       console.error("[ChatService] Failed to fetch friends:", error);
+      return [];
+    }
+  }
+
+  /**
+   * Get pending friend requests
+   */
+  async getFriendRequests(token: string): Promise<FriendRequest[]> {
+    try {
+      const response = await fetch(`${this.baseUrl}/v1/friend/incoming`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch friend requests: ${response.statusText}`);
+      }
+
+      const requests = await response.json();
+      return requests || [];
+    } catch (error) {
+      console.error("[ChatService] Failed to fetch friend requests:", error);
       return [];
     }
   }
@@ -399,4 +449,4 @@ class ChatService {
 }
 
 export const chatService = new ChatService();
-export type { Message, Friend };
+export type { Message, Friend, FriendRequest };

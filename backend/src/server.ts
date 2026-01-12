@@ -82,6 +82,7 @@ export default class Server {
   swaggerOpts: FastifyPluginOptions;
   swaggerUIOpts: FastifyPluginOptions;
   ajv: Ajv2020;
+  defaultOrigins: string[];
 
   constructor(
     host: string,
@@ -130,6 +131,11 @@ export default class Server {
     this.ajv = new Ajv2020({ allErrors: true });
     addErrors(this.ajv);
     addFormats(this.ajv);
+
+    this.defaultOrigins = [
+      "http://localhost:5173",
+      "http://localhost:5174"
+    ];
   }
 
   private async connectPrismaClient(): Promise<void> {
@@ -165,14 +171,18 @@ export default class Server {
     await this.fastify.register(fcors, {
       origin: (origin, cb) => {
         const allowedOrigins = [
-          "http://localhost:5173",
-          "http://localhost:5174",
+          ...this.defaultOrigins,
           process.env.FRONTEND_ORIGIN,
         ].filter(Boolean);
 
-        if (!origin || allowedOrigins.includes(origin)) {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return cb(null, true);
+
+        if (allowedOrigins.includes(origin)) {
           cb(null, true);
         } else {
+          // Log the blocked origin for debugging
+          console.warn(`Blocked CORS origin: ${origin}`);
           cb(new Error("Not allowed by CORS"), false);
         }
       },

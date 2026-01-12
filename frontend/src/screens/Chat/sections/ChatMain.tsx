@@ -103,10 +103,11 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
         return;
       }
 
+      // Optimistic update
       const optimisticMessage: Message = {
         id: `temp-${Date.now()}`,
         content: messageContent,
-        senderId: "me",
+        senderId: "me", // This will be replaced by actual ID or handled by isMe logic
         receiverId: selectedFriend.id,
         createdAt: new Date().toISOString(),
         sender: {
@@ -115,12 +116,20 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
         },
       };
 
+      // We don't add optimistic message to state immediately to avoid duplication
+      // because we now receive the message back via WebSocket for synchronization.
+      // However, for better UX, we can add it and then replace/deduplicate it.
+      // But since we have the duplication issue, let's rely on the WebSocket/Response
+      // or handle the duplication check strictly.
+      
+      // Let's add it optimistically, but mark it as temporary.
       setMessages((prev) => [...prev, optimisticMessage]);
       scrollToBottom();
 
       chatService
         .sendMessage(selectedFriend.id, messageContent, token)
         .then((sentMessage) => {
+          // Replace optimistic message with real one
           setMessages((prev) =>
             prev.map((msg) =>
               msg.id === optimisticMessage.id ? sentMessage : msg
@@ -274,9 +283,28 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
           message.receiverId === selectedFriend.id)
       ) {
         setMessages((prev) => {
+          // Check if message already exists (by ID)
           if (prev.some((msg) => msg.id === message.id)) {
             return prev;
           }
+          
+          // Check if we have a temp message that matches this one (by content and timestamp proximity)
+          // This is a heuristic to deduplicate optimistic messages if the ID replacement didn't happen yet
+          // or if the WebSocket message arrived before the HTTP response.
+          // However, the HTTP response handler replaces the temp ID with the real ID.
+          // If the WebSocket message comes with the real ID, we should check if that real ID is already there.
+          // We already did that above.
+          
+          // Now check if there is a temp message that we should replace with this incoming real message
+          // This happens if WS is faster than HTTP response
+          const tempMsgIndex = prev.findIndex(msg => msg.id.startsWith('temp-') && msg.content === message.content);
+          
+          if (tempMsgIndex !== -1) {
+             const newMessages = [...prev];
+             newMessages[tempMsgIndex] = message;
+             return newMessages;
+          }
+
           return [...prev, message];
         });
         scrollToBottom();

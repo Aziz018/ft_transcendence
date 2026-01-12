@@ -70,7 +70,7 @@ export default class MessageService extends DataBaseWrapper {
       },
     });
 
-    return {
+    const messagePayload = {
       id: message.id,
       content: message.content,
       senderId: message.senderId,
@@ -79,6 +79,38 @@ export default class MessageService extends DataBaseWrapper {
       receiverId: message.receiverId,
       createdAt: message.createdAt,
     };
+
+    // Notify the receiver via WebSocket
+    // We need to access the WebSocket server instance from Fastify
+    // The websocket plugin attaches 'websocketServer' to fastify instance
+    const wss = this.fastify.websocketServer;
+    
+    if (wss) {
+        wss.clients.forEach((client: any) => {
+            // Check if client is authenticated and matches receiverId
+            // The 'authenticatedUser' property is attached in the websocketHandler
+            if (client.readyState === 1 && client.authenticatedUser?.uid === receiverId) {
+                client.send(
+                    JSON.stringify({
+                        type: "direct_message",
+                        payload: messagePayload,
+                    })
+                );
+            }
+            
+            // Also notify sender's other tabs (optional but good UX)
+            if (client.readyState === 1 && client.authenticatedUser?.uid === senderId) {
+                 client.send(
+                    JSON.stringify({
+                        type: "direct_message",
+                        payload: messagePayload,
+                    })
+                );
+            }
+        });
+    }
+
+    return messagePayload;
   }
 
   /**
