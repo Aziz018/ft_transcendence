@@ -82,10 +82,33 @@ const Settings = () => {
         setUserName(data.name || "");
         setUserEmail(data.email || "");
         setUserAvatar(data.avatar || "");
-        setTwoFactorEnabled(data.twoFactorEnabled || false);
+        // Check 2FA status from backend
+        check2FAStatus();
       }
     } catch (error) {
       console.error("Failed to fetch profile:", error);
+    }
+  };
+
+  const check2FAStatus = async () => {
+    try {
+      const backend =
+        (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
+        "http://localhost:3001";
+      const token = getToken();
+
+      const res = await fetch(`${backend}/v1/totp/status`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setTwoFactorEnabled(data.status);
+      }
+    } catch (error) {
+      console.error("Failed to check 2FA status:", error);
     }
   };
 
@@ -178,6 +201,36 @@ const Settings = () => {
   };
 
   const handleActivate2FA = async () => {
+    if (twoFactorEnabled) {
+      // Handle disable logic
+      const confirmed = confirm("Are you sure you want to disable 2FA?");
+      if (!confirmed) return;
+
+      try {
+        const backend =
+          (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
+          "http://localhost:3001";
+        const token = getToken();
+
+        const res = await fetch(`${backend}/v1/totp/disable`, {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (res.ok) {
+          setTwoFactorEnabled(false);
+          alert("Two-Factor Authentication disabled successfully.");
+        } else {
+          alert("Failed to disable 2FA.");
+        }
+      } catch (error) {
+        console.error("Error disabling 2FA:", error);
+      }
+      return;
+    }
+
     try {
       const backend =
         (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
@@ -439,10 +492,10 @@ const Settings = () => {
                   onClick={handleActivate2FA}
                   className={`px-6 py-3 rounded-lg font-questrial font-semibold transition-colors ${
                     twoFactorEnabled
-                      ? "bg-white/10 text-light hover:bg-white/20"
+                      ? "bg-red-500/20 text-red-500 border border-red-500/50 hover:bg-red-500/30"
                       : "bg-accent-orange text-dark-950 hover:bg-accent-orange/90"
                   }`}>
-                  {twoFactorEnabled ? "Enabled" : "Activate 2FA"}
+                  {twoFactorEnabled ? "Disable 2FA" : "Activate 2FA"}
                 </button>
               </div>
             </div>
@@ -525,7 +578,7 @@ const Settings = () => {
                   setShowTwoFactorModal(false);
                 }}
                 className="flex-1 px-4 py-3 bg-accent-orange text-dark-950 rounded-lg font-questrial font-semibold hover:bg-accent-orange/90 transition-colors">
-                Activate
+                Done
               </button>
             </div>
           </div>
