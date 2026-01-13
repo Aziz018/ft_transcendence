@@ -134,32 +134,6 @@ const SignUpFormContainer = ({
               className="w-full h-12 bg-[#dda15e] hover:bg-[#cc9455] text-[#141517] rounded-lg [font-family:'Questrial',Helvetica] font-normal text-base transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
               {loading ? "Creating Account..." : "Create Account"}
             </button>
-
-            {/* Divider */}
-            <div className="relative my-6">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-[#444]"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-[#1a1c1e] text-[#ffffff60] [font-family:'Questrial',Helvetica]">
-                  Or sign up with
-                </span>
-              </div>
-            </div>
-
-            {/* Social login buttons */}
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                class="py-2.5 px-5 me-2 mb-2 text-sm font-medium text-gray-900 focus:outline-none bg-light rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-light dark:hover:bg-gray-700">
-                Google
-              </button>
-              <button
-                type="button"
-                class="py-2.5 px-5 me-2 mb-2 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-light dark:hover:bg-gray-700">
-                Intra
-              </button>
-            </div>
           </form>
 
           {/* Sign in link */}
