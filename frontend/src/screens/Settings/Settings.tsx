@@ -48,6 +48,10 @@ const Settings = () => {
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const fileInputRef = Fuego.useRef<HTMLInputElement>(null);
 
+  // Store original values to revert on cancel
+  const [originalUserName, setOriginalUserName] = useState("");
+  const [originalUserEmail, setOriginalUserEmail] = useState("");
+
   useEffect(() => {
     const token = getToken();
     if (!token) {
@@ -81,6 +85,8 @@ const Settings = () => {
         const data = await res.json();
         setUserName(data.name || "");
         setUserEmail(data.email || "");
+        setOriginalUserName(data.name || "");
+        setOriginalUserEmail(data.email || "");
         setUserAvatar(data.avatar || "");
         // Check 2FA status from backend
         check2FAStatus();
@@ -112,13 +118,56 @@ const Settings = () => {
     }
   };
 
+  const validateEmail = (email: string) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+  };
+
+  const handleStartEdit = () => {
+    setOriginalUserName(userName);
+    setOriginalUserEmail(userEmail);
+    setIsEditing(true);
+  };
+
+  const handleCancelEdit = () => {
+    setUserName(originalUserName);
+    setUserEmail(originalUserEmail);
+    setIsEditing(false);
+    
+    // Force re-render by re-fetching if state update is batched/delayed
+    // This is a fallback for the custom framework's state handling
+    setTimeout(() => {
+        const nameInput = document.querySelector('input[type="text"][value]') as HTMLInputElement;
+        const emailInput = document.querySelector('input[type="email"][value]') as HTMLInputElement;
+        if (nameInput) nameInput.value = originalUserName;
+        if (emailInput) emailInput.value = originalUserEmail;
+    }, 0);
+  };
+
   const handleSaveProfile = async () => {
+    // Validation
+    if (!userName.trim()) {
+      alert("Username cannot be empty");
+      return;
+    }
+
+    if (!userEmail.trim()) {
+      alert("Email cannot be empty");
+      return;
+    }
+
+    if (!validateEmail(userEmail)) {
+      alert("Please enter a valid email address");
+      return;
+    }
+
     try {
       const backend =
         (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
         "http://localhost:3001";
       const token = getToken();
 
+      // Update Name
       const nameRes = await fetch(`${backend}/v1/user/profile`, {
         method: "PUT",
         headers: {
@@ -127,21 +176,40 @@ const Settings = () => {
         },
         body: JSON.stringify({
           field: "name",
-          value: userName,
+          value: userName.trim(),
         }),
       });
 
-      if (nameRes.ok) {
-        setIsEditing(false);
-        await fetchUserProfile();
-      } else {
+      if (!nameRes.ok) {
         const error = await nameRes.json();
-        console.error("Failed to update profile:", error);
-        alert(error.message || "Failed to update profile");
+        throw new Error(error.message || "Failed to update name");
       }
-    } catch (error) {
+
+      // Update Email (if changed)
+      const emailRes = await fetch(`${backend}/v1/user/profile`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          field: "email",
+          value: userEmail.trim(),
+        }),
+      });
+
+      if (!emailRes.ok) {
+         const error = await emailRes.json();
+         throw new Error(error.message || "Failed to update email");
+      }
+
+      setIsEditing(false);
+      await fetchUserProfile();
+      alert("Profile updated successfully");
+
+    } catch (error: any) {
       console.error("Failed to update profile:", error);
-      alert("Failed to update profile. Please try again.");
+      alert(error.message || "Failed to update profile. Please try again.");
     }
   };
 
@@ -372,14 +440,14 @@ const Settings = () => {
                 </h2>
                 {!isEditing ? (
                   <button
-                    onClick={() => setIsEditing(true)}
+                    onClick={handleStartEdit}
                     className="px-4 py-2 bg-accent-green text-dark-950 rounded-lg font-questrial font-semibold hover:bg-accent-green/90 transition-colors">
                     Edit Profile
                   </button>
                 ) : (
                   <div className="flex gap-2">
                     <button
-                      onClick={() => setIsEditing(false)}
+                      onClick={handleCancelEdit}
                       className="px-4 py-2 bg-white/10 text-light rounded-lg font-questrial hover:bg-white/20 transition-colors">
                       Cancel
                     </button>
