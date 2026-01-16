@@ -99,6 +99,14 @@ export const gameWebSocketHandler = async (connection: ExtendedWS, request: Fast
           }));
           break;
 
+        case 'tournament':
+          const tournamentResult = await gameService.handleTournamentAction(userId, parsedMessage.payload);
+          connection.send(JSON.stringify({
+            type: 'tournament_action_result',
+            payload: tournamentResult
+          }));
+          break;
+
         default:
           request.log.warn(`❌ Unknown message type: ${parsedMessage.type}`);
           connection.send(JSON.stringify({

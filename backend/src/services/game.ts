@@ -41,6 +41,8 @@ export default class GameService extends DataBaseWrapper {
   private matchmakingJoinTimes = new Map<string, number>();
   private botIntervals = new Map<string, Timer>();
   private matchmakingInterval: Timer | null = null;
+  private readyTimeouts = new Map<string, Timer>();
+  private readonly READY_TIMEOUT_MS = 30000; // 30 seconds to ready up
 
   // Tournament system
   private tournaments = new Map<string, Tournament>();
@@ -194,17 +196,46 @@ export default class GameService extends DataBaseWrapper {
    * Handles a player's ready signal for starting a game.
    */
   async handleGameReady(userId: string, payload: GameReadyInput): Promise<{ success: boolean; message: string }> {
-    this.fastify.log.debug(`Player ${userId} is ready for game: ${payload.gameId}`);
+    this.fastify.log.info(`✅ Player ${userId} is ready for game: ${payload.gameId}`);
 
     const gameSession = this.gameSessions.get(payload.gameId);
-    if (gameSession) {
-      if (!gameSession.readyPlayers) gameSession.readyPlayers = new Set();
-      gameSession.readyPlayers.add(userId);
-
-      if (gameSession.readyPlayers.size === gameSession.players.length) {
-        this.startGame(payload.gameId);
-      }
+    if (!gameSession) {
+      return { success: false, message: 'Game session not found' };
     }
+
+    if (gameSession.status !== 'starting') {
+      return { success: false, message: 'Game already started or completed' };
+    }
+
+    if (!gameSession.readyPlayers) gameSession.readyPlayers = new Set();
+    gameSession.readyPlayers.add(userId);
+
+    // Notify other players about ready status
+    this.notifyPlayers(gameSession.players.filter(id => id !== userId), {
+      type: 'player_ready',
+      payload: {
+        gameId: payload.gameId,
+        playerId: userId,
+        readyCount: gameSession.readyPlayers.size,
+        totalPlayers: gameSession.players.length
+      }
+    });
+
+    this.fastify.log.info(`📊 Ready status: ${gameSession.readyPlayers.size}/${gameSession.players.length} players ready`);
+
+    // Start game when all players are ready
+    if (gameSession.readyPlayers.size === gameSession.players.length) {
+      // Clear ready timeout
+      const timeout = this.readyTimeouts.get(payload.gameId);
+      if (timeout) {
+        clearTimeout(timeout);
+        this.readyTimeouts.delete(payload.gameId);
+      }
+
+      this.fastify.log.info(`🎮 All players ready! Starting game ${payload.gameId}`);
+      this.startGame(payload.gameId);
+    }
+
     return { success: true, message: 'Player ready' };
   }
 
@@ -299,6 +330,7 @@ export default class GameService extends DataBaseWrapper {
 
   /**
    * Creates a new game session between two players.
+   * Waits for both players to signal ready before starting.
    */
   private async createGameSession(player1Id: string, player2Id: string, gameType: string): Promise<GameSession> {
     const isPlayer2Bot = player2Id.startsWith('bot-');
@@ -316,26 +348,76 @@ export default class GameService extends DataBaseWrapper {
       },
       matchStartTime: null,
       matchTimer: null,
-      MATCH_DURATION_MS: 60000
+      MATCH_DURATION_MS: 60000,
+      readyPlayers: new Set() // Initialize empty - players must signal ready
     };
 
     this.gameSessions.set(gameSession.id, gameSession);
 
+    this.fastify.log.info(`🎮 Created game session ${gameSession.id}: ${player1Id} vs ${player2Id}${isPlayer2Bot ? ' (bot)' : ''}`);
+
+    // Notify player 1
     this.notifyPlayer(player1Id, {
       type: 'game_matched',
       payload: { ...gameSession, yourPlayerId: player1Id, opponentIsBot: isPlayer2Bot }
     });
 
     if (isPlayer2Bot) {
-      this.startBotBehavior(gameSession, player2Id);
+      // Auto-ready the bot (bots don't need to signal ready)
+      gameSession.readyPlayers.add(player2Id);
+      this.fastify.log.debug(`🤖 Bot ${player2Id} auto-readied`);
+
+      // Bot behavior will start when game actually begins (in startGame)
     } else {
+      // Notify player 2
       this.notifyPlayer(player2Id, {
         type: 'game_matched',
         payload: { ...gameSession, yourPlayerId: player2Id, opponentIsBot: false }
       });
     }
 
+    // Set timeout for players to ready up
+    const readyTimeout = setTimeout(() => {
+      this.handleReadyTimeout(gameSession.id);
+    }, this.READY_TIMEOUT_MS);
+
+    this.readyTimeouts.set(gameSession.id, readyTimeout);
+    this.fastify.log.debug(`⏱️  Ready timeout set for game ${gameSession.id} (${this.READY_TIMEOUT_MS}ms)`);
+
     return gameSession;
+  }
+
+  /**
+   * Handles timeout when players don't ready up in time
+   */
+  private handleReadyTimeout(gameId: string): void {
+    const gameSession = this.gameSessions.get(gameId);
+    if (!gameSession) return;
+
+    // Check if game already started
+    if (gameSession.status !== 'starting') {
+      this.readyTimeouts.delete(gameId);
+      return;
+    }
+
+    const readyPlayers = gameSession.readyPlayers || new Set();
+    const notReadyPlayers = gameSession.players.filter(p => !readyPlayers.has(p));
+
+    this.fastify.log.warn(`⏰ Ready timeout for game ${gameId}. Players not ready: ${notReadyPlayers.join(', ')}`);
+
+    // Notify all players that match was cancelled
+    this.notifyPlayers(gameSession.players, {
+      type: 'game_cancelled',
+      payload: {
+        gameId,
+        reason: 'Players did not ready up in time',
+        notReadyPlayers
+      }
+    });
+
+    // Clean up
+    this.gameSessions.delete(gameId);
+    this.readyTimeouts.delete(gameId);
   }
 
   /**
@@ -373,26 +455,34 @@ export default class GameService extends DataBaseWrapper {
    */
   private startGame(gameId: string): void {
     const gameSession = this.gameSessions.get(gameId);
-    if (gameSession) {
-      gameSession.status = 'active';
-      gameSession.startedAt = new Date();
-      gameSession.matchStartTime = Date.now();
+    if (!gameSession) return;
 
-      this.fastify.log.info(`🎮 Game ${gameId} started. 1-minute timer begins...`);
+    gameSession.status = 'active';
+    gameSession.startedAt = new Date();
+    gameSession.matchStartTime = Date.now();
 
-      this.notifyPlayers(gameSession.players, {
-        type: 'game_start',
-        payload: {
-          gameId,
-          startedAt: gameSession.startedAt,
-          matchDurationMs: gameSession.MATCH_DURATION_MS
-        }
-      });
+    this.fastify.log.info(`🎮 Game ${gameId} started. 1-minute timer begins...`);
 
-      gameSession.matchTimer = setTimeout(() => {
-        this.fastify.log.info(`⏰ 1-minute timer expired for game ${gameId}`);
-      }, gameSession.MATCH_DURATION_MS);
+    // Start bot behavior if this is a bot game
+    if (gameSession.isBotGame) {
+      const botId = gameSession.players.find(id => id.startsWith('bot-'));
+      if (botId) {
+        this.startBotBehavior(gameSession, botId);
+      }
     }
+
+    this.notifyPlayers(gameSession.players, {
+      type: 'game_start',
+      payload: {
+        gameId,
+        startedAt: gameSession.startedAt,
+        matchDurationMs: gameSession.MATCH_DURATION_MS
+      }
+    });
+
+    gameSession.matchTimer = setTimeout(() => {
+      this.fastify.log.info(`⏰ 1-minute timer expired for game ${gameId}`);
+    }, gameSession.MATCH_DURATION_MS);
   }
 
   /**
@@ -486,20 +576,75 @@ export default class GameService extends DataBaseWrapper {
 
   /**
    * Removes a player's WebSocket connection.
+   * Handles disconnection during matchmaking and game phases.
    */
   removeConnection(userId: string): void {
     this.activeConnections.delete(userId);
-    this.leaveMatchmaking(userId);
 
+    // Remove from matchmaking queue if present
+    const wasInQueue = this.matchmakingQueue.includes(userId);
+    if (wasInQueue) {
+      this.leaveMatchmaking(userId);
+      this.fastify.log.info(`🚪 Player ${userId} left matchmaking queue`);
+    }
+
+    // Check if player is in a game session
     this.gameSessions.forEach((session, gameId) => {
       if (session.players.includes(userId)) {
-        this.handlePlayerDisconnect(userId);
+        // Handle disconnection based on game state
+        if (session.status === 'starting') {
+          // Player disconnected during ready phase
+          this.handlePlayerDisconnectDuringReady(userId, gameId, session);
+        } else {
+          // Player disconnected during active game
+          this.handlePlayerDisconnect(userId);
+        }
       }
     });
   }
 
   /**
-   * Handles cleanup when a player disconnects.
+   * Handles player disconnection during the ready phase (before game starts)
+   */
+  private handlePlayerDisconnectDuringReady(userId: string, gameId: string, gameSession: GameSession): void {
+    this.fastify.log.warn(`🚪 Player ${userId} disconnected during ready phase for game ${gameId}`);
+
+    // Clear ready timeout
+    const timeout = this.readyTimeouts.get(gameId);
+    if (timeout) {
+      clearTimeout(timeout);
+      this.readyTimeouts.delete(gameId);
+    }
+
+    // Notify opponent that match was cancelled
+    const opponentId = gameSession.players.find(id => id !== userId && !id.startsWith('bot-'));
+    if (opponentId) {
+      this.notifyPlayer(opponentId, {
+        type: 'game_cancelled',
+        payload: {
+          gameId,
+          reason: 'Opponent disconnected before game started',
+          disconnectedPlayer: userId
+        }
+      });
+      this.fastify.log.info(`📢 Notified ${opponentId} that opponent disconnected`);
+    }
+
+    // Clean up game session
+    if (gameSession.botInterval) {
+      clearInterval(gameSession.botInterval);
+    }
+    if (this.botIntervals.has(gameId)) {
+      clearInterval(this.botIntervals.get(gameId));
+      this.botIntervals.delete(gameId);
+    }
+
+    this.gameSessions.delete(gameId);
+    this.fastify.log.info(`🗑️  Cleaned up game session ${gameId}`);
+  }
+
+  /**
+   * Handles cleanup when a player disconnects during active game.
    */
   private handlePlayerDisconnect(userId: string): void {
     this.fastify.log.debug(`Player ${userId} disconnected`);
@@ -1181,6 +1326,12 @@ export default class GameService extends DataBaseWrapper {
       clearInterval(interval);
     });
     this.botIntervals.clear();
+
+    this.readyTimeouts.forEach((timeout) => {
+      clearTimeout(timeout);
+    });
+    this.readyTimeouts.clear();
+
     this.gameSessions.clear();
     this.activeConnections.clear();
     this.botConnections.clear();
