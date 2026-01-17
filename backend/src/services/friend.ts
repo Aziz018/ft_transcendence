@@ -163,17 +163,50 @@ export default class FriendService extends DataBaseWrapper {
   }
 
   /**
-   * Accepts a friend request by updating its status to "ACCEPTED".
+   * Accepts a friend request by updating its status to "ACCEPTED" and creating a Friendship record.
    * @param request_id - ID of the friend request to accept
    * @throws Error if the update fails or an unknown error occurs
    */
   public async acceptRequest(request_id: string): Promise<void> {
     try {
+      const friendRequest = await this.prisma.friendRequest.findUnique({
+        where: { id: request_id },
+      });
+
+      if (!friendRequest) {
+        this.throwErr({
+          code: 404,
+          message: "Friend request not found",
+        });
+      }
+
+      // Update the friend request status to ACCEPTED
       await this.prisma.friendRequest.update({
         where: { id: request_id },
         data: { status: "ACCEPTED" },
       });
+
+      // Create a Friendship record (ensure lower ID comes first for consistency)
+      const user1Id = 
+        friendRequest!.requesterId < friendRequest!.requestedId 
+          ? friendRequest!.requesterId 
+          : friendRequest!.requestedId;
+      const user2Id = 
+        friendRequest!.requesterId < friendRequest!.requestedId 
+          ? friendRequest!.requestedId 
+          : friendRequest!.requesterId;
+
+      await this.prisma.friendship.create({
+        data: {
+          user1Id,
+          user2Id,
+        },
+      });
     } catch (error: any) {
+      // Skip duplicate friendship errors
+      if (error.code === "P2002") {
+        return;
+      }
       let err = this.errorHandler.handleError(
         this.fastify,
         this.service,
@@ -213,34 +246,32 @@ export default class FriendService extends DataBaseWrapper {
   }
 
   /**
-   * Fetches a list of accepted friends for a given user.
+   * Fetches a list of accepted friends for a given user using the Friendship model.
    * @param uid - User ID for whom to fetch friends
    * @returns Array of user IDs that are accepted friends
    * @throws Error if the query fails or an unknown error occurs
    */
   public async getFriends(uid: string): Promise<string[]> {
     try {
-      const friendRequests: FriendRequest[] =
-        await this.prisma.friendRequest.findMany({
-          where: {
-            status: "ACCEPTED",
-            OR: [{ requesterId: uid }, { requestedId: uid }],
-          },
-          include: {
-            requested: true,
-            requester: true,
-          },
-        });
-      let friends: string[] = [];
-      for (const request of friendRequests) {
-        if (request.requestedId && request.requesterId) {
-          friends.push(
-            request.requestedId === uid
-              ? request.requesterId
-              : request.requestedId
-          );
-        }
-      }
+      // Get friendships where the user is either user1 or user2
+      const friendships = await this.prisma.friendship.findMany({
+        where: {
+          OR: [
+            { user1Id: uid },
+            { user2Id: uid },
+          ],
+        },
+        select: {
+          user1Id: true,
+          user2Id: true,
+        },
+      });
+
+      // Extract the friend IDs (the other user in each friendship)
+      const friends = friendships.map((f) =>
+        f.user1Id === uid ? f.user2Id : f.user1Id
+      );
+
       return friends;
     } catch (error: any) {
       let err = this.errorHandler.handleError(
@@ -350,6 +381,7 @@ export default class FriendService extends DataBaseWrapper {
         });
       }
 
+      // Remove all friend requests between these users
       await this.prisma.friendRequest.deleteMany({
         where: {
           OR: [
@@ -359,6 +391,24 @@ export default class FriendService extends DataBaseWrapper {
         },
       });
 
+      // Remove friendship if it exists
+      const user1Id = blockerId < blockedId ? blockerId : blockedId;
+      const user2Id = blockerId < blockedId ? blockedId : blockerId;
+      
+      await this.prisma.friendship.deleteMany({
+        where: {
+          AND: [
+            {
+              OR: [
+                { user1Id, user2Id },
+                { user1Id: user2Id, user2Id: user1Id },
+              ],
+            },
+          ],
+        },
+      });
+
+      // Create the block record
       await this.prisma.blockedUser.create({
         data: {
           blockerId,
@@ -447,7 +497,7 @@ export default class FriendService extends DataBaseWrapper {
   }
 
   /**
-   * Remove a friend by deleting the accepted friend request between two users.
+   * Remove a friend by deleting the accepted friend request and friendship record between two users.
    * Works bidirectionally - either user can unfriend the other.
    * @param userId - The user initiating the unfriend action
    * @param friendId - The friend to be removed
@@ -468,6 +518,18 @@ export default class FriendService extends DataBaseWrapper {
               requestedId: userId,
               status: "ACCEPTED",
             },
+          ],
+        },
+      });
+
+      // Also delete the Friendship record
+      const user1Id = userId < friendId ? userId : friendId;
+      const user2Id = userId < friendId ? friendId : userId;
+
+      await this.prisma.friendship.deleteMany({
+        where: {
+          AND: [
+            { user1Id, user2Id },
           ],
         },
       });

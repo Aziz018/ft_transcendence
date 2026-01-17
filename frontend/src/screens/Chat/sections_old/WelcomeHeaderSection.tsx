@@ -172,7 +172,7 @@ const WelcomeHeaderSection = () => {
 
         const backend =
           (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-          "http://localhost:3001";
+          "/api";
 
         const headers: any = { "Content-Type": "application/json" };
         if (token) headers["Authorization"] = `Bearer ${token}`;
@@ -217,7 +217,7 @@ const WelcomeHeaderSection = () => {
       const token = getToken();
       const backend =
         (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-        "http://localhost:3001";
+        "/api";
 
       const response = await fetch(
         `${backend}/v1/user/search?q=${encodeURIComponent(query)}`,
@@ -248,7 +248,7 @@ const WelcomeHeaderSection = () => {
       const token = getToken();
       const backend =
         (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-        "http://localhost:3001";
+        "/api";
 
       const response = await fetch(`${backend}/v1/friend/incoming`, {
         method: "GET",
@@ -273,7 +273,7 @@ const WelcomeHeaderSection = () => {
       const token = getToken();
       const backend =
         (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-        "http://localhost:3001";
+        "/api";
 
       const response = await fetch(`${backend}/v1/friend/respond`, {
         method: "PUT",
@@ -311,7 +311,7 @@ const WelcomeHeaderSection = () => {
       const token = getToken();
       const backend =
         (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-        "http://localhost:3001";
+        "/api";
 
       const response = await fetch(`${backend}/v1/friend/request`, {
         method: "POST",

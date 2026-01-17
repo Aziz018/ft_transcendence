@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  gateway:
+    build: ./backend
+    ports:
+      - "3000:3000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=3000
+      - SERVICE_NAME=gateway
+      - FRIEND_SERVICE_URL=http://friend-service:3001
+      - JWT_SECRET=supersecret
+      - CKE_SECRET=supersecret
+      # DB Connection needed for Auth in Gateway if Auth is local
+      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:password@postgres:5432/transcendence}
+    depends_on:
+      - friend-service
+      - postgres
+
+  friend-service:
+    build: ./backend
+    ports:
+      - "3001:3001"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=3001
+      - SERVICE_NAME=friend-service
+      - JWT_SECRET=supersecret
+      - CKE_SECRET=supersecret
+      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:password@postgres:5432/transcendence}
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: transcendence
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+volumes:
+  postgres-data:

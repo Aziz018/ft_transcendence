@@ -71,7 +71,7 @@ const Leaderboard = () => {
     try {
       const backend =
         (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-        "http://localhost:3001";
+        "/api";
       const token = getToken();
 
       const mockData: Player[] = [
@@ -181,7 +181,7 @@ const Leaderboard = () => {
     try {
       const backend =
         (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-        "http://localhost:3001";
+        "/api";
       const token = getToken();
 
       await fetch(`${backend}/v1/user/logout`, {
@@ -206,7 +206,7 @@ const Leaderboard = () => {
 
   const getAvatarUrl = (path: string | null | undefined): string => {
     const backend =
-      (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3001";
+      (import.meta as any).env?.VITE_BACKEND_ORIGIN || "/api";
     if (!path || !path.trim()) return `${backend}/images/default-avatar.png`;
     if (path.startsWith("/public/"))
       return `${backend}${path.replace("/public", "")}`;

@@ -32,7 +32,7 @@ const LoginForm = () => {
     }
 
     const backend =
-      (import.meta as any).env?.VITE_API_URL || "http://localhost:3000";
+      (import.meta as any).env?.VITE_API_URL || "/api";
 
     // Try direct backend endpoint
     const loginUrl = `${backend}/v1/user/login`;

@@ -91,56 +91,96 @@ export const userRegisterController = async (
   request: FastifyRequest<{ Body: UserRegisterInput }>,
   reply: FastifyReply
 ): Promise<void> => {
-  const { name, email, password } = request.body;
+  try {
+    const { name, email, password } = request.body;
 
-  const isUserExist = await prisma.user.findUnique({
-    where: { email },
-  });
-
-  if (isUserExist) {
-    return reply.code(400).send({ error: "Email or username already exists" });
-  }
-
-  const hashedPassword = await bcrypt.hash(password, 10);
-
-  const user = await prisma.user.create({
-    data: {
-      name,
-      email,
-      password: hashedPassword,
-    },
-  });
-
-  const token = request.jwt.sign(
-    {
-      uid: user.id,
-      name: user.name,
-      email: user.email,
-      createdAt: user.createdAt,
-      mfa_required: false,
-    },
-    {
-      expiresIn: "24h",
+    // Validate required fields
+    if (!name || !name.trim()) {
+      return reply.code(400).send({
+        error: "name_required",
+        message: "Name is required"
+      });
     }
-  );
 
-  reply.setCookie("access_token", token, {
-    path: "/",
-    httpOnly: true,
-    secure: false,
-    sameSite: "lax",
-  });
+    if (!email || !email.trim()) {
+      return reply.code(400).send({
+        error: "email_required",
+        message: "Email is required"
+      });
+    }
 
-  reply.code(201).send({
-    message: "201 Created",
-    access_token: token,
-    user: {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      createdAt: user.createdAt,
-    },
-  });
+    if (!password || password.length < 6) {
+      return reply.code(400).send({
+        error: "password_invalid",
+        message: "Password must be at least 6 characters"
+      });
+    }
+
+    // Check if email already exists
+    const isUserExist = await prisma.user.findUnique({
+      where: { email: email.toLowerCase() },
+    });
+
+    if (isUserExist) {
+      return reply.code(409).send({
+        error: "email_exists",
+        message: "Email already registered"
+      });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create user
+    const user = await prisma.user.create({
+      data: {
+        name: name.trim(),
+        email: email.toLowerCase(),
+        password: hashedPassword,
+      },
+    });
+
+    // Generate token
+    const token = request.jwt.sign(
+      {
+        uid: user.id,
+        name: user.name,
+        email: user.email,
+        createdAt: user.createdAt,
+        mfa_required: false,
+      },
+      {
+        expiresIn: "24h",
+      }
+    );
+
+    // Set cookie
+    reply.setCookie("access_token", token, {
+      path: "/",
+      httpOnly: true,
+      secure: false,
+      sameSite: "lax",
+    });
+
+    // Send response
+    reply.code(201).send({
+      success: true,
+      message: "User registered successfully",
+      access_token: token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        createdAt: user.createdAt,
+      },
+    });
+  } catch (error) {
+    request.log.error(error);
+    reply.code(500).send({
+      error: "registration_failed",
+      message: "An error occurred during registration",
+    });
+  }
 };
 
 // Chat handler
@@ -283,6 +323,7 @@ export const userLoginController = async (
       });
 
       rep.code(200).send({
+        success: true,
         access_token: token,
         refresh_token,
         uid: user.id,
@@ -337,7 +378,10 @@ export const userSearchController = async (
       where: {
         AND: [
           {
-            OR: [{ name: { contains: query } }, { email: { contains: query } }],
+            OR: [
+              { name: { contains: query } },
+              { email: { contains: query } },
+            ],
           },
           currentUserId ? { id: { not: currentUserId } } : {},
         ],
@@ -351,8 +395,16 @@ export const userSearchController = async (
       take: 10,
     });
 
+    // Filter results in JavaScript for case-insensitive matching
+    const queryLower = query.toLowerCase();
+    const filteredUsers = users.filter(
+      (user) =>
+        user.name.toLowerCase().includes(queryLower) ||
+        user.email.toLowerCase().includes(queryLower)
+    );
+
     rep.code(200).send({
-      users: users.map((user) => ({
+      users: filteredUsers.map((user) => ({
         uid: user.id,
         name: user.name,
         email: user.email,

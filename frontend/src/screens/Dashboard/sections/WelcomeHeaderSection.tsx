@@ -209,7 +209,7 @@ const WelcomeHeaderSection = () => {
           return;
         }
 
-        const backend = (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3000";
+        const backend = (import.meta as any).env?.VITE_BACKEND_ORIGIN || "/api";
 
         const res = await fetch(`${backend}/v1/friend/incoming`, {
           method: "GET",
@@ -303,12 +303,15 @@ const WelcomeHeaderSection = () => {
                       onError={(e) => {
                         const backend =
                           (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-                          "http://localhost:3001";
+                          "/api";
                         console.error(
-                          "Failed to load avatar:",
+                          "Failed to load avatar, using default:",
                           e.currentTarget.src
                         );
-                        e.currentTarget.src = `${backend}/images/default-avatar.png`;
+                        // Prevent infinite loop by checking if we already tried the default
+                        if (!e.currentTarget.src.includes("default-avatar.png")) {
+                          e.currentTarget.src = `${backend}/images/default-avatar.png`;
+                        }
                       }}
                     />
                     <div>

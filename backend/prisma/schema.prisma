@@ -73,6 +73,9 @@ model User {
   blockedUsers   BlockedUser[] @relation("blocker")
   blockedByUsers BlockedUser[] @relation("blocked")
 
+  friendships1 Friendship[] @relation("UserFriendships1")
+  friendships2 Friendship[] @relation("UserFriendships2")
+
   secret        String?
   refreshTokens RefreshToken[]
   status        UserStatus @default(OFFLINE)
@@ -171,4 +174,18 @@ model Message {
   sender    User @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
   receiver  User? @relation("MessageReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
   room      Room? @relation(fields: [roomId], references: [id], onDelete: Cascade)
+}
+
+model Friendship {
+  id        String   @id @default(uuid())
+  user1Id   String
+  user2Id   String
+  createdAt DateTime @default(now())
+
+  user1 User @relation("UserFriendships1", fields: [user1Id], references: [id])
+  user2 User @relation("UserFriendships2", fields: [user2Id], references: [id])
+
+  @@unique([user1Id, user2Id])
+  @@index([user1Id])
+  @@index([user2Id])
 }

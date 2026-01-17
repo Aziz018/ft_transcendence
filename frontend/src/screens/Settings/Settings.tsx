@@ -72,7 +72,7 @@ const Settings = () => {
     try {
       const backend =
         (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-        "http://localhost:3001";
+        "/api";
       const token = getToken();
 
       const res = await fetch(`${backend}/v1/user/profile`, {
@@ -100,7 +100,7 @@ const Settings = () => {
     try {
       const backend =
         (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-        "http://localhost:3001";
+        "/api";
       const token = getToken();
 
       const res = await fetch(`${backend}/v1/totp/status`, {
@@ -164,7 +164,7 @@ const Settings = () => {
     try {
       const backend =
         (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-        "http://localhost:3001";
+        "/api";
       const token = getToken();
 
       // Update Name
@@ -238,7 +238,7 @@ const Settings = () => {
     try {
       const backend =
         (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-        "http://localhost:3001";
+        "/api";
       const token = getToken();
 
       const formData = new FormData();
@@ -277,7 +277,7 @@ const Settings = () => {
       try {
         const backend =
           (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-          "http://localhost:3001";
+          "/api";
         const token = getToken();
 
         const res = await fetch(`${backend}/v1/totp/disable`, {
@@ -302,7 +302,7 @@ const Settings = () => {
     try {
       const backend =
         (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-        "http://localhost:3001";
+        "/api";
       const token = getToken();
 
       const res = await fetch(`${backend}/v1/totp/qr-code`, {
@@ -330,7 +330,7 @@ const Settings = () => {
     try {
       const backend =
         (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-        "http://localhost:3001";
+        "/api";
       const token = getToken();
 
       await fetch(`${backend}/v1/user/logout`, {
@@ -355,7 +355,7 @@ const Settings = () => {
 
   const getAvatarUrl = (path: string | null | undefined): string => {
     const backend =
-      (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3001";
+      (import.meta as any).env?.VITE_BACKEND_ORIGIN || "/api";
     if (!path || !path.trim()) return `${backend}/images/default-avatar.png`;
     if (path.startsWith("/public/"))
       return `${backend}${path.replace("/public", "")}`;

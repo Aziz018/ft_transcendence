@@ -11,7 +11,9 @@ export const sendFriendRequestSchema = {
     200: {
       type: "object",
       properties: {
+        success: { type: "boolean" },
         request: { type: "object" },
+        message: { type: "string" },
       },
     },
   },
@@ -31,6 +33,7 @@ export const resolveFriendRequestSchema = {
     200: {
       type: "object",
       properties: {
+        success: { type: "boolean" },
         message: { type: "string" },
         newStatus: {
           type: "string",
@@ -132,6 +135,7 @@ export const unfriendSchema = {
     200: {
       type: "object",
       properties: {
+        success: { type: "boolean" },
         message: { type: "string" },
       },
     },

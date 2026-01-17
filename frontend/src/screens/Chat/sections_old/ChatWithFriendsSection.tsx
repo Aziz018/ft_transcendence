@@ -25,7 +25,7 @@ const ChatWithFriendsSection = () => {
   const [isSearching, setIsSearching] = Fuego.useState(false);
 
   const backend =
-    (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3001";
+    (import.meta as any).env?.VITE_BACKEND_ORIGIN || "/api";
 
   useEffect(() => {
     fetchFriends();

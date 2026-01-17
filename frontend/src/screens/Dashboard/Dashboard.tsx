@@ -55,7 +55,7 @@ const Dashboard = () => {
         return;
       }
 
-      const backend = (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3000";
+      const backend = (import.meta as any).env?.VITE_BACKEND_ORIGIN || "/api";
 
       const res = await fetch(`${backend}/v1/user/profile`, {
         method: "GET",
@@ -214,22 +214,27 @@ const Dashboard = () => {
                 try {
                   const backend =
                     (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-                    "http://localhost:3001";
+                    "/api";
                   const token = getToken();
 
-                  await fetch(`${backend}/v1/user/logout`, {
+                  const res = await fetch(`${backend}/v1/user/logout`, {
                     method: "POST",
                     credentials: "include",
                     headers: {
+                      "Content-Type": "application/json",
                       ...(token && { Authorization: `Bearer ${token}` }),
                     },
                   });
-                } catch (e) {
-                  console.warn("logout request failed", e);
-                }
 
-                clearToken();
-                redirect("/");
+                  if (!res.ok) {
+                    console.error("[Logout] Request failed:", res.status);
+                  }
+                } catch (e) {
+                  console.error("[Logout] Network error:", e);
+                } finally {
+                  clearToken();
+                  redirect("/");
+                }
               }}
               className="text-light ">
               LogOut

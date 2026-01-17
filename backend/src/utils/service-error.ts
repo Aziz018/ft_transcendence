@@ -59,10 +59,10 @@ export default abstract class ServiceError {
     ): ServiceError_t | undefined {
         if (error instanceof PrismaClientKnownRequestError) {
             const err = this.getErr(error.code);
-            fastify.log.error(`[${service}] -> ${err}`);
+            fastify.log.error(`[${service}] -> Prisma error: ${JSON.stringify(err)}`);
             return err;
         } else {
-            fastify.log.error(`[${service}] -> ${error.message}`);
+            fastify.log.error(`[${service}] -> ${error.message}`, { stack: error.stack });
         }
     }
 

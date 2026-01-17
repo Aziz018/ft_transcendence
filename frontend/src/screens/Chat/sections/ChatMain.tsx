@@ -12,12 +12,12 @@ import { getToken } from "../../../lib/auth";
 import { redirect } from "../../../library/Router/Router";
 
 const defaultAvatar = `${
-  (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3001"
+  (import.meta as any).env?.VITE_BACKEND_ORIGIN || "/api"
 }/images/default-avatar.png`;
 
 const getAvatarUrl = (avatarPath: string | null | undefined): string => {
   const backend =
-    (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3001";
+    (import.meta as any).env?.VITE_BACKEND_ORIGIN || "/api";
 
   if (!avatarPath || !avatarPath.trim()) {
     return defaultAvatar;
@@ -188,7 +188,7 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
     try {
       const backend =
         (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-        "http://localhost:3001";
+        "/api";
       const token = getToken();
 
       if (!token) {
@@ -232,7 +232,7 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
     try {
       const backend =
         (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-        "http://localhost:3001";
+        "/api";
       const token = getToken();
 
       if (!token) {

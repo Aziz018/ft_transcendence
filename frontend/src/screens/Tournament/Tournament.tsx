@@ -72,7 +72,7 @@ const Tournament = () => {
     try {
       const backend =
         (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-        "http://localhost:3001";
+        "/api";
       const token = getToken();
 
       const mockData: Tournament[] = [
@@ -140,7 +140,7 @@ const Tournament = () => {
     try {
       const backend =
         (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-        "http://localhost:3001";
+        "/api";
       const token = getToken();
 
       await fetch(`${backend}/v1/user/logout`, {

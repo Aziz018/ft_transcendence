@@ -25,6 +25,7 @@ export const userRegisterSchema = {
     201: {
       type: "object",
       properties: {
+        success: { type: "boolean" },
         message: { type: "string" },
         access_token: { type: "string" },
         user: {
@@ -61,6 +62,7 @@ export const userLoginSchema = {
     200: {
       type: "object",
       properties: {
+        success: { type: "boolean" },
         access_token: { type: "string" },
         refresh_token: { type: "string" },
         uid: { type: "string" },

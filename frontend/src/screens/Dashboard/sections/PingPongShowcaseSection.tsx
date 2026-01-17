@@ -26,7 +26,7 @@ const PingPongShowcaseSection = () => {
         return;
       }
 
-      const backend = (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3000";
+      const backend = (import.meta as any).env?.VITE_BACKEND_ORIGIN || "/api";
 
       const res = await fetch(`${backend}/v1/user/profile`, {
         method: "GET",

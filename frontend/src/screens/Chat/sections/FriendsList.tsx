@@ -12,7 +12,7 @@ import { getToken } from "../../../lib/auth";
 import { wsService } from "../../../services/wsService";
 
 const defaultAvatar = `${
-  (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3001"
+  (import.meta as any).env?.VITE_BACKEND_ORIGIN || "/api"
 }/images/default-avatar.png`;
 
 /**
@@ -20,7 +20,7 @@ const defaultAvatar = `${
  */
 const getAvatarUrl = (avatarPath: string | null | undefined): string => {
   const backend =
-    (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3001";
+    (import.meta as any).env?.VITE_BACKEND_ORIGIN || "/api";
 
   if (!avatarPath || !avatarPath.trim()) {
     return defaultAvatar;

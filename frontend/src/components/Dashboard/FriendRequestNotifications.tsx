@@ -40,7 +40,7 @@ const FriendRequestNotifications = ({
    */
   const getAvatarUrl = (avatarPath: string | null | undefined): string => {
     const backend =
-      (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3001";
+      (import.meta as any).env?.VITE_BACKEND_ORIGIN || "/api";
 
     if (!avatarPath || !avatarPath.trim()) {
       return `${backend}/images/default-avatar.png`;
@@ -70,7 +70,7 @@ const FriendRequestNotifications = ({
       const token = getToken();
       const backend =
         (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-        "http://localhost:3001";
+        "/api";
 
       const res = await fetch(`${backend}/v1/friend/incoming`, {
         headers: {
@@ -106,7 +106,7 @@ const FriendRequestNotifications = ({
         const token = getToken();
         const backend =
           (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-          "http://localhost:3001";
+          "/api";
 
         const res = await fetch(`${backend}/v1/friend/respond`, {
           method: "PUT",
@@ -167,7 +167,7 @@ const FriendRequestNotifications = ({
         const token = getToken();
         const backend =
           (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-          "http://localhost:3001";
+          "/api";
 
         const res = await fetch(`${backend}/v1/friend/respond`, {
           method: "PUT",
