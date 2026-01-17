@@ -44,7 +44,7 @@ const Chat = () => {
     const token = getToken();
     if (!token) {
       setIsAuthenticated(false);
-      redirect("/");
+      redirect("/login");
     } else {
       const payload = decodeTokenPayload(token);
       if (payload && payload.mfa_required) {
@@ -63,7 +63,7 @@ const Chat = () => {
         "/api";
       const token = getToken();
 
-      await fetch(`${backend}/v1/user/logout`, {
+      await fetch(`${backend}/v1/auth/logout`, {
         method: "POST",
         credentials: "include",
         headers: {
@@ -77,7 +77,7 @@ const Chat = () => {
     wsService.disconnect();
     chatService.disconnectWebSocket();
     clearToken();
-    redirect("/");
+    redirect("/login");
   };
 
   if (!isAuthenticated) {

@@ -55,7 +55,7 @@ const Tournament = () => {
     const token = getToken();
     if (!token) {
       setIsAuthenticated(false);
-      redirect("/");
+      redirect("/login");
     } else {
       const payload = decodeTokenPayload(token);
       if (payload && payload.mfa_required) {
@@ -143,7 +143,7 @@ const Tournament = () => {
         "/api";
       const token = getToken();
 
-      await fetch(`${backend}/v1/user/logout`, {
+      await fetch(`${backend}/v1/auth/logout`, {
         method: "POST",
         credentials: "include",
         headers: {
@@ -156,7 +156,7 @@ const Tournament = () => {
 
     wsService.disconnect();
     clearToken();
-    redirect("/");
+    redirect("/login");
   };
 
   if (!isAuthenticated) {

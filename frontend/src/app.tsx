@@ -20,12 +20,12 @@ const App: FunctionComponent = () => {
         <Router path="/" Component={Home} />
         <Router path="/login" Component={Login} />
         <Router path="/signup" Component={SignUp} />
-        <Router path="/dashboard" Component={Dashboard} />
-        <Router path="/game" Component={Game} />
-        <Router path="/chat" Component={Chat} />
-        <Router path="/settings" Component={Settings} />
-        <Router path="/leaderboard" Component={Leaderboard} />
-        <Router path="/tournament" Component={Tournament} />
+        <Router path="/dashboard" Component={Dashboard} protectedRoute={true} />
+        <Router path="/game" Component={Game} protectedRoute={true} />
+        <Router path="/chat" Component={Chat} protectedRoute={true} />
+        <Router path="/settings" Component={Settings} protectedRoute={true} />
+        <Router path="/leaderboard" Component={Leaderboard} protectedRoute={true} />
+        <Router path="/tournament" Component={Tournament} protectedRoute={true} />
         <Router path="/secondary-login" Component={SecondaryLogin} />
       </main>
       <ToastContainer />

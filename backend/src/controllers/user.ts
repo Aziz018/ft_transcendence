@@ -467,62 +467,7 @@ export const userProfileUpdateController = async (
   });
 };
 
-export const userLogoutController = async (
-  req: FastifyRequest,
-  rep: FastifyReply
-): Promise<void> => {
-  try {
-    let token = req.cookies.access_token;
 
-    if (!token) {
-      const authHeader = req.headers.authorization;
-      if (authHeader && authHeader.startsWith("Bearer ")) {
-        token = authHeader.substring(7);
-      }
-    }
-
-    if (!token) {
-      return rep.code(401).send({
-        statusCode: 401,
-        error: "Unauthorized",
-        message: "you're not logged in!",
-      });
-    }
-
-    try {
-      const decoded = req.jwt.decode<{ exp?: number }>(token);
-
-      if (decoded?.exp) {
-        const isBlacklisted = await prisma.blacklistedToken.findUnique({
-          where: { token },
-        });
-
-        if (!isBlacklisted) {
-          await prisma.blacklistedToken.create({
-            data: {
-              token,
-              expiresAt: new Date(decoded.exp * 1000),
-            },
-          });
-        }
-      }
-    } catch (tokenError) {
-      req.log.warn({ tokenError }, "Error processing token during logout");
-    }
-
-    rep.clearCookie("access_token", { path: "/" });
-    rep.code(200).send({
-      message: "logged-out successfully!",
-    });
-  } catch (error) {
-    req.log.error({ error }, "Logout error");
-    rep.code(500).send({
-      statusCode: 500,
-      error: "Internal Server Error",
-      message: "An error occurred during logout",
-    });
-  }
-};
 
 export const userRefreshTokController = async (
   req: FastifyRequest,

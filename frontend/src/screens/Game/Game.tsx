@@ -48,7 +48,7 @@ export const Game = () => {
     const token = getToken();
     if (!token) {
       setIsAuthenticated(false);
-      redirect("/");
+      redirect("/login");
     } else {
       const payload = decodeTokenPayload(token);
       if (payload && payload.mfa_required) {

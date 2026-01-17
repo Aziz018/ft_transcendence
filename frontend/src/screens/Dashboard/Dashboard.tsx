@@ -36,7 +36,7 @@ const Dashboard = () => {
     const token = getToken();
     if (!token) {
       setIsAuthenticated(false);
-      redirect("/");
+      redirect("/login");
     } else {
       const payload = decodeTokenPayload(token);
       if (payload && payload.mfa_required) {
@@ -217,7 +217,7 @@ const Dashboard = () => {
                     "/api";
                   const token = getToken();
 
-                  const res = await fetch(`${backend}/v1/user/logout`, {
+                  const res = await fetch(`${backend}/v1/auth/logout`, {
                     method: "POST",
                     credentials: "include",
                     headers: {
@@ -233,7 +233,7 @@ const Dashboard = () => {
                   console.error("[Logout] Network error:", e);
                 } finally {
                   clearToken();
-                  redirect("/");
+                  redirect("/login");
                 }
               }}
               className="text-light ">

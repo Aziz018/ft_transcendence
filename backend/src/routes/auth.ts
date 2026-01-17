@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyPluginOptions } from "fastify";
 import {
   facebookOAuthCallbackController,
   googleOAuthCallbackController,
+  logoutController,
 } from "../controllers/auth.js";
 import { intra42OAuthCallbackController } from "../controllers/intra42.js";
 
@@ -33,5 +34,10 @@ export default async (
   fastify.get("/intra42/callback", {
     schema: { tags: ["oauth"] },
     handler: intra42OAuthCallbackController,
+  });
+
+  fastify.post("/logout", {
+    schema: { tags: ["auth"] },
+    handler: logoutController,
   });
 };

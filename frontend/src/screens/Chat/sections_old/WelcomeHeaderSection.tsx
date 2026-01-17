@@ -166,7 +166,7 @@ const WelcomeHeaderSection = () => {
         const token = getToken();
 
         if (!token) {
-          redirect("/");
+          redirect("/login");
           return;
         }
 

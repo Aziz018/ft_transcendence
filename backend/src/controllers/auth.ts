@@ -31,9 +31,8 @@ export const googleOAuthCallbackController = async (
                 if (window.opener) {
                     window.opener.postMessage(
                         { access_token: '${token}' },
-                        '${
-                          process.env.FRONTEND_ORIGIN || "http://localhost:5173"
-                        }'
+                        '${process.env.FRONTEND_ORIGIN || "http://localhost:5173"
+    }'
                     );
                     window.close();
                 } else {
@@ -66,9 +65,8 @@ export const facebookOAuthCallbackController = async (
                 if (window.opener) {
                     window.opener.postMessage(
                         { access_token: '${token}' },
-                        '${
-                          process.env.FRONTEND_ORIGIN || "http://localhost:5173"
-                        }'
+                        '${process.env.FRONTEND_ORIGIN || "http://localhost:5173"
+    }'
                     );
                     window.close();
                 } else {
@@ -81,4 +79,55 @@ export const facebookOAuthCallbackController = async (
     `;
 
   res.type("text/html").code(200).send(html);
+};
+
+import { prisma } from "../utils/prisma.js";
+
+export const logoutController = async (
+  req: FastifyRequest,
+  res: FastifyReply
+): Promise<void> => {
+  try {
+    let token = req.cookies.access_token;
+
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        token = authHeader.substring(7);
+      }
+    }
+
+    if (token) {
+      try {
+        const decoded = req.jwt.decode<{ exp?: number }>(token);
+        if (decoded?.exp) {
+          const isBlacklisted = await prisma.blacklistedToken.findUnique({
+            where: { token },
+          });
+
+          if (!isBlacklisted) {
+            await prisma.blacklistedToken.create({
+              data: {
+                token,
+                expiresAt: new Date(decoded.exp * 1000),
+              },
+            });
+          }
+        }
+      } catch (e) {
+        req.log.warn("Failed to blacklist token during logout (might be invalid)");
+      }
+    }
+  } catch (error) {
+    req.log.error(error, "Logout processing error");
+  }
+
+  // Clear the cookie by setting it to expire in the past
+  res.setCookie("access_token", "", {
+    path: "/",
+    httpOnly: true,
+    expires: new Date(0), // Past date
+  });
+
+  res.code(200).send({ message: "Logged out successfully" });
 };

@@ -4,7 +4,7 @@ import {
   userLoginController,
   userProfileUpdateController,
   userProfileController,
-  userLogoutController,
+
   userRefreshTokController,
   userSearchController,
   getUserByIdController,
@@ -67,10 +67,7 @@ export default async (
     preHandler: [fastify.authentication_jwt],
   });
 
-  fastify.post("/logout", {
-    schema: userLogoutSchema,
-    handler: userLogoutController,
-  });
+
 
   fastify.get("/refresh", {
     handler: userRefreshTokController,
