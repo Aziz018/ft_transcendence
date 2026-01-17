@@ -19,37 +19,56 @@ const PingPongShowcaseSection = () => {
 
   const fetchUserXP = async () => {
     try {
-      const backend =
-        (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-        "http://localhost:3001";
       const token = getToken();
 
       if (!token) {
-        console.log("[Dashboard] No token found");
+        console.warn("[Dashboard] No token found");
         return;
       }
 
+      const backend = (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3000";
+
       const res = await fetch(`${backend}/v1/user/profile`, {
+        method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
+        credentials: "include",
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        console.log("[Dashboard] User profile data:", data);
-        const xp = data.xp || 0;
-        console.log("[Dashboard] User XP:", xp);
-        setUserXP(xp);
-        animateXP(xp);
-      } else {
-        console.error(
-          "[Dashboard] Failed to fetch profile. Status:",
-          res.status
-        );
+      if (!res.ok) {
+        let errorMsg = `HTTP ${res.status}`;
+        try {
+          const contentType = res.headers.get("content-type") || "";
+          if (contentType.includes("application/json")) {
+            const errorData = await res.json();
+            errorMsg = errorData?.message || errorData?.error || errorMsg;
+          } else {
+            const text = await res.text();
+            errorMsg = text || errorMsg;
+          }
+        } catch (parseErr) {
+          console.error("[Dashboard] Could not parse error response", parseErr);
+        }
+        console.error(`[Dashboard] Request failed: ${errorMsg}`);
+        return;
       }
+
+      const contentType = res.headers.get("content-type") || "";
+      if (!contentType.includes("application/json")) {
+        console.error(`[Dashboard] Expected JSON but got ${contentType}`);
+        return;
+      }
+
+      const data = await res.json();
+      console.log("[Dashboard] User profile data:", data);
+      const xp = data?.xp || 0;
+      console.log("[Dashboard] User XP:", xp);
+      setUserXP(xp);
+      animateXP(xp);
     } catch (error) {
-      console.error("[Dashboard] Failed to fetch user XP:", error);
+      console.error("[Dashboard] Network or parsing error:", error);
     }
   };
 

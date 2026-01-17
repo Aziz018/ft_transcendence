@@ -69,7 +69,7 @@ const secrets = {
 };
 
 const app: Server = new Server(
-  "0.0.0.0",
+  process.env.HOST || "0.0.0.0",
   parseInt(process.env.PORT || "3000"),
   [googleOAuthOpts, facebookOAuthOpts, intra42OAuthOpts],
   rateLimitingOpts,
@@ -79,4 +79,44 @@ const app: Server = new Server(
   [ServiceManagerPlugin, JWTAuthenticationPlugin]
 );
 
+// Start the server
 await app.run();
+
+// Graceful shutdown handlers
+const shutdownTimeout = parseInt(process.env.SHUTDOWN_TIMEOUT || "10000");
+
+const gracefulShutdown = async (signal: string) => {
+  console.log(`\n${signal} received. Starting graceful shutdown...`);
+  
+  try {
+    // Close the Fastify server
+    await Promise.race([
+      app.fastify.close(),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Shutdown timeout")), shutdownTimeout)
+      ),
+    ]);
+    
+    console.log("✓ Server closed successfully");
+    process.exit(0);
+  } catch (err) {
+    console.error("✗ Error during graceful shutdown:", err);
+    process.exit(1);
+  }
+};
+
+// Listen for termination signals
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+
+// Handle uncaught exceptions
+process.on("uncaughtException", (err) => {
+  console.error("✗ Uncaught Exception:", err);
+  process.exit(1);
+});
+
+// Handle unhandled promise rejections
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("✗ Unhandled Rejection at:", promise, "reason:", reason);
+  process.exit(1);
+});

@@ -34,51 +34,116 @@ const LoginForm = () => {
     const backend =
       (import.meta as any).env?.VITE_API_URL || "http://localhost:3000";
 
-    try {
+    // Try direct backend endpoint
+    const loginUrl = `${backend}/v1/user/login`;
+    console.log("[Login] Attempting login to:", loginUrl);
+    console.log("[Login] Backend origin:", backend);
+    console.log("[Login] Email:", email);
 
-      const res = await fetch(`${API_CONFIG.AUTH.LOGIN}`, {
+    try {
+      const res = await fetch(loginUrl, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        credentials: "include",
         body: JSON.stringify({ email, password }),
       });
 
+      console.log("[Login] Response status:", res.status, res.statusText);
+      console.log("[Login] Response headers:", {
+        contentType: res.headers.get("content-type"),
+        origin: res.headers.get("access-control-allow-origin"),
+      });
+
       if (res.ok) {
+        const contentType = res.headers.get("content-type") || "";
+        if (!contentType.includes("application/json")) {
+          console.error("[Login] Response is not JSON:", contentType);
+          setError("Server returned non-JSON response. Backend issue.");
+          setLoading(false);
+          return;
+        }
+
         const data = await res.json();
+        console.log("[Login] Success, received data");
 
         const token = data?.access_token || data?.accessToken || data?.token;
         if (token) {
           saveToken(token);
-          if (data.message && data.message.includes("2fa verification required")) {
+          if (data.message && data.message.includes("2fa")) {
             redirect("/secondary-login");
           } else {
             redirect("/dashboard");
           }
           return;
+        } else {
+          console.error("[Login] No token in response:", data);
+          setError("Login succeeded but no token received");
+          setLoading(false);
+          return;
         }
       }
 
+      // Handle specific error status codes
       if (res.status === 404) {
-        setError("user_not_found");
+        console.error("[Login] 404 - Endpoint not found");
+        console.error("[Login] Make sure backend is running on", backend);
+        console.error("[Login] Check that routes are registered in backend/src/app.ts");
+        setError(`Endpoint not found at ${loginUrl}. Is the backend running?`);
         setLoading(false);
         return;
       }
 
-      if (res.status === 401) {
-        setError("invalid_credentials");
+      if (res.status === 401 || res.status === 400) {
+        const contentType = res.headers.get("content-type") || "";
+        let errorMsg = "Invalid email or password";
+        if (contentType.includes("application/json")) {
+          try {
+            const errData = await res.json();
+            errorMsg = errData?.message || errorMsg;
+          } catch (_) {}
+        }
+        setError(res.status === 401 ? "invalid_credentials" : errorMsg);
         setLoading(false);
         return;
       }
 
-      try {
-        const err = await res.json();
-        setError(err?.message || "Unable to login. Please try again.");
-      } catch (_) {
-        setError("Unable to login. Please try again.");
+      if (res.status >= 500) {
+        console.error("[Login] Server error:", res.status);
+        let errorMsg = `Server error: ${res.status}`;
+        const contentType = res.headers.get("content-type") || "";
+        if (contentType.includes("application/json")) {
+          try {
+            const errData = await res.json();
+            errorMsg = errData?.message || errorMsg;
+          } catch (_) {}
+        }
+        setError(errorMsg);
+        setLoading(false);
+        return;
       }
+
+      // Generic error
+      console.error("[Login] Unexpected response status:", res.status);
+      let errorMsg = "Unable to login. Please try again.";
+      const contentType = res.headers.get("content-type") || "";
+      if (contentType.includes("application/json")) {
+        try {
+          const errData = await res.json();
+          errorMsg = errData?.message || errorMsg;
+        } catch (_) {}
+      }
+      setError(errorMsg);
     } catch (err) {
-      console.error("Login error:", err);
+      console.error("[Login] Network/fetch error:", err);
+      console.error("[Login] Error details:", {
+        name: (err as any)?.name,
+        message: (err as any)?.message,
+      });
       setError(
-        "An error occurred. Please check your connection and try again."
+        `Network error. Backend not reachable at ${backend}. Check that it's running: npm run dev`
       );
     } finally {
       setLoading(false);

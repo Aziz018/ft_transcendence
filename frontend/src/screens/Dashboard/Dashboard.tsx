@@ -49,23 +49,51 @@ const Dashboard = () => {
 
   const fetchUserProfile = async () => {
     try {
-      const backend =
-        (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-        "http://localhost:3001";
       const token = getToken();
+      if (!token) {
+        console.warn("[Profile] No token available");
+        return;
+      }
+
+      const backend = (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3000";
 
       const res = await fetch(`${backend}/v1/user/profile`, {
+        method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
+        credentials: "include",
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        setUserAvatar(data.avatar || "");
+      if (!res.ok) {
+        let errorMsg = `HTTP ${res.status}`;
+        try {
+          const contentType = res.headers.get("content-type") || "";
+          if (contentType.includes("application/json")) {
+            const errorData = await res.json();
+            errorMsg = errorData?.message || errorData?.error || errorMsg;
+          } else {
+            const text = await res.text();
+            errorMsg = text || errorMsg;
+          }
+        } catch (parseErr) {
+          console.error("[Profile] Could not parse error response", parseErr);
+        }
+        console.error(`[Profile] Request failed: ${errorMsg}`);
+        return;
       }
+
+      const contentType = res.headers.get("content-type") || "";
+      if (!contentType.includes("application/json")) {
+        console.error(`[Profile] Expected JSON but got ${contentType}`);
+        return;
+      }
+
+      const data = await res.json();
+      setUserAvatar(data?.avatar || "");
     } catch (error) {
-      console.error("Failed to fetch profile:", error);
+      console.error("[Profile] Network or parsing error:", error);
     }
   };
 
@@ -75,14 +103,13 @@ const Dashboard = () => {
   }
 
   const getAvatarUrl = (path: string | null | undefined): string => {
-    const backend =
-      (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3001";
-    if (!path || !path.trim()) return `${backend}/images/default-avatar.png`;
+    const defaultAvatar = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect fill='%23e5e7eb' width='200' height='200'/%3E%3Ccircle cx='100' cy='70' r='35' fill='%23d1d5db'/%3E%3Cpath d='M 50 180 Q 50 140 100 140 Q 150 140 150 180' fill='%23d1d5db'/%3E%3C/svg%3E";
+    if (!path || !path.trim()) return defaultAvatar;
     if (path.startsWith("/public/"))
-      return `${backend}${path.replace("/public", "")}`;
-    if (path.startsWith("/")) return `${backend}${path}`;
+      return `/api${path}`;
+    if (path.startsWith("/")) return `/api${path}`;
     if (path.startsWith("http")) return path;
-    return `${backend}/images/default-avatar.png`;
+    return defaultAvatar;
   };
 
   const UserName = () => {
@@ -103,10 +130,8 @@ const Dashboard = () => {
         alt="User Avatar"
         src={getAvatarUrl(userAvatar)}
         onError={(e: any) => {
-          const backend =
-            (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-            "http://localhost:3001";
-          e.currentTarget.src = `${backend}/images/default-avatar.png`;
+          // Use a data URI for default avatar to avoid network calls
+          e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect fill='%23e5e7eb' width='200' height='200'/%3E%3Ccircle cx='100' cy='70' r='35' fill='%23d1d5db'/%3E%3Cpath d='M 50 180 Q 50 140 100 140 Q 150 140 150 180' fill='%23d1d5db'/%3E%3C/svg%3E";
         }}
       />
     );

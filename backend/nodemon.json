@@ -1,5 +1,13 @@
 {
   "watch": ["src"],
   "ext": "ts",
-  "exec": "npx tsx src/app.ts"
+  "exec": "npx tsx src/app.ts",
+  "delay": 1000,
+  "legacyWatch": false,
+  "signal": "SIGTERM",
+  "restartable": true,
+  "verbose": true,
+  "env": {
+    "NODE_ENV": "development"
+  }
 }

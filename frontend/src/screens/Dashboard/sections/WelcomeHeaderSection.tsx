@@ -15,26 +15,25 @@ const WelcomeHeaderSection = () => {
   const { theme, toggleTheme } = useTheme();
 
   const getAvatarUrl = (avatarPath: string | null | undefined): string => {
-    const backend =
-      (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3001";
+    const defaultAvatar = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect fill='%23e5e7eb' width='200' height='200'/%3E%3Ccircle cx='100' cy='70' r='35' fill='%23d1d5db'/%3E%3Cpath d='M 50 180 Q 50 140 100 140 Q 150 140 150 180' fill='%23d1d5db'/%3E%3C/svg%3E";
 
     if (!avatarPath || !avatarPath.trim()) {
-      return `${backend}/images/default-avatar.png`;
+      return defaultAvatar;
     }
 
     if (avatarPath.startsWith("/public/")) {
-      return `${backend}${avatarPath.replace("/public", "")}`;
+      return `/api${avatarPath}`;
     }
 
     if (avatarPath.startsWith("/")) {
-      return `${backend}${avatarPath}`;
+      return `/api${avatarPath}`;
     }
 
     if (avatarPath.startsWith("http://") || avatarPath.startsWith("https://")) {
       return avatarPath;
     }
 
-    return `${backend}/images/default-avatar.png`;
+    return defaultAvatar;
   };
 
   const deriveNameFromToken = () => {
@@ -76,14 +75,10 @@ const WelcomeHeaderSection = () => {
       try {
         const token = getToken();
 
-        const backend =
-          (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-          "http://localhost:3001";
-
         const headers: any = { "Content-Type": "application/json" };
         if (token) headers["Authorization"] = `Bearer ${token}`;
 
-        const res = await fetch(`${backend}/v1/user/profile`, {
+        const res = await fetch(`/api/v1/user/profile`, {
           method: "GET",
           headers,
           credentials: "include",
@@ -122,12 +117,9 @@ const WelcomeHeaderSection = () => {
     setIsSearching(true);
     try {
       const token = getToken();
-      const backend =
-        (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-        "http://localhost:3001";
 
       const res = await fetch(
-        `${backend}/v1/user/search?q=${encodeURIComponent(trimmedQuery)}`,
+        `/api/v1/user/search?q=${encodeURIComponent(trimmedQuery)}`,
         {
           method: "GET",
           headers: {
@@ -155,11 +147,8 @@ const WelcomeHeaderSection = () => {
   const handleAddFriend = useCallback(async (userId: string) => {
     try {
       const token = getToken();
-      const backend =
-        (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-        "http://localhost:3001";
 
-      const res = await fetch(`${backend}/v1/friend/request`, {
+      const res = await fetch(`/api/v1/friend/request`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -215,22 +204,50 @@ const WelcomeHeaderSection = () => {
     const fetchNotificationCount = async () => {
       try {
         const token = getToken();
-        const backend =
-          (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-          "http://localhost:3001";
+        if (!token) {
+          console.warn("[Notifications] No token available");
+          return;
+        }
+
+        const backend = (import.meta as any).env?.VITE_BACKEND_ORIGIN || "http://localhost:3000";
 
         const res = await fetch(`${backend}/v1/friend/incoming`, {
+          method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
           },
+          credentials: "include",
         });
 
-        if (res.ok) {
-          const data = await res.json();
-          setNotificationCount(Array.isArray(data) ? data.length : 0);
+        if (!res.ok) {
+          let errorMsg = `HTTP ${res.status}`;
+          try {
+            const contentType = res.headers.get("content-type") || "";
+            if (contentType.includes("application/json")) {
+              const errorData = await res.json();
+              errorMsg = errorData?.message || errorData?.error || errorMsg;
+            } else {
+              const text = await res.text();
+              errorMsg = text || errorMsg;
+            }
+          } catch (parseErr) {
+            console.error("[Notifications] Could not parse error response", parseErr);
+          }
+          console.error(`[Notifications] Request failed: ${errorMsg}`);
+          return;
         }
+
+        const contentType = res.headers.get("content-type") || "";
+        if (!contentType.includes("application/json")) {
+          console.error(`[Notifications] Expected JSON but got ${contentType}`);
+          return;
+        }
+
+        const data = await res.json();
+        setNotificationCount(Array.isArray(data) ? data.length : 0);
       } catch (error) {
-        console.error("[Notifications] Failed to fetch count:", error);
+        console.error("[Notifications] Network or parsing error:", error);
       }
     };
 

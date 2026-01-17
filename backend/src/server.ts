@@ -273,13 +273,40 @@ export default class Server {
 
   private async start(): Promise<void> {
     try {
+      // Listen on the server
       await this.fastify.listen({
         host: this.host,
         port: this.port,
       });
+
+      // Get the underlying Node HTTP server from Fastify
+      const server = this.fastify.server;
+      if (server) {
+        // Set aggressive socket timeout for dev environment
+        if (process.env.NODE_ENV === "development") {
+          server.keepAliveTimeout = 65000;
+          server.headersTimeout = 66000;
+        }
+      }
+
+      const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
+      console.log(
+        `\n✓ Server listening on ${protocol}://${this.host}:${this.port}`
+      );
+      console.log(`✓ Environment: ${process.env.NODE_ENV || "development"}`);
     } catch (error) {
       this.fastify.log.error(error);
-      process.exit(0x1);
+      
+      // If port is in use, suggest alternatives
+      if ((error as any)?.code === "EADDRINUSE") {
+        console.error(
+          `\n✗ Port ${this.port} is already in use.`
+        );
+        console.error("Quick fix: lsof -ti:3000 | xargs kill -9");
+        console.error("Or set a different PORT in .env");
+      }
+      
+      process.exit(1);
     }
   }
 
@@ -289,12 +316,17 @@ export default class Server {
     await this.connectPrismaClient();
     this.addHooks();
     await this.registerPlugs();
+    
+    // CRITICAL: Register routes BEFORE setting notFoundHandler
     this.registerRoutes();
-    this.fastify.setNotFoundHandler(
-      { preHandler: (this.fastify as any).rateLimit() },
-      this.notFoundHandler()
-    );
+    
+    // Set error handler BEFORE notFoundHandler
     this.fastify.setErrorHandler(this.errorHandler());
+    
+    // Set notFoundHandler LAST without preHandler that might interfere
+    this.fastify.setNotFoundHandler(this.notFoundHandler());
+    
+    // Start listening
     await this.start();
   }
 }

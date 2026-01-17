@@ -42,8 +42,11 @@ COPY filebeat.yml /usr/share/filebeat/filebeat.yml
 
 EXPOSE 3000
 
-# Start Node app + Filebeat (background)
-CMD [ "sh", "-c", "/usr/share/filebeat/filebeat -c /usr/share/filebeat/filebeat.yml & npm start" ]
+# Production-ready startup with graceful shutdown
+# Set NODE_ENV and use exec form to properly handle signals
+ENV NODE_ENV=production
+ENV PORT=3000
 
-# CMD ["sh", "-c", "npx prisma migrate dev && npm start"]
-# CMD [ "npx", "prisma", "migrate", "dev", "&&", "npm", "start" ]
+# Start Node app with proper signal handling
+# The exec form ensures Node receives SIGTERM for graceful shutdown
+CMD [ "sh", "-c", "exec npm start" ]
