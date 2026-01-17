@@ -84,6 +84,10 @@ model User {
   sentMessages      Message[] @relation("MessageSender")
   receivedMessages  Message[] @relation("MessageReceiver")
   roomMembers       RoomMember[]
+  
+  gamesAsPlayer1 Game[] @relation("Player1Games")
+  gamesAsPlayer2 Game[] @relation("Player2Games")
+  wonGames       Game[] @relation("WonGames")
 
   @@index([name, email])
 }
@@ -188,4 +192,19 @@ model Friendship {
   @@unique([user1Id, user2Id])
   @@index([user1Id])
   @@index([user2Id])
+}
+
+model Game {
+  id        String   @id @default(uuid())
+  player1Id String
+  player2Id String
+  score1    Int
+  score2    Int
+  winnerId  String?
+  duration  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  player1   User     @relation("Player1Games", fields: [player1Id], references: [id])
+  player2   User     @relation("Player2Games", fields: [player2Id], references: [id])
+  winner    User?    @relation("WonGames", fields: [winnerId], references: [id])
 }

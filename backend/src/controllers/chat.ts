@@ -7,6 +7,7 @@ import { wsValidators } from "../server.js";
 import { WebSocket as WS } from "ws";
 import process from "process";
 import type { User } from "generated/prisma/index.js";
+import { gameManager } from "./game.js";
 
 export const CONFIG = {
   MESSAGE: {
@@ -54,7 +55,13 @@ type WSMessageType =
   | "typing"
   | "friend_request_received"
   | "friend_request_accepted"
-  | "friend_request_declined";
+  | "friend_request_declined"
+  | "join_queue"
+  | "leave_queue"
+  | "move_paddle"
+  | "pause_game"
+  | "game_invite"
+  | "reject_game";
 
 interface WSMessage<T = any> {
   type: WSMessageType;
@@ -420,8 +427,7 @@ const createRoom = async (
       })
     );
     request.log.warn(
-      `Rate limit reached: userId=${authUser.uid} | ${
-        CONFIG.RATE_LIMITS.ADMIN_ACTIONS_PER_MINUTE
+      `Rate limit reached: userId=${authUser.uid} | ${CONFIG.RATE_LIMITS.ADMIN_ACTIONS_PER_MINUTE
       } requests in ${windowMs / 1000}s`
     );
     return;
@@ -579,8 +585,7 @@ const joinRoom = async (
       })
     );
     request.log.warn(
-      `Rate limit reached: userId=${authUser.uid} | ${
-        CONFIG.RATE_LIMITS.ADMIN_ACTIONS_PER_MINUTE
+      `Rate limit reached: userId=${authUser.uid} | ${CONFIG.RATE_LIMITS.ADMIN_ACTIONS_PER_MINUTE
       } requests in ${windowMs / 1000}s`
     );
     return;
@@ -695,8 +700,7 @@ const leaveRoom = async (
       })
     );
     request.log.warn(
-      `Rate limit reached: userId=${authUser.uid} | ${
-        CONFIG.RATE_LIMITS.ADMIN_ACTIONS_PER_MINUTE
+      `Rate limit reached: userId=${authUser.uid} | ${CONFIG.RATE_LIMITS.ADMIN_ACTIONS_PER_MINUTE
       } requests in ${windowMs / 1000}s`
     );
     return;
@@ -792,8 +796,7 @@ const deleteRoom = async (
       })
     );
     request.log.warn(
-      `Rate limit reached: userId=${authUser.uid} | ${
-        CONFIG.RATE_LIMITS.ADMIN_ACTIONS_PER_MINUTE
+      `Rate limit reached: userId=${authUser.uid} | ${CONFIG.RATE_LIMITS.ADMIN_ACTIONS_PER_MINUTE
       } requests in ${windowMs / 1000}s`
     );
     return;
@@ -894,8 +897,7 @@ const getRoomMembers = async (
       })
     );
     request.log.warn(
-      `Rate limit reached: userId=${authUser.uid} | ${
-        CONFIG.RATE_LIMITS.ADMIN_ACTIONS_PER_MINUTE
+      `Rate limit reached: userId=${authUser.uid} | ${CONFIG.RATE_LIMITS.ADMIN_ACTIONS_PER_MINUTE
       } requests in ${windowMs / 1000}s`
     );
     return;
@@ -1007,8 +1009,7 @@ const kickMember = async (
       })
     );
     request.log.warn(
-      `Rate limit reached: userId=${authUser.uid} | ${
-        CONFIG.RATE_LIMITS.ADMIN_ACTIONS_PER_MINUTE
+      `Rate limit reached: userId=${authUser.uid} | ${CONFIG.RATE_LIMITS.ADMIN_ACTIONS_PER_MINUTE
       } requests in ${windowMs / 1000}s`
     );
     return;
@@ -1048,8 +1049,7 @@ const kickMember = async (
       })
     );
     request.log.warn(
-      `Rate limit reached: userId=${authUser.uid} | ${
-        CONFIG.RATE_LIMITS.ROOM_KICKS_PER_MINUTE
+      `Rate limit reached: userId=${authUser.uid} | ${CONFIG.RATE_LIMITS.ROOM_KICKS_PER_MINUTE
       } requests in ${windowMs / 1000}s`
     );
     return;
@@ -1071,8 +1071,7 @@ const kickMember = async (
       })
     );
     request.log.warn(
-      `Rate limit reached: userId=${authUser.uid} | ${
-        CONFIG.RATE_LIMITS.ADMIN_ACTIONS_PER_MINUTE
+      `Rate limit reached: userId=${authUser.uid} | ${CONFIG.RATE_LIMITS.ADMIN_ACTIONS_PER_MINUTE
       } requests in ${windowMs / 1000}s`
     );
     return;
@@ -1227,8 +1226,7 @@ const promoteMember = async (
       })
     );
     request.log.warn(
-      `Rate limit reached: userId=${
-        authUser.uid
+      `Rate limit reached: userId=${authUser.uid
       } | ${maxRequests} requests in ${windowMs / 1000}s`
     );
     return;
@@ -1446,8 +1444,7 @@ const sendMessage = async (
       })
     );
     request.log.warn(
-      `Rate limit reached: userId=${
-        authUser.uid
+      `Rate limit reached: userId=${authUser.uid
       } | ${maxRequests} requests in ${windowMs / 1000}s`
     );
     return;
@@ -1585,8 +1582,7 @@ const getMessages = async (
       })
     );
     request.log.warn(
-      `Rate limit reached: userId=${authUser.uid} | ${
-        CONFIG.RATE_LIMITS.ADMIN_ACTIONS_PER_MINUTE
+      `Rate limit reached: userId=${authUser.uid} | ${CONFIG.RATE_LIMITS.ADMIN_ACTIONS_PER_MINUTE
       } requests in ${windowMs / 1000}s`
     );
     return;
@@ -1674,8 +1670,7 @@ const getMoreMessages = async (
       })
     );
     request.log.warn(
-      `Rate limit reached: userId=${authUser.uid} | ${
-        CONFIG.RATE_LIMITS.ADMIN_ACTIONS_PER_MINUTE
+      `Rate limit reached: userId=${authUser.uid} | ${CONFIG.RATE_LIMITS.ADMIN_ACTIONS_PER_MINUTE
       } requests in ${windowMs / 1000}s`
     );
     return;
@@ -1803,8 +1798,7 @@ const sendDirectMessage = async (
       })
     );
     request.log.warn(
-      `Rate limit reached: userId=${authUser.uid} | ${
-        CONFIG.RATE_LIMITS.MESSAGES_PER_MINUTE
+      `Rate limit reached: userId=${authUser.uid} | ${CONFIG.RATE_LIMITS.MESSAGES_PER_MINUTE
       } requests in ${windowMs / 1000}s`
     );
     return;
@@ -2259,8 +2253,7 @@ const updateStatus = async (
       })
     );
     request.log.warn(
-      `Rate limit reached: userId=${authUser.uid} | ${
-        CONFIG.RATE_LIMITS.ADMIN_ACTIONS_PER_MINUTE
+      `Rate limit reached: userId=${authUser.uid} | ${CONFIG.RATE_LIMITS.ADMIN_ACTIONS_PER_MINUTE
       } requests in ${windowMs / 1000}s`
     );
     return;
@@ -2504,6 +2497,9 @@ export const websocketHandler = async (
   // Broadcast online status to all friends
   broadcastStatusChange(userId, true);
 
+  // Handle Game Reconnection
+  gameManager.handleConnection(connection, userId);
+
   connection.on("message", async (rawMessage) => {
     let msg: WSMessage;
     try {
@@ -2523,6 +2519,108 @@ export const websocketHandler = async (
       "friend_request_accepted",
       "friend_request_declined",
     ];
+
+    const gameTypes = ["join_queue", "leave_queue", "move_paddle", "pause_game", "game_invite", "reject_game"];
+
+    if (gameTypes.includes(type)) {
+      if (type === "join_queue") gameManager.joinQueue(connection, connection.authenticatedUser);
+      else if (type === "leave_queue") gameManager.leaveQueue(connection.authenticatedUser.uid);
+      else if (type === "pause_game") gameManager.togglePause(connection.authenticatedUser.uid);
+      else if (type === "move_paddle" && payload && typeof payload.position === 'number') {
+        gameManager.movePaddle(connection.authenticatedUser.uid, payload.position);
+      }
+      else if (type === "game_invite" && payload && payload.targetId) {
+        const content = `🎮 Game Invitation: Let's play Pong!`;
+        try {
+          // 1. Save Message to DB to persist chat history
+          const savedMessage = await prisma.message.create({
+            data: {
+              content,
+              senderId: connection.authenticatedUser.uid,
+              receiverId: payload.targetId,
+            },
+            include: { sender: true }
+          });
+
+          // 2. Notify Target via WS (Notification + Chat Message)
+          // We need to find the specific connection(s) for the target user.
+          // We can use the 'clients' set which we have access to in this scope.
+          for (const client of clients) {
+            if (client.authenticatedUser && client.authenticatedUser.uid === payload.targetId) {
+              // Send Notification
+              if (client.readyState === WebSocket.OPEN) {
+                client.send(JSON.stringify({
+                  type: "notification",
+                  payload: {
+                    type: "info",
+                    message: `${connection.authenticatedUser.name} invited you to play!`,
+                    gameInvite: true,
+                    title: "Game Invite",
+                    inviterId: connection.authenticatedUser.uid
+                  }
+                }));
+
+                // Send Chat Message
+                client.send(JSON.stringify({
+                  type: "receive_message",
+                  payload: {
+                    id: savedMessage.id,
+                    content: savedMessage.content,
+                    senderId: savedMessage.senderId,
+                    receiverId: savedMessage.receiverId,
+                    createdAt: savedMessage.createdAt,
+                    sender: savedMessage.sender
+                  }
+                }));
+              }
+            }
+          }
+          // Also echo back to sender so it appears in their chat
+          connection.send(JSON.stringify({
+            type: "receive_message",
+            payload: {
+              id: savedMessage.id,
+              content: savedMessage.content,
+              senderId: savedMessage.senderId,
+              receiverId: savedMessage.receiverId,
+              createdAt: savedMessage.createdAt,
+              sender: savedMessage.sender
+            }
+          }));
+
+        } catch (e) {
+          console.error("Failed to handle game invite:", e);
+        }
+      }
+      else if (type === "reject_game" && payload && payload.targetId) {
+        for (const client of clients) {
+          if (client.authenticatedUser && client.authenticatedUser.uid === payload.targetId) {
+            if (client.readyState === WebSocket.OPEN) {
+              client.send(JSON.stringify({
+                type: "notification",
+                payload: {
+                  type: "error",
+                  message: `${connection.authenticatedUser.name} rejected your game invite.`,
+                  title: "Invitation Rejected"
+                }
+              }));
+              client.send(JSON.stringify({
+                type: "receive_message",
+                payload: {
+                  id: `reject-${Date.now()}`,
+                  content: `🚫 Game Invitation Rejected`,
+                  senderId: connection.authenticatedUser.uid,
+                  receiverId: payload.targetId,
+                  createdAt: new Date().toISOString(),
+                  sender: connection.authenticatedUser
+                }
+              }));
+            }
+          }
+        }
+      }
+      return;
+    }
 
     const schema = chatSchema[type as keyof typeof chatSchema];
     if (!type || !payload) {
@@ -2767,6 +2865,11 @@ export const websocketHandler = async (
       });
       delete connection.userData;
     }
+
+    // Step 5: Clean up Game Manager
+    if (userId) {
+      gameManager.handleDisconnect(userId);
+    }
   });
 
   connection.on("error", (error) => {
@@ -2911,7 +3014,7 @@ const broadcastStatusChange = async (userId: string, isOnline: boolean) => {
     });
 
     // Extract friend IDs
-    const friendIds = friendships.map(f => 
+    const friendIds = friendships.map(f =>
       f.requesterId === userId ? f.requestedId : f.requesterId
     );
 

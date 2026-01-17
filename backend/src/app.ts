@@ -12,6 +12,7 @@ import FriendRoutes from "./routes/friend.js";
 import AuthRoutes from "./routes/auth.js";
 import TOTPRoutes from "./routes/totp.js";
 import ChatRoutes from "./routes/chat.js";
+import LeaderboardRoutes from "./routes/leaderboard.js";
 import { MessageRoutes } from "./routes/message.js";
 
 import JWTAuthenticationPlugin from "./plugins/jwt.js";
@@ -36,6 +37,7 @@ const routes = [
   { pcb: FriendRoutes, opt: { prefix: "/v1/friend" } },
   { pcb: AuthRoutes, opt: { prefix: "/v1/auth" } },
   { pcb: ChatRoutes, opt: { prefix: "/v1/chat" } },
+  { pcb: LeaderboardRoutes, opt: { prefix: "/v1/leaderboard" } },
   { pcb: MessageRoutes, opt: {} },
 ];
 

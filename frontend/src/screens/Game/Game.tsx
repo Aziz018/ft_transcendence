@@ -3,6 +3,7 @@ import Fuego, { useState, useEffect, useRef } from "../../index";
 
 import Avatar from "../../assets/Ellipse 46.svg";
 import { getToken, decodeTokenPayload } from "../../lib/auth";
+import { wsService } from "../../services/wsService";
 import { redirect } from "../../library/Router/Router";
 
 const navigationItems = [
@@ -115,48 +116,106 @@ export const Game = () => {
     return null;
   }
 
-  const [leftPaddleY, setLeftPaddleY] = useState(
-    GAME_HEIGHT / 2 - PADDLE_HEIGHT / 2
-  );
-  const [rightPaddleY, setRightPaddleY] = useState(
-    GAME_HEIGHT / 2 - PADDLE_HEIGHT / 2
-  );
-  const [ballX, setBallX] = useState(GAME_WIDTH / 2);
-  const [ballY, setBallY] = useState(GAME_HEIGHT / 2);
-  const [ballVelocityX, setBallVelocityX] = useState(BALL_SPEED);
-  const [ballVelocityY, setBallVelocityY] = useState(BALL_SPEED);
+  // Multiplayer State
+  const [gameState, setGameState] = useState<any>(null);
+  const [status, setStatus] = useState<"connecting" | "waiting" | "playing" | "paused" | "finished">("connecting");
+  const [winner, setWinner] = useState<string | null>(null);
+  const [isLeftPlayer, setIsLeftPlayer] = useState(false);
+
+  // Restored State for UI compatibility
   const [leftScore, setLeftScore] = useState(0);
   const [rightScore, setRightScore] = useState(0);
-  const [gameStarted, setGameStarted] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(GAME_DURATION);
-  const [gameEnded, setGameEnded] = useState(false);
-  const [showPauseMenu, setShowPauseMenu] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
   const [displayedXP, setDisplayedXP] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(60); // Default or from server
+
+  const [ballX, setBallX] = useState(GAME_WIDTH / 2);
+  const [ballY, setBallY] = useState(GAME_HEIGHT / 2);
+  const [leftPaddleY, setLeftPaddleY] = useState(GAME_HEIGHT / 2 - PADDLE_HEIGHT / 2);
+  const [rightPaddleY, setRightPaddleY] = useState(GAME_HEIGHT / 2 - PADDLE_HEIGHT / 2);
 
   const keysPressed = useRef<Set<string>>(new Set());
 
+  // Derived state for backward compatibility
+  const gameStarted = status === "playing";
+  const gameEnded = status === "finished";
+
+  // Connect and Join
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    wsService.connect().then(() => {
+      console.log("Connected to WS, joining game queue...");
+      setStatus("waiting");
+      wsService.joinGame({ mode: "standard" });
+    });
+
+    // Listeners
+    const cleanupStart = wsService.on("game_start", (data) => {
+      console.log("Game Started:", data);
+      setStatus("playing");
+      setOpponent({
+        name: data.opponentName || "Opponent",
+        avatar: data.opponentAvatar || "",
+      });
+      setIsLeftPlayer(data.side === "left");
+    });
+
+    const cleanupState = wsService.on("game_state", (state) => {
+      setGameState(state);
+      setLeftScore(state.leftScore);
+      setRightScore(state.rightScore);
+      setBallX(state.ballX);
+      setBallY(state.ballY);
+      setLeftPaddleY(state.leftPaddleY);
+      setLeftPaddleY(state.leftPaddleY);
+      setRightPaddleY(state.rightPaddleY);
+      if (typeof state.timeLeft === 'number') setTimeLeft(state.timeLeft);
+      if (state.status) setStatus(state.status);
+    });
+
+    const cleanupOver = wsService.on("game_over", (data) => {
+      console.log("Game Over:", data);
+      setStatus("finished");
+      setWinner(data.winnerId);
+      if (data.xpEarned) {
+        setDisplayedXP(data.xpEarned);
+      }
+    });
+
+    return () => {
+      cleanupStart();
+      cleanupState();
+      cleanupOver();
+      wsService.leaveGame();
+    };
+  }, [isAuthenticated]);
+
+  // Input Handling
+  useEffect(() => {
+    if (status !== "playing") return;
+
+    const interval = setInterval(() => {
+      if (keysPressed.current.has("w") || keysPressed.current.has("arrowup")) {
+        wsService.movePaddle(-1); // Up
+      } else if (keysPressed.current.has("s") || keysPressed.current.has("arrowdown")) {
+        wsService.movePaddle(1); // Down
+      } else {
+        wsService.movePaddle(0); // Stop
+      }
+    }, 1000 / 60);
+
+    return () => clearInterval(interval);
+  }, [status]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === " ") {
-        e.preventDefault();
-        if (!gameStarted && !gameEnded) {
-          setGameStarted(true);
-        } else if (gameStarted && !gameEnded) {
-          setShowPauseMenu(true);
-          setIsPaused(true);
-        }
-        return;
-      }
-      if (e.key) {
-        keysPressed.current.add(e.key.toLowerCase());
+      if (e.key) keysPressed.current.add(e.key.toLowerCase());
+      if (e.code === "Space") {
+        wsService.sendGameAction("pause_game");
       }
     };
-
     const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.key) {
-        keysPressed.current.delete(e.key.toLowerCase());
-      }
+      if (e.key) keysPressed.current.delete(e.key.toLowerCase());
     };
 
     window.addEventListener("keydown", handleKeyDown);
@@ -166,203 +225,7 @@ export const Game = () => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [gameStarted, gameEnded]);
-
-  useEffect(() => {
-    if (!gameStarted || gameEnded || isPaused) return;
-
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          setGameEnded(true);
-          setGameStarted(false);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [gameStarted, gameEnded, isPaused]);
-
-  useEffect(() => {
-    if (!gameEnded || leftScore <= rightScore) {
-      setDisplayedXP(0);
-      return;
-    }
-
-    const targetXP = leftScore * 26;
-    const duration = 2000; // 2 seconds animation
-    const steps = 60; // 60 frames
-    const increment = targetXP / steps;
-    let currentStep = 0;
-
-    setDisplayedXP(0);
-
-    saveXPToBackend(targetXP);
-
-    const counter = setInterval(() => {
-      currentStep++;
-      if (currentStep >= steps) {
-        setDisplayedXP(targetXP);
-        clearInterval(counter);
-      } else {
-        setDisplayedXP(Math.floor(increment * currentStep));
-      }
-    }, duration / steps);
-
-    return () => clearInterval(counter);
-  }, [gameEnded, leftScore, rightScore]);
-
-  const saveXPToBackend = async (earnedXP: number) => {
-    try {
-      const backend =
-        (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-        "/api";
-      const token = getToken();
-
-      if (!token) {
-        console.error("[Game] No token found");
-        return;
-      }
-
-      const response = await fetch(`${backend}/v1/user/profile`, {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          field: "xp",
-          value: earnedXP.toString(),
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(
-          `[Game] Failed to save XP. Status: ${response.status}, Error: ${errorText}`
-        );
-        return;
-      }
-
-      const result = await response.json();
-      console.log(`[Game] Saved ${earnedXP} XP to backend. Response:`, result);
-    } catch (error) {
-      console.error("[Game] Failed to save XP:", error);
-    }
-  };
-
-  useEffect(() => {
-    if (!gameStarted || isPaused || gameEnded) return;
-
-    const gameLoop = setInterval(() => {
-      setLeftPaddleY((prev) => {
-        let newY = prev;
-        if (keysPressed.current.has("w")) newY -= PADDLE_SPEED;
-        if (keysPressed.current.has("s")) newY += PADDLE_SPEED;
-        return Math.max(0, Math.min(GAME_HEIGHT - PADDLE_HEIGHT, newY));
-      });
-
-      setRightPaddleY((prev) => {
-        let newY = prev;
-        if (keysPressed.current.has("arrowup")) newY -= PADDLE_SPEED;
-        if (keysPressed.current.has("arrowdown")) newY += PADDLE_SPEED;
-        return Math.max(0, Math.min(GAME_HEIGHT - PADDLE_HEIGHT, newY));
-      });
-
-      setBallX((prevX) => prevX + ballVelocityX);
-      setBallY((prevY) => prevY + ballVelocityY);
-    }, 1000 / 60);
-
-    return () => clearInterval(gameLoop);
-  }, [gameStarted, ballVelocityX, ballVelocityY, isPaused, gameEnded]);
-
-  useEffect(() => {
-    if (!gameStarted || isPaused || gameEnded) return;
-
-    if (ballY <= 0) {
-      setBallY(0);
-      const { vx, vy } = normalizeVel(ballVelocityX, Math.abs(ballVelocityY));
-      setBallVelocityX(vx);
-      setBallVelocityY(vy);
-    } else if (ballY >= GAME_HEIGHT - BALL_SIZE) {
-      setBallY(GAME_HEIGHT - BALL_SIZE);
-      const { vx, vy } = normalizeVel(ballVelocityX, -Math.abs(ballVelocityY));
-      setBallVelocityX(vx);
-      setBallVelocityY(vy);
-    }
-
-    if (
-      ballX <= PADDLE_WIDTH &&
-      ballY + BALL_SIZE >= leftPaddleY &&
-      ballY <= leftPaddleY + PADDLE_HEIGHT
-    ) {
-      const hitPos = (ballY - leftPaddleY) / PADDLE_HEIGHT - 0.5; // -0.5 .. 0.5
-      const targetVx = Math.abs(ballVelocityX) || BALL_SPEED;
-      const targetVy = hitPos * BALL_SPEED * 2;
-      const { vx, vy } = normalizeVel(targetVx, targetVy);
-      setBallVelocityX(vx);
-      setBallVelocityY(vy);
-    }
-
-    if (
-      ballX >= GAME_WIDTH - PADDLE_WIDTH - BALL_SIZE &&
-      ballY + BALL_SIZE >= rightPaddleY &&
-      ballY <= rightPaddleY + PADDLE_HEIGHT
-    ) {
-      const hitPos = (ballY - rightPaddleY) / PADDLE_HEIGHT - 0.5;
-      const targetVx = -Math.abs(ballVelocityX) || -BALL_SPEED;
-      const targetVy = hitPos * BALL_SPEED * 2;
-      const { vx, vy } = normalizeVel(targetVx, targetVy);
-      setBallVelocityX(vx);
-      setBallVelocityY(vy);
-    }
-
-    if (ballX < 0) {
-      setRightScore((s) => s + 1);
-      resetBall();
-    }
-
-    if (ballX > GAME_WIDTH) {
-      setLeftScore((s) => s + 1);
-      resetBall();
-    }
-  }, [
-    ballX,
-    ballY,
-    leftPaddleY,
-    rightPaddleY,
-    gameStarted,
-    isPaused,
-    gameEnded,
-  ]);
-
-  const resetBall = () => {
-    setBallX(GAME_WIDTH / 2);
-    setBallY(GAME_HEIGHT / 2);
-    setBallVelocityX((prev) => (prev > 0 ? -BALL_SPEED : BALL_SPEED));
-    setBallVelocityY(BALL_SPEED * (Math.random() > 0.5 ? 1 : -1));
-  };
-
-  const resetGame = () => {
-    setLeftScore(0);
-    setRightScore(0);
-    setTimeLeft(GAME_DURATION);
-    setGameEnded(false);
-    setGameStarted(false);
-    setShowPauseMenu(false);
-    setIsPaused(false);
-    setDisplayedXP(0);
-    resetBall();
-    setLeftPaddleY(GAME_HEIGHT / 2 - PADDLE_HEIGHT / 2);
-    setRightPaddleY(GAME_HEIGHT / 2 - PADDLE_HEIGHT / 2);
-  };
-
-  const resumeGame = () => {
-    setShowPauseMenu(false);
-    setIsPaused(false);
-  };
+  }, []);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -370,16 +233,22 @@ export const Game = () => {
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const calculateXP = () => {
-    if (leftScore > rightScore) {
-      return leftScore * 26;
-    }
-    return 0;
-  };
-
   const formatXP = (xp: number) => {
     return xp.toLocaleString();
   };
+
+
+  // UI Handlers (Multiplayer doesn't really pause locally like offline)
+  const resumeGame = () => {
+    // No-op for multiplayer
+  };
+
+  const resetGame = () => {
+    window.location.reload(); // Simplest way to re-queue
+  };
+
+  const showPauseMenu = false; // Disable pause menu for multiplayer
+  const isPaused = false;
 
   return (
     <div className="bg-dark-950 w-full h-screen overflow-hidden relative flex items-center justify-center">
@@ -485,14 +354,17 @@ export const Game = () => {
             }}
           />
 
-          {!gameStarted && !gameEnded && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          {!["playing", "finished"].includes(status) && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-20">
               <div className="flex flex-col items-center gap-4">
+                <div className="w-12 h-12 border-4 border-accent-green border-t-transparent rounded-full animate-spin" />
                 <span className="font-questrial font-normal text-light text-2xl tracking-[0] leading-[27px] animate-pulse">
-                  Press SPACE to start
+                  {status === "connecting"
+                    ? "Connecting to Server..."
+                    : "Waiting for Opponent..."}
                 </span>
                 <span className="font-questrial font-normal text-light/60 text-lg tracking-[0] leading-[27px]">
-                  W/S and ↑/↓ to move
+                  Game will start automatically
                 </span>
               </div>
             </div>
@@ -528,22 +400,20 @@ export const Game = () => {
         </p>
       </footer>
 
-      {showPauseMenu && !gameEnded && (
+      {status === 'paused' && !gameEnded && (
         <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-dark-900 border-2 border-accent-green/30 rounded-2xl p-10 flex flex-col items-center gap-6 shadow-[0_0_60px_rgba(183,242,114,0.2)]">
             <h2 className="font-questrial font-normal text-light text-3xl tracking-[0] leading-[27px]">
               Game Paused
             </h2>
+            <span className="font-questrial font-normal text-light/60 text-lg">
+              {gameState?.pausedBy === gameState?.leftPlayer?.id || gameState?.pausedBy === gameState?.rightPlayer?.id ? "Player Paused" : "Paused"}
+            </span>
             <div className="flex flex-col gap-4 w-[300px]">
               <button
-                onClick={resumeGame}
+                onClick={() => wsService.sendGameAction("pause_game")}
                 className="w-full h-12 bg-accent-green hover:bg-accent-green/90 text-dark-950 rounded-lg font-questrial font-semibold text-lg transition-all shadow-[0_0_20px_rgba(183,242,114,0.3)] hover:shadow-[0_0_30px_rgba(183,242,114,0.5)]">
                 Resume Game
-              </button>
-              <button
-                onClick={resetGame}
-                className="w-full h-12 bg-transparent hover:bg-white/10 text-light border-2 border-white/20 rounded-lg font-questrial font-normal text-lg transition-all">
-                Reset Game
               </button>
             </div>
           </div>
@@ -615,8 +485,8 @@ export const Game = () => {
                 {leftScore > rightScore
                   ? `🏆 ${userName} Wins!`
                   : rightScore > leftScore
-                  ? `🏆 ${opponent ? opponent.name : "Opponent"} Wins!`
-                  : "🤝 It's a Tie!"}
+                    ? `🏆 ${opponent ? opponent.name : "Opponent"} Wins!`
+                    : "🤝 It's a Tie!"}
               </span>
             </div>
 

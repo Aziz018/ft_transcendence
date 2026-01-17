@@ -83,6 +83,25 @@ class WebSocketService {
           declinedListener(message.payload);
         }
         break;
+      case "game_state":
+        const gameStateListener = this.messageListeners.get("game_state");
+        if (gameStateListener) gameStateListener(message.payload);
+        break;
+      case "game_start":
+        const gameStartListener = this.messageListeners.get("game_start");
+        if (gameStartListener) gameStartListener(message.payload);
+        break;
+      case "game_over":
+        const gameOverListener = this.messageListeners.get("game_over");
+        if (gameOverListener) gameOverListener(message.payload);
+        break;
+      case "player_joined":
+        const playerJoinedListener = this.messageListeners.get("player_joined");
+        if (playerJoinedListener) playerJoinedListener(message.payload);
+        break;
+      case "notification":
+        this.handleNotification(message.payload);
+        break;
       default:
 
         const listener = this.messageListeners.get(message.type);
@@ -114,6 +133,17 @@ class WebSocketService {
   private handleFriendRequestDeclined(payload: any) {
     console.log("[WebSocket] Friend request declined:", payload);
     notificationService.info(`Your friend request was declined`, 4000);
+  }
+
+  private handleNotification(payload: any) {
+    console.log("[WebSocket] Notification received:", payload);
+    // Use notificationService to display
+    switch (payload.type) {
+      case 'success': notificationService.success(payload.message, payload.duration); break;
+      case 'error': notificationService.error(payload.message, payload.duration); break;
+      case 'warning': notificationService.warning(payload.message, payload.duration); break;
+      case 'info': default: notificationService.info(payload.message, payload.duration); break;
+    }
   }
 
   private attemptReconnect() {
@@ -176,6 +206,22 @@ class WebSocketService {
 
   isConnected(): boolean {
     return this.ws !== null && this.ws.readyState === WebSocket.OPEN;
+  }
+
+  joinGame(payload: { mode: string; tournamentId?: string }) {
+    this.send({ type: "join_queue", payload });
+  }
+
+  leaveGame() {
+    this.send({ type: "leave_queue" });
+  }
+
+  movePaddle(position: number) {
+    this.send({ type: "move_paddle", payload: { position } });
+  }
+
+  sendGameAction(action: string, payload?: any) {
+    this.send({ type: action, payload });
   }
 }
 

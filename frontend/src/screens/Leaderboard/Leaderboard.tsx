@@ -74,105 +74,36 @@ const Leaderboard = () => {
         "/api";
       const token = getToken();
 
-      const mockData: Player[] = [
-        {
-          rank: 1,
-          id: "1",
-          name: "Champion Player",
-          avatar: "",
-          wins: 150,
-          losses: 20,
-          score: 3500,
+      const res = await fetch(`${backend}/v1/leaderboard/top10`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
-        {
-          rank: 2,
-          id: "2",
-          name: "Silver Knight",
-          avatar: "",
-          wins: 140,
-          losses: 25,
-          score: 3200,
-        },
-        {
-          rank: 3,
-          id: "3",
-          name: "Bronze Warrior",
-          avatar: "",
-          wins: 130,
-          losses: 30,
-          score: 2900,
-        },
-        {
-          rank: 4,
-          id: "4",
-          name: "Rising Star",
-          avatar: "",
-          wins: 120,
-          losses: 35,
-          score: 2600,
-        },
-        {
-          rank: 5,
-          id: "5",
-          name: "Skilled Gamer",
-          avatar: "",
-          wins: 110,
-          losses: 40,
-          score: 2400,
-        },
-        {
-          rank: 6,
-          id: "6",
-          name: "Pro Player",
-          avatar: "",
-          wins: 100,
-          losses: 45,
-          score: 2200,
-        },
-        {
-          rank: 7,
-          id: "7",
-          name: "Elite Fighter",
-          avatar: "",
-          wins: 95,
-          losses: 50,
-          score: 2000,
-        },
-        {
-          rank: 8,
-          id: "8",
-          name: "Master Tactician",
-          avatar: "",
-          wins: 90,
-          losses: 55,
-          score: 1850,
-        },
-        {
-          rank: 9,
-          id: "9",
-          name: "Swift Striker",
-          avatar: "",
-          wins: 85,
-          losses: 60,
-          score: 1700,
-        },
-        {
-          rank: 10,
-          id: "10",
-          name: "Determined Soul",
-          avatar: "",
-          wins: 80,
-          losses: 65,
-          score: 1550,
-        },
-      ];
+      });
 
-      setTimeout(() => {
-        setPlayers(mockData);
-        setIsLoading(false);
-      }, 500);
+      if (!res.ok) {
+        throw new Error("Failed to fetch leaderboard");
+      }
+
+      const data = await res.json();
+
+      // Transform API data to Player interface
+      // Assuming API returns { id, name, avatar, xp }
+      const formattedData: Player[] = data.map((user: any, index: number) => ({
+        rank: index + 1,
+        id: user.id,
+        name: user.name,
+        avatar: user.avatar,
+        wins: 0, // Wins/Losses not yet in API, defaulting to 0 or could remove column
+        losses: 0,
+        score: user.xp || 0, // Using XP as score
+      }));
+
+      setPlayers(formattedData);
     } catch (error) {
       console.error("Failed to fetch leaderboard:", error);
+    } finally {
       setIsLoading(false);
     }
   };
@@ -252,23 +183,20 @@ const Leaderboard = () => {
             <Link key={index} to={`/${item.path}`}>
               <div className="cursor-pointer flex items-center gap-3 px-3 py-2 w-full transition-all duration-150 hover:bg-white/5 rounded-lg">
                 <div
-                  className={`${
-                    item.active
-                      ? "bg-accent-green/20 border border-accent-green/50"
-                      : "bg-transparent border border-white/10"
-                  } rounded-full p-3 transition-all duration-150`}>
+                  className={`${item.active
+                    ? "bg-accent-green/20 border border-accent-green/50"
+                    : "bg-transparent border border-white/10"
+                    } rounded-full p-3 transition-all duration-150`}>
                   <img
                     src={item.icon}
                     alt={`${item.label} icon`}
-                    className={`w-[15px] ${
-                      item.active ? "opacity-100" : "opacity-30"
-                    } transition-opacity duration-150`}
+                    className={`w-[15px] ${item.active ? "opacity-100" : "opacity-30"
+                      } transition-opacity duration-150`}
                   />
                 </div>
                 <span
-                  className={`font-questrial font-normal text-base tracking-[0] leading-[15px] whitespace-nowrap ${
-                    item.active ? "text-light" : "text-light/30"
-                  } transition-colors duration-150`}>
+                  className={`font-questrial font-normal text-base tracking-[0] leading-[15px] whitespace-nowrap ${item.active ? "text-light" : "text-light/30"
+                    } transition-colors duration-150`}>
                   {item.label}
                 </span>
               </div>
@@ -301,29 +229,26 @@ const Leaderboard = () => {
             <div className="flex gap-2">
               <button
                 onClick={() => setFilter("all")}
-                className={`px-6 py-2 rounded-lg font-questrial font-semibold transition-colors ${
-                  filter === "all"
-                    ? "bg-accent-green text-dark-950"
-                    : "bg-white/10 text-light hover:bg-white/20"
-                }`}>
+                className={`px-6 py-2 rounded-lg font-questrial font-semibold transition-colors ${filter === "all"
+                  ? "bg-accent-green text-dark-950"
+                  : "bg-white/10 text-light hover:bg-white/20"
+                  }`}>
                 All Time
               </button>
               <button
                 onClick={() => setFilter("weekly")}
-                className={`px-6 py-2 rounded-lg font-questrial font-semibold transition-colors ${
-                  filter === "weekly"
-                    ? "bg-accent-green text-dark-950"
-                    : "bg-white/10 text-light hover:bg-white/20"
-                }`}>
+                className={`px-6 py-2 rounded-lg font-questrial font-semibold transition-colors ${filter === "weekly"
+                  ? "bg-accent-green text-dark-950"
+                  : "bg-white/10 text-light hover:bg-white/20"
+                  }`}>
                 Weekly
               </button>
               <button
                 onClick={() => setFilter("monthly")}
-                className={`px-6 py-2 rounded-lg font-questrial font-semibold transition-colors ${
-                  filter === "monthly"
-                    ? "bg-accent-green text-dark-950"
-                    : "bg-white/10 text-light hover:bg-white/20"
-                }`}>
+                className={`px-6 py-2 rounded-lg font-questrial font-semibold transition-colors ${filter === "monthly"
+                  ? "bg-accent-green text-dark-950"
+                  : "bg-white/10 text-light hover:bg-white/20"
+                  }`}>
                 Monthly
               </button>
             </div>
@@ -333,26 +258,32 @@ const Leaderboard = () => {
             <div className="flex items-center justify-center h-64">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent-green"></div>
             </div>
+          ) : players.length === 0 || players[0].score === 0 ? (
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-12 text-center">
+              <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-3xl">🏆</span>
+              </div>
+              <h3 className="font-questrial text-light text-xl mb-2">
+                No one has reached XP yet
+              </h3>
+              <p className="font-questrial text-light/60">
+                Be the first to play a game and claim your spot on the leaderboard!
+              </p>
+            </div>
           ) : (
             <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-white/10">
-                      <th className="text-left py-4 px-6 font-questrial text-light/60 font-semibold">
+                      <th className="text-left py-4 px-6 font-questrial text-light/60 font-semibold w-24">
                         Rank
                       </th>
                       <th className="text-left py-4 px-6 font-questrial text-light/60 font-semibold">
                         Player
                       </th>
-                      <th className="text-center py-4 px-6 font-questrial text-light/60 font-semibold">
-                        Wins
-                      </th>
-                      <th className="text-center py-4 px-6 font-questrial text-light/60 font-semibold">
-                        Losses
-                      </th>
-                      <th className="text-center py-4 px-6 font-questrial text-light/60 font-semibold">
-                        Score
+                      <th className="text-right py-4 px-6 font-questrial text-light/60 font-semibold">
+                        XP
                       </th>
                     </tr>
                   </thead>
@@ -360,18 +291,17 @@ const Leaderboard = () => {
                     {players.map((player, index) => (
                       <tr
                         key={player.id}
-                        className={`border-b border-white/5 hover:bg-white/5 transition-colors ${
-                          player.rank <= 3 ? "bg-white/5" : ""
-                        }`}>
+                        className={`border-b border-white/5 hover:bg-white/5 transition-colors ${player.rank <= 3 ? "bg-white/5" : ""
+                          }`}>
                         <td className="py-4 px-6">
                           <div className="flex items-center gap-2">
                             <span
-                              className={`w-10 h-10 rounded-full flex items-center justify-center font-questrial font-bold ${getRankBadgeColor(
+                              className={`w-8 h-8 rounded-full flex items-center justify-center font-questrial font-bold text-sm ${getRankBadgeColor(
                                 player.rank
                               )}`}>
                               {player.rank}
                             </span>
-                            <span className="text-2xl">
+                            <span className="text-xl">
                               {getRankIcon(player.rank)}
                             </span>
                           </div>
@@ -381,27 +311,20 @@ const Leaderboard = () => {
                             <img
                               src={getAvatarUrl(player.avatar)}
                               alt={player.name}
-                              className="w-12 h-12 rounded-full object-cover border-2 border-white/20"
+                              className="w-10 h-10 rounded-full object-cover border-2 border-white/20 bg-gray-700"
                             />
                             <span className="font-questrial text-light text-lg font-semibold">
                               {player.name}
                             </span>
                           </div>
                         </td>
-                        <td className="py-4 px-6 text-center">
-                          <span className="font-questrial text-accent-green text-lg font-bold">
-                            {player.wins}
-                          </span>
-                        </td>
-                        <td className="py-4 px-6 text-center">
-                          <span className="font-questrial text-red-400 text-lg font-bold">
-                            {player.losses}
-                          </span>
-                        </td>
-                        <td className="py-4 px-6 text-center">
-                          <span className="font-questrial text-light text-lg font-bold">
-                            {player.score}
-                          </span>
+                        <td className="py-4 px-6 text-right">
+                          <div className="inline-flex items-center gap-2 bg-accent-green/10 px-3 py-1 rounded-full border border-accent-green/20">
+                            <span className="w-2 h-2 rounded-full bg-accent-green animate-pulse" />
+                            <span className="font-questrial text-accent-green text-lg font-bold">
+                              {player.score} XP
+                            </span>
+                          </div>
                         </td>
                       </tr>
                     ))}

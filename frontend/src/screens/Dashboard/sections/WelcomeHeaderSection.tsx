@@ -9,10 +9,10 @@ import { useState } from "../../../library/hooks/useState";
 import { useCallback } from "../../../library/hooks/useCallback";
 import { notificationService } from "../../../services/notificationService";
 import FriendRequestNotifications from "../../../components/Dashboard/FriendRequestNotifications";
-import { useTheme } from "../../../context/ThemeContext";
+
 
 const WelcomeHeaderSection = () => {
-  const { theme, toggleTheme } = useTheme();
+
 
   const getAvatarUrl = (avatarPath: string | null | undefined): string => {
     const defaultAvatar = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect fill='%23e5e7eb' width='200' height='200'/%3E%3Ccircle cx='100' cy='70' r='35' fill='%23d1d5db'/%3E%3Cpath d='M 50 180 Q 50 140 100 140 Q 150 140 150 180' fill='%23d1d5db'/%3E%3C/svg%3E";
@@ -59,6 +59,7 @@ const WelcomeHeaderSection = () => {
   };
 
   const [name, setName] = useState<string>(deriveNameFromToken());
+  const [xp, setXp] = useState<number>(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -97,6 +98,9 @@ const WelcomeHeaderSection = () => {
         }
         if (data?.name) {
           setName(data.name);
+        }
+        if (typeof data?.xp === "number") {
+          setXp(data.xp);
         }
       } catch (e) {
         console.error("Failed to fetch profile:", e);
@@ -370,12 +374,21 @@ const WelcomeHeaderSection = () => {
           />
         </div>
 
-        <button
-          onClick={toggleTheme}
-          className="h-10 px-[18px] bg-accent-orange hover:bg-accent-orange/90 rounded-[14px] border border-solid border-[#f9f9f933] font-questrial font-normal text-light text-sm tracking-[0] leading-[15px] transition-all duration-300 flex items-center gap-2">
-          <span className="text-lg">{theme === "dark" ? "☀️" : "🌙"}</span>
-          {theme === "dark" ? "Light Mode" : "Dark Mode"}
-        </button>
+        <div className="h-10 px-[18px] bg-white/5 rounded-[14px] border border-solid border-[#f9f9f933] flex items-center gap-3 backdrop-blur-sm">
+          <div className="flex flex-col items-end justify-center -space-y-0.5">
+            <span className="font-questrial text-[9px] text-accent-green uppercase tracking-wider font-bold">
+              Current Rank
+            </span>
+            <span className="font-questrial text-light text-sm font-bold leading-none">
+              Level {Math.floor(xp / 100) + 1}
+            </span>
+          </div>
+          <div className="w-8 h-8 rounded-full bg-accent-green/20 flex items-center justify-center border border-accent-green/50">
+            <span className="text-accent-green text-[10px] font-bold">XP</span>
+          </div>
+        </div>
+
+
       </div>
     </header>
   );

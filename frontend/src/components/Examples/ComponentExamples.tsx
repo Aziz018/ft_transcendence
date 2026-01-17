@@ -3,11 +3,11 @@
  * Reference implementations for the design system
  */
 
-import React, { useState } from "react";
-import { AnimatedBackground } from "@/components/AnimatedBackground/AnimatedBackground";
-import { PremiumCard, PremiumCardHeader, PremiumCardBody, PremiumCardFooter } from "@/components/PremiumCard/PremiumCard";
-import { GlowButton } from "@/components/GlowButton/GlowButton";
-import StatusOrb from "@/components/StatusOrb/StatusOrb";
+import Fuego from "../../index";
+import { AnimatedBackground } from "../AnimatedBackground/AnimatedBackground";
+import { PremiumCard, PremiumCardHeader, PremiumCardBody, PremiumCardFooter } from "../PremiumCard/PremiumCard";
+import { GlowButton } from "../GlowButton/GlowButton";
+import StatusOrb from "../StatusOrb/StatusOrb";
 
 /**
  * EXAMPLE 1: Hero Section with Animated Background
@@ -142,7 +142,7 @@ export const PlayerStatsCard = ({ playerName = "Pro Player" }) => {
  * EXAMPLE 4: Status Indicator with Header
  */
 export const HeaderWithStatus = () => {
-  const [status, setStatus] = useState<"online" | "idle" | "offline" | "playing" | "spectating">("online");
+  const [status, setStatus] = Fuego.useState<"online" | "idle" | "offline" | "playing" | "spectating">("online");
 
   return (
     <header className="bg-dark-900 backdrop-blur-lg border-b border-border-subtle p-6">
@@ -253,10 +253,9 @@ export const LeaderboardRow = ({
         flex items-center justify-between p-4 rounded-lg
         transition-all duration-300
         border border-opacity-30
-        ${
-          isCurrentPlayer
-            ? "bg-gradient-cyan-purple border-cyan-500 shadow-glow-cyan"
-            : "bg-dark-800 border-border-subtle hover:border-cyan-500"
+        ${isCurrentPlayer
+          ? "bg-gradient-cyan-purple border-cyan-500 shadow-glow-cyan"
+          : "bg-dark-800 border-border-subtle hover:border-cyan-500"
         }
       `}
     >

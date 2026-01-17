@@ -8,12 +8,12 @@ import {
   type Message,
   type Friend,
 } from "../../../services/chatService";
-import { getToken } from "../../../lib/auth";
-import { redirect } from "../../../library/Router/Router";
+import { decodeTokenPayload, getToken } from "../../../lib/auth";
+import { wsService } from "../../../services/wsService";
+import { Link, redirect } from "../../../library/Router/Router";
 
-const defaultAvatar = `${
-  (import.meta as any).env?.VITE_BACKEND_ORIGIN || "/api"
-}/images/default-avatar.png`;
+const defaultAvatar = `${(import.meta as any).env?.VITE_BACKEND_ORIGIN || "/api"
+  }/images/default-avatar.png`;
 
 const getAvatarUrl = (avatarPath: string | null | undefined): string => {
   const backend =
@@ -121,7 +121,7 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
       // However, for better UX, we can add it and then replace/deduplicate it.
       // But since we have the duplication issue, let's rely on the WebSocket/Response
       // or handle the duplication check strictly.
-      
+
       // Let's add it optimistically, but mark it as temporary.
       setMessages((prev) => [...prev, optimisticMessage]);
       scrollToBottom();
@@ -162,8 +162,11 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
         return;
       }
 
-      const inviteMessage = `🎮 Game Invitation: Let's play Pong!`;
-      await chatService.sendMessage(selectedFriend.id, inviteMessage, token);
+      // Use WS to send invite for better notification handling
+      wsService.sendGameAction("game_invite", { targetId: selectedFriend.id });
+
+      // Check if we need to manually persist invite to localStorage or if we rely on WS echo
+      // The backend echo will handle the chat message display
 
       localStorage.setItem(
         "pendingGameInvite",
@@ -287,22 +290,22 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
           if (prev.some((msg) => msg.id === message.id)) {
             return prev;
           }
-          
+
           // Check if we have a temp message that matches this one (by content and timestamp proximity)
           // This is a heuristic to deduplicate optimistic messages if the ID replacement didn't happen yet
           // or if the WebSocket message arrived before the HTTP response.
           // However, the HTTP response handler replaces the temp ID with the real ID.
           // If the WebSocket message comes with the real ID, we should check if that real ID is already there.
           // We already did that above.
-          
+
           // Now check if there is a temp message that we should replace with this incoming real message
           // This happens if WS is faster than HTTP response
           const tempMsgIndex = prev.findIndex(msg => msg.id.startsWith('temp-') && msg.content === message.content);
-          
+
           if (tempMsgIndex !== -1) {
-             const newMessages = [...prev];
-             newMessages[tempMsgIndex] = message;
-             return newMessages;
+            const newMessages = [...prev];
+            newMessages[tempMsgIndex] = message;
+            return newMessages;
           }
 
           return [...prev, message];
@@ -469,13 +472,11 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
             return (
               <div
                 key={message.id}
-                className={`flex ${
-                  isMe ? "justify-end" : "justify-start"
-                } animate-fadeIn`}>
+                className={`flex ${isMe ? "justify-end" : "justify-start"
+                  } animate-fadeIn`}>
                 <div
-                  className={`flex gap-3 max-w-[70%] ${
-                    isMe ? "flex-row-reverse" : "flex-row"
-                  }`}>
+                  className={`flex gap-3 max-w-[70%] ${isMe ? "flex-row-reverse" : "flex-row"
+                    }`}>
                   {!isMe && (
                     <img
                       src={getAvatarUrl(selectedFriend.avatar)}
@@ -488,22 +489,49 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
                   )}
 
                   <div
-                    className={`flex flex-col ${
-                      isMe ? "items-end" : "items-start"
-                    }`}>
+                    className={`flex flex-col ${isMe ? "items-end" : "items-start"
+                      }`}>
                     <div
-                      className={`rounded-2xl px-4 py-2 ${
-                        isMe
-                          ? "bg-blue-600 text-white"
-                          : "bg-white/10 text-white backdrop-blur-sm"
-                      } break-words`}>
-                      <p className="font-[Questrial] text-sm leading-relaxed">
-                        {message.content}
-                      </p>
+                      className={`max-w-[70%] rounded-2xl p-4 ${isMe
+                        ? "bg-blue-600 text-white rounded-tr-none"
+                        : "bg-white/10 text-white rounded-tl-none"
+                        }`}>
+                      {message.content.includes("🎮 Game Invitation") ? (
+                        <div className="flex flex-col gap-3">
+                          <p className="font-[Questrial] text-sm">{message.content}</p>
+                          {!isMe && (
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => {
+                                  // Join game via WS and redirect
+                                  // wsService.joinGame({ mode: "standard" }); // Or specific ID if available
+                                  // redirect("/game");
+                                }}
+                                className="bg-accent-green text-dark-950 px-4 py-2 rounded-lg font-bold hover:bg-accent-green/90 transition-colors text-sm">
+                                Accept & Play
+                              </button>
+                              <button
+                                onClick={() => {
+                                  wsService.sendGameAction("reject_game", { targetId: message.senderId });
+                                }}
+                                className="bg-red-500/20 text-red-400 border border-red-500/50 px-4 py-2 rounded-lg font-bold hover:bg-red-500/30 transition-colors text-sm">
+                                Reject
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="font-[Questrial] text-sm leading-relaxed">
+                          {message.content}
+                        </p>
+                      )}
+                      <span className="text-[10px] opacity-50 mt-1 block text-right">
+                        {new Date(message.createdAt).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
                     </div>
-                    <span className="text-xs text-white/40 mt-1 font-[Questrial]">
-                      {formatTime(message.createdAt)}
-                    </span>
                   </div>
                 </div>
               </div>
@@ -553,7 +581,7 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
           animation: fadeIn 0.3s ease-out;
         }
       `}</style>
-    </div>
+    </div >
   );
 };
 

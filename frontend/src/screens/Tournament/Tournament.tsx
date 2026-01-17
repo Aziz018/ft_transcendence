@@ -75,64 +75,83 @@ const Tournament = () => {
         "/api";
       const token = getToken();
 
-      const mockData: Tournament[] = [
-        {
-          id: "1",
-          name: "Spring Championship 2025",
-          status: "ongoing",
-          currentPlayers: 12,
-          maxPlayers: 16,
-          startDate: "2025-10-20",
-          prize: "1000 Points",
+      const res = await fetch(`${backend}/v1/tournament`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
-        {
-          id: "2",
-          name: "Weekend Warriors Cup",
-          status: "upcoming",
-          currentPlayers: 6,
-          maxPlayers: 16,
-          startDate: "2025-10-27",
-          prize: "500 Points",
-        },
-        {
-          id: "3",
-          name: "Elite Masters Series",
-          status: "upcoming",
-          currentPlayers: 4,
-          maxPlayers: 8,
-          startDate: "2025-11-01",
-          prize: "2000 Points",
-        },
-        {
-          id: "4",
-          name: "October Showdown",
-          status: "finished",
-          currentPlayers: 16,
-          maxPlayers: 16,
-          startDate: "2025-10-10",
-          prize: "750 Points",
-        },
-      ];
+      });
 
-      setTimeout(() => {
-        setTournaments(mockData);
-        setIsLoading(false);
-      }, 500);
+      if (!res.ok) {
+        throw new Error("Failed to fetch tournaments");
+      }
+
+      const data = await res.json();
+      // Ensure data is array
+      setTournaments(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Failed to fetch tournaments:", error);
+      setTournaments([]);
+    } finally {
       setIsLoading(false);
     }
   };
 
-  const handleJoinTournament = (tournamentId: string) => {
-    console.log("Joining tournament:", tournamentId);
+  const handleJoinTournament = async (tournamentId: string) => {
+    try {
+      const backend = (import.meta as any).env?.VITE_BACKEND_ORIGIN || "/api";
+      const token = getToken();
+
+      const res = await fetch(`${backend}/v1/tournament/${tournamentId}/join`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (res.ok) {
+        fetchTournaments(); // Refresh to update player count
+      } else {
+        console.error("Failed to join tournament");
+      }
+    } catch (error) {
+      console.error("Error joining tournament:", error);
+    }
   };
 
-  const handleCreateTournament = () => {
-    if (newTournamentName.trim()) {
-      console.log("Creating tournament:", newTournamentName);
-      setShowCreateModal(false);
-      setNewTournamentName("");
+  const handleCreateTournament = async () => {
+    if (!newTournamentName.trim()) return;
+
+    try {
+      const backend =
+        (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
+        "/api";
+      const token = getToken();
+
+      const res = await fetch(`${backend}/v1/tournament`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: newTournamentName,
+          maxPlayers: 8, // Default or from UI if added
+          prize: "100 XP", // Default or from UI
+        }),
+      });
+
+      if (res.ok) {
+        setShowCreateModal(false);
+        setNewTournamentName("");
+        fetchTournaments(); // Refresh list
+      } else {
+        console.error("Failed to create tournament");
+      }
+    } catch (error) {
+      console.error("Error creating tournament:", error);
     }
   };
 
@@ -220,23 +239,20 @@ const Tournament = () => {
             <Link key={index} to={`/${item.path}`}>
               <div className="cursor-pointer flex items-center gap-3 px-3 py-2 w-full transition-all duration-150 hover:bg-white/5 rounded-lg">
                 <div
-                  className={`${
-                    item.active
-                      ? "bg-accent-green/20 border border-accent-green/50"
-                      : "bg-transparent border border-white/10"
-                  } rounded-full p-3 transition-all duration-150`}>
+                  className={`${item.active
+                    ? "bg-accent-green/20 border border-accent-green/50"
+                    : "bg-transparent border border-white/10"
+                    } rounded-full p-3 transition-all duration-150`}>
                   <img
                     src={item.icon}
                     alt={`${item.label} icon`}
-                    className={`w-[15px] ${
-                      item.active ? "opacity-100" : "opacity-30"
-                    } transition-opacity duration-150`}
+                    className={`w-[15px] ${item.active ? "opacity-100" : "opacity-30"
+                      } transition-opacity duration-150`}
                   />
                 </div>
                 <span
-                  className={`font-questrial font-normal text-base tracking-[0] leading-[15px] whitespace-nowrap ${
-                    item.active ? "text-light" : "text-light/30"
-                  } transition-colors duration-150`}>
+                  className={`font-questrial font-normal text-base tracking-[0] leading-[15px] whitespace-nowrap ${item.active ? "text-light" : "text-light/30"
+                    } transition-colors duration-150`}>
                   {item.label}
                 </span>
               </div>
@@ -315,11 +331,10 @@ const Tournament = () => {
                       <div
                         className="bg-accent-green h-full rounded-full transition-all duration-300"
                         style={{
-                          width: `${
-                            (tournament.currentPlayers /
-                              tournament.maxPlayers) *
+                          width: `${(tournament.currentPlayers /
+                            tournament.maxPlayers) *
                             100
-                          }%`,
+                            }%`,
                         }}
                       />
                     </div>
