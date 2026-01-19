@@ -34,7 +34,7 @@ export const isServiceError = (err: unknown): err is BaseServiceError_t => {
 export default abstract class ServiceError {
     codes: Array<PErrRecord>;
 
-    protected constructor () {
+    protected constructor() {
         this.codes = [];
     }
 
@@ -62,7 +62,7 @@ export default abstract class ServiceError {
             fastify.log.error(`[${service}] -> Prisma error: ${JSON.stringify(err)}`);
             return err;
         } else {
-            fastify.log.error(`[${service}] -> ${error.message}`, { stack: error.stack });
+            fastify.log.error({ stack: error.stack }, `[${service}] -> ${error.message}`);
         }
     }
 

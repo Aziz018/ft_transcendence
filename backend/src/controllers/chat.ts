@@ -7,7 +7,7 @@ import { wsValidators } from "../server.js";
 import { WebSocket as WS } from "ws";
 import process from "process";
 import type { User } from "generated/prisma/index.js";
-import { gameManager } from "./game.js";
+
 
 export const CONFIG = {
   MESSAGE: {
@@ -2498,7 +2498,11 @@ export const websocketHandler = async (
   broadcastStatusChange(userId, true);
 
   // Handle Game Reconnection
-  gameManager.handleConnection(connection, userId);
+  // In the new service, reconnection logic might be handled within 'addConnection' or automatically via state sync on 'game_join'
+  // We can leave this empty or notify the service if needed, but 'addConnection' is called in route handler, not here.
+  // Actually, chat websocket is SEPARATE from game websocket.
+  // The GameService expects connections on /v1/game/ws.
+  // Setup in chat.ts is likely redundant for game logic now, but we keep it for chat-based game commands if any.
 
   connection.on("message", async (rawMessage) => {
     let msg: WSMessage;
@@ -2523,11 +2527,29 @@ export const websocketHandler = async (
     const gameTypes = ["join_queue", "leave_queue", "move_paddle", "pause_game", "game_invite", "reject_game"];
 
     if (gameTypes.includes(type)) {
-      if (type === "join_queue") gameManager.joinQueue(connection, connection.authenticatedUser);
-      else if (type === "leave_queue") gameManager.leaveQueue(connection.authenticatedUser.uid);
-      else if (type === "pause_game") gameManager.togglePause(connection.authenticatedUser.uid);
+      if (type === "join_queue") {
+        request.server.service.game.handleMatchmaking(connection.authenticatedUser.uid, { action: 'join', gameType: 'classic' });
+      } else if (type === "leave_queue") {
+        request.server.service.game.handleMatchmaking(connection.authenticatedUser.uid, { action: 'leave', gameType: 'classic' });
+      }
+      // togglePause is not supported in new service
+      // else if (type === "pause_game") ... 
+
       else if (type === "move_paddle" && payload && typeof payload.position === 'number') {
-        gameManager.movePaddle(connection.authenticatedUser.uid, payload.position);
+        const userId = connection.authenticatedUser.uid;
+        // Try to find gameId
+        let gameId = payload.gameId;
+        if (!gameId) {
+          gameId = request.server.service.game.getGameIdByPlayerId(userId);
+        }
+
+        if (gameId) {
+          request.server.service.game.handlePlayerMove(userId, {
+            gameId,
+            position: payload.position,
+            timestamp: Date.now()
+          });
+        }
       }
       else if (type === "game_invite" && payload && payload.targetId) {
         const content = `🎮 Game Invitation: Let's play Pong!`;
@@ -2544,11 +2566,16 @@ export const websocketHandler = async (
 
           // 2. Notify Target via WS (Notification + Chat Message)
           // We need to find the specific connection(s) for the target user.
-          // We can use the 'clients' set which we have access to in this scope.
-          for (const client of clients) {
-            if (client.authenticatedUser && client.authenticatedUser.uid === payload.targetId) {
-              // Send Notification
+          // We can use the 'userConnections' map which we have access to in this scope.
+          // Get all connected users
+          const allUserIds = Array.from(userConnections.keys());
+
+          // 2. Notify Target via WS (Notification + Chat Message)
+          const targetConns = userConnections.get(payload.targetId);
+          if (targetConns) {
+            targetConns.forEach(client => {
               if (client.readyState === WebSocket.OPEN) {
+                // Send Notification
                 client.send(JSON.stringify({
                   type: "notification",
                   payload: {
@@ -2573,8 +2600,9 @@ export const websocketHandler = async (
                   }
                 }));
               }
-            }
+            });
           }
+
           // Also echo back to sender so it appears in their chat
           connection.send(JSON.stringify({
             type: "receive_message",
@@ -2593,208 +2621,211 @@ export const websocketHandler = async (
         }
       }
       else if (type === "reject_game" && payload && payload.targetId) {
-        for (const client of clients) {
-          if (client.authenticatedUser && client.authenticatedUser.uid === payload.targetId) {
-            if (client.readyState === WebSocket.OPEN) {
-              client.send(JSON.stringify({
-                type: "notification",
-                payload: {
-                  type: "error",
-                  message: `${connection.authenticatedUser.name} rejected your game invite.`,
-                  title: "Invitation Rejected"
-                }
-              }));
-              client.send(JSON.stringify({
-                type: "receive_message",
-                payload: {
-                  id: `reject-${Date.now()}`,
-                  content: `🚫 Game Invitation Rejected`,
-                  senderId: connection.authenticatedUser.uid,
-                  receiverId: payload.targetId,
-                  createdAt: new Date().toISOString(),
-                  sender: connection.authenticatedUser
-                }
-              }));
+        const targetConns = userConnections.get(payload.targetId);
+        if (targetConns) {
+          targetConns.forEach(client => {
+            if (client.authenticatedUser && client.authenticatedUser.uid === payload.targetId) {
+              if (client.readyState === WebSocket.OPEN) {
+                client.send(JSON.stringify({
+                  type: "notification",
+                  payload: {
+                    type: "error",
+                    message: `${connection.authenticatedUser.name} rejected your game invite.`,
+                    title: "Invitation Rejected"
+                  }
+                }));
+                client.send(JSON.stringify({
+                  type: "receive_message",
+                  payload: {
+                    id: `reject-${Date.now()}`,
+                    content: `🚫 Game Invitation Rejected`,
+                    senderId: connection.authenticatedUser.uid,
+                    receiverId: payload.targetId,
+                    createdAt: new Date().toISOString(),
+                    sender: connection.authenticatedUser
+                  }
+                }));
+              }
             }
-          }
+          });
         }
-      }
-      return;
-    }
-
-    const schema = chatSchema[type as keyof typeof chatSchema];
-    if (!type || !payload) {
-      connection.send(
-        JSON.stringify({
-          type: "error",
-          message: "Type and payload are required",
-        })
-      );
-      return;
-    }
-
-    // Skip validation for server-to-client notifications
-    if (notificationTypes.includes(type)) {
-      connection.send(
-        JSON.stringify({
-          type: "error",
-          message: `${type} is a server-to-client message type`,
-        })
-      );
-      return;
-    }
-
-    if (!schema) {
-      connection.send(
-        JSON.stringify({
-          type: "error",
-          message: `Unknown message type: ${type}`,
-        })
-      );
-      return;
-    }
-
-    // Validate payload
-    try {
-      const validate = wsValidators[type];
-      if (!validate) {
-        connection.send(
-          JSON.stringify({
-            type: "error",
-            message: `No validator found for type ${type}`,
-          })
-        );
         return;
       }
-      if (!validate(payload)) {
-        const errors = validate.errors?.map((e) => ({
-          path: e.instancePath, // JSON path where error occurred (e.g., "/roomId")
-          message: e.message, // Human-readable error message (includes custom errorMessage if set)
-          keyword: e.keyword, // AJV validation keyword that failed (e.g., "type", "format", "required")
-          params: e.params, // Additional parameters specific to the validation keyword
-        }));
-        connection.send(
-          JSON.stringify({
-            type: "error",
-            message: "Payload validation failed",
-            details: errors,
-          })
-        );
-        return;
-      }
-    } catch (error) {
-      request.log.error({ error, type }, "Schema validation error");
-      connection.send(
-        JSON.stringify({ type: "error", message: "Invalid payload schema" })
-      );
-      return;
-    }
 
-    try {
-      const authUser = connection.authenticatedUser;
-      if (!authUser || !authUser.uid) {
+      const schema = chatSchema[type as keyof typeof chatSchema];
+      if (!type || !payload) {
         connection.send(
           JSON.stringify({
             type: "error",
-            message: "User not authenticated",
+            message: "Type and payload are required",
           })
         );
         return;
       }
 
-      switch (type) {
-        case "create_room": {
-          createRoom(connection, authUser, payload, request);
-          break;
-        }
+      // Skip validation for server-to-client notifications
+      if (notificationTypes.includes(type)) {
+        connection.send(
+          JSON.stringify({
+            type: "error",
+            message: `${type} is a server-to-client message type`,
+          })
+        );
+        return;
+      }
 
-        case "join_room": {
-          joinRoom(connection, authUser, payload, request);
-          break;
-        }
+      if (!schema) {
+        connection.send(
+          JSON.stringify({
+            type: "error",
+            message: `Unknown message type: ${type}`,
+          })
+        );
+        return;
+      }
 
-        case "leave_room": {
-          leaveRoom(connection, authUser, payload, request);
-          break;
-        }
-
-        case "delete_room": {
-          deleteRoom(connection, type, authUser, payload, request);
-          break;
-        }
-
-        case "get_room_members": {
-          getRoomMembers(connection, type, authUser, payload, request);
-          break;
-        }
-
-        case "kick_member": {
-          kickMember(connection, type, authUser, payload, request);
-          break;
-        }
-
-        case "promote_member": {
-          promoteMember(connection, type, authUser, payload, request);
-          break;
-        }
-
-        case "send_message": {
-          sendMessage(connection, type, authUser, payload, request);
-          break;
-        }
-
-        case "get_messages": {
-          getMessages(connection, type, authUser, payload, request);
-          break;
-        }
-
-        case "get_more_messages": {
-          getMoreMessages(connection, type, authUser, payload, request);
-          break;
-        }
-
-        case "send_direct_message": {
-          sendDirectMessage(connection, type, authUser, payload, request);
-          break;
-        }
-
-        case "edit_message": {
-          editMessage(connection, type, authUser, payload, request);
-          break;
-        }
-
-        case "delete_message": {
-          deleteMessage(connection, type, authUser, payload, request);
-          break;
-        }
-
-        case "update_status": {
-          updateStatus(connection, type, authUser, payload, request);
-          break;
-        }
-
-        case "typing": {
-          typing(connection, type, authUser, payload, request);
-          break;
-        }
-
-        default:
+      // Validate payload
+      try {
+        const validate = wsValidators[type];
+        if (!validate) {
           connection.send(
             JSON.stringify({
               type: "error",
-              message: `Unknown message type: ${type}`,
+              message: `No validator found for type ${type}`,
             })
           );
-          break;
+          return;
+        }
+        if (!validate(payload)) {
+          const errors = validate.errors?.map((e) => ({
+            path: e.instancePath, // JSON path where error occurred (e.g., "/roomId")
+            message: e.message, // Human-readable error message (includes custom errorMessage if set)
+            keyword: e.keyword, // AJV validation keyword that failed (e.g., "type", "format", "required")
+            params: e.params, // Additional parameters specific to the validation keyword
+          }));
+          connection.send(
+            JSON.stringify({
+              type: "error",
+              message: "Payload validation failed",
+              details: errors,
+            })
+          );
+          return;
+        }
+      } catch (error) {
+        request.log.error({ error, type }, "Schema validation error");
+        connection.send(
+          JSON.stringify({ type: "error", message: "Invalid payload schema" })
+        );
+        return;
       }
-    } catch (error) {
-      request.log.error(
-        { error, type, userId, payload },
-        "WebSocket handler error"
-      );
-      connection.send(
-        JSON.stringify({ type: "error", message: "Server error" })
-      );
+
+      try {
+        const authUser = connection.authenticatedUser;
+        if (!authUser || !authUser.uid) {
+          connection.send(
+            JSON.stringify({
+              type: "error",
+              message: "User not authenticated",
+            })
+          );
+          return;
+        }
+
+        switch (type) {
+          case "create_room": {
+            createRoom(connection, authUser, payload, request);
+            break;
+          }
+
+          case "join_room": {
+            joinRoom(connection, authUser, payload, request);
+            break;
+          }
+
+          case "leave_room": {
+            leaveRoom(connection, authUser, payload, request);
+            break;
+          }
+
+          case "delete_room": {
+            deleteRoom(connection, type, authUser, payload, request);
+            break;
+          }
+
+          case "get_room_members": {
+            getRoomMembers(connection, type, authUser, payload, request);
+            break;
+          }
+
+          case "kick_member": {
+            kickMember(connection, type, authUser, payload, request);
+            break;
+          }
+
+          case "promote_member": {
+            promoteMember(connection, type, authUser, payload, request);
+            break;
+          }
+
+          case "send_message": {
+            sendMessage(connection, type, authUser, payload, request);
+            break;
+          }
+
+          case "get_messages": {
+            getMessages(connection, type, authUser, payload, request);
+            break;
+          }
+
+          case "get_more_messages": {
+            getMoreMessages(connection, type, authUser, payload, request);
+            break;
+          }
+
+          case "send_direct_message": {
+            sendDirectMessage(connection, type, authUser, payload, request);
+            break;
+          }
+
+          case "edit_message": {
+            editMessage(connection, type, authUser, payload, request);
+            break;
+          }
+
+          case "delete_message": {
+            deleteMessage(connection, type, authUser, payload, request);
+            break;
+          }
+
+          case "update_status": {
+            updateStatus(connection, type, authUser, payload, request);
+            break;
+          }
+
+          case "typing": {
+            typing(connection, type, authUser, payload, request);
+            break;
+          }
+
+          default:
+            connection.send(
+              JSON.stringify({
+                type: "error",
+                message: `Unknown message type: ${type}`,
+              })
+            );
+            break;
+        }
+      } catch (error) {
+        request.log.error(
+          { error, type, userId, payload },
+          "WebSocket handler error"
+        );
+        connection.send(
+          JSON.stringify({ type: "error", message: "Server error" })
+        );
+      }
     }
   });
 
@@ -2867,9 +2898,9 @@ export const websocketHandler = async (
     }
 
     // Step 5: Clean up Game Manager
-    if (userId) {
-      gameManager.handleDisconnect(userId);
-    }
+    // GameService handles its own connections via /ws endpoint and 'removeConnection'.
+    // If we want to notify it about chat disconnect, we can, but it might track separate WS.
+    // For now, removing the call as 'handleDisconnect' doesn't exist on GameService in the same way.
   });
 
   connection.on("error", (error) => {

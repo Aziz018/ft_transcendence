@@ -85,9 +85,7 @@ model User {
   receivedMessages  Message[] @relation("MessageReceiver")
   roomMembers       RoomMember[]
   
-  gamesAsPlayer1 Game[] @relation("Player1Games")
-  gamesAsPlayer2 Game[] @relation("Player2Games")
-  wonGames       Game[] @relation("WonGames")
+
 
   @@index([name, email])
 }
@@ -194,17 +192,101 @@ model Friendship {
   @@index([user2Id])
 }
 
-model Game {
-  id        String   @id @default(uuid())
-  player1Id String
-  player2Id String
-  score1    Int
-  score2    Int
-  winnerId  String?
-  duration  Int      @default(0)
-  createdAt DateTime @default(now())
+// Game-related enums and models
 
-  player1   User     @relation("Player1Games", fields: [player1Id], references: [id])
-  player2   User     @relation("Player2Games", fields: [player2Id], references: [id])
-  winner    User?    @relation("WonGames", fields: [winnerId], references: [id])
+enum GameType {
+  CLASSIC
+  TOURNAMENT
+  RANKED
+  CASUAL
+}
+
+enum GameStatus {
+  WAITING
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
+}
+
+/**
+ * Represents an individual game session between two players.
+ * Stores game state, scores, and timestamps for analytics.
+ */
+model GameSession {
+  id          String      @id @default(uuid())
+  gameType    GameType    @default(CLASSIC)
+  status      GameStatus  @default(WAITING)
+
+  player1Id   String?
+  player2Id   String?
+  winnerId    String?
+
+  player1Score Int       @default(0)
+  player2Score Int       @default(0)
+
+  player1Exp   Int?      // Final EXP earned
+  player2Exp   Int?      // Final EXP earned
+
+  durationMs   Int?      // Match duration in milliseconds
+
+  createdAt    DateTime  @default(now())
+  startedAt    DateTime?
+  completedAt  DateTime?
+
+  @@index([status, createdAt])
+  @@index([player1Id, player2Id])
+  @@index([winnerId])
+}
+
+/**
+ * Stores player statistics and analytics.
+ * Aggregates performance metrics across all games.
+ */
+model PlayerStats {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+
+  totalGames      Int      @default(0)
+  totalWins       Int      @default(0)
+  totalLosses     Int      @default(0)
+  totalDraws      Int      @default(0)
+
+  winStreak       Int      @default(0)
+  bestWinStreak   Int      @default(0)
+
+  totalExpEarned  Int      @default(0)
+  averageGameDuration Int  @default(0)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([totalWins, totalGames])
+}
+
+/**
+ * Stores historical game records for leaderboard and analytics.
+ * Optimized for quick querying of recent games and player performance.
+ */
+model GameHistory {
+  id            String   @id @default(uuid())
+  gameSessionId String   @unique
+  gameType      GameType
+
+  player1Id     String
+  player2Id     String
+  winnerId      String?
+
+  player1Name   String
+  player2Name   String
+
+  player1Score  Int
+  player2Score  Int
+
+  durationMs    Int
+  playedAt      DateTime @default(now())
+
+  @@index([playedAt])
+  @@index([player1Id, playedAt])
+  @@index([player2Id, playedAt])
+  @@index([winnerId, playedAt])
 }
