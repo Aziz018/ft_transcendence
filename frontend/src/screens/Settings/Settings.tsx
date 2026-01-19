@@ -44,6 +44,7 @@ const Settings = () => {
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [showTwoFactorModal, setShowTwoFactorModal] = useState(false);
   const [qrCode, setQrCode] = useState("");
+  const [otpCode, setOtpCode] = useState(""); // State for OTP input
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const fileInputRef = Fuego.useRef<HTMLInputElement>(null);
@@ -65,6 +66,7 @@ const Settings = () => {
       }
       wsService.connect();
       fetchUserProfile();
+      check2FAStatus();
     }
   }, []);
 
@@ -88,8 +90,7 @@ const Settings = () => {
         setOriginalUserName(data.name || "");
         setOriginalUserEmail(data.email || "");
         setUserAvatar(data.avatar || "");
-        // Check 2FA status from backend
-        check2FAStatus();
+        setUserAvatar(data.avatar || "");
       }
     } catch (error) {
       console.error("Failed to fetch profile:", error);
@@ -112,6 +113,9 @@ const Settings = () => {
       if (res.ok) {
         const data = await res.json();
         setTwoFactorEnabled(data.status);
+      } else {
+        console.error("Failed check 2FA status");
+        setTwoFactorEnabled(false);
       }
     } catch (error) {
       console.error("Failed to check 2FA status:", error);
@@ -133,14 +137,14 @@ const Settings = () => {
     setUserName(originalUserName);
     setUserEmail(originalUserEmail);
     setIsEditing(false);
-    
+
     // Force re-render by re-fetching if state update is batched/delayed
     // This is a fallback for the custom framework's state handling
     setTimeout(() => {
-        const nameInput = document.querySelector('input[type="text"][value]') as HTMLInputElement;
-        const emailInput = document.querySelector('input[type="email"][value]') as HTMLInputElement;
-        if (nameInput) nameInput.value = originalUserName;
-        if (emailInput) emailInput.value = originalUserEmail;
+      const nameInput = document.querySelector('input[type="text"][value]') as HTMLInputElement;
+      const emailInput = document.querySelector('input[type="email"][value]') as HTMLInputElement;
+      if (nameInput) nameInput.value = originalUserName;
+      if (emailInput) emailInput.value = originalUserEmail;
     }, 0);
   };
 
@@ -199,8 +203,8 @@ const Settings = () => {
       });
 
       if (!emailRes.ok) {
-         const error = await emailRes.json();
-         throw new Error(error.message || "Failed to update email");
+        const error = await emailRes.json();
+        throw new Error(error.message || "Failed to update email");
       }
 
       setIsEditing(false);
@@ -268,6 +272,29 @@ const Settings = () => {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      const backend =
+        (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
+        "/api";
+      const token = getToken();
+
+      await fetch(`${backend}/v1/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      });
+    } catch (e) {
+      console.warn("Logout request failed", e);
+    }
+
+    wsService.disconnect();
+    clearToken();
+    redirect("/login");
+  };
+
   const handleActivate2FA = async () => {
     if (twoFactorEnabled) {
       // Handle disable logic
@@ -316,38 +343,54 @@ const Settings = () => {
         if (data.url) {
           const qrCodeDataUrl = await QRCode.toDataURL(data.url);
           setQrCode(qrCodeDataUrl);
+          setOtpCode(""); // Reset OTP code
           setShowTwoFactorModal(true);
         }
       } else {
         console.error("Failed to fetch QR code");
+        alert("Failed to generate QR code. Please try again.");
       }
     } catch (error) {
       console.error("Error fetching QR code:", error);
+      alert("Error fetching QR code. Please try again.");
     }
   };
 
-  const handleLogout = async () => {
+  const handleVerify2FA = async () => {
+    if (!otpCode || otpCode.length !== 6) {
+      alert("Please enter a valid 6-digit code");
+      return;
+    }
+
     try {
-      const backend =
-        (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-        "/api";
+      const backend = (import.meta as any).env?.VITE_BACKEND_ORIGIN || "/api";
       const token = getToken();
 
-      await fetch(`${backend}/v1/auth/logout`, {
+      const res = await fetch(`${backend}/v1/totp/verify`, {
         method: "POST",
-        credentials: "include",
         headers: {
-          ...(token && { Authorization: `Bearer ${token}` }),
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
         },
+        body: JSON.stringify({ mfa_code: otpCode })
       });
-    } catch (e) {
-      console.warn("Logout request failed", e);
-    }
 
-    wsService.disconnect();
-    clearToken();
-    redirect("/login");
+      if (res.ok) {
+        setTwoFactorEnabled(true);
+        setShowTwoFactorModal(false);
+        alert("Two-Factor Authentication activated successfully! You will be logged out.");
+        await handleLogout();
+      } else {
+        const data = await res.json();
+        alert(data.message || "Invalid code. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error verifying 2FA:", error);
+      alert("Error verifying code. Please check your connection.");
+    }
   };
+
+
 
   if (!isAuthenticated) {
     return null;
@@ -387,23 +430,20 @@ const Settings = () => {
             <Link key={index} to={`/${item.path}`}>
               <div className="cursor-pointer flex items-center gap-3 px-3 py-2 w-full transition-all duration-150 hover:bg-white/5 rounded-lg">
                 <div
-                  className={`${
-                    item.active
-                      ? "bg-accent-green/20 border border-accent-green/50"
-                      : "bg-transparent border border-white/10"
-                  } rounded-full p-3 transition-all duration-150`}>
+                  className={`${item.active
+                    ? "bg-accent-green/20 border border-accent-green/50"
+                    : "bg-transparent border border-white/10"
+                    } rounded-full p-3 transition-all duration-150`}>
                   <img
                     src={item.icon}
                     alt={`${item.label} icon`}
-                    className={`w-[15px] ${
-                      item.active ? "opacity-100" : "opacity-30"
-                    } transition-opacity duration-150`}
+                    className={`w-[15px] ${item.active ? "opacity-100" : "opacity-30"
+                      } transition-opacity duration-150`}
                   />
                 </div>
                 <span
-                  className={`font-questrial font-normal text-base tracking-[0] leading-[15px] whitespace-nowrap ${
-                    item.active ? "text-light" : "text-light/30"
-                  } transition-colors duration-150`}>
+                  className={`font-questrial font-normal text-base tracking-[0] leading-[15px] whitespace-nowrap ${item.active ? "text-light" : "text-light/30"
+                    } transition-colors duration-150`}>
                   {item.label}
                 </span>
               </div>
@@ -558,11 +598,10 @@ const Settings = () => {
 
                 <button
                   onClick={handleActivate2FA}
-                  className={`px-6 py-3 rounded-lg font-questrial font-semibold transition-colors ${
-                    twoFactorEnabled
-                      ? "bg-red-500/20 text-red-500 border border-red-500/50 hover:bg-red-500/30"
-                      : "bg-accent-orange text-dark-950 hover:bg-accent-orange/90"
-                  }`}>
+                  className={`px-6 py-3 rounded-lg font-questrial font-semibold transition-colors ${twoFactorEnabled
+                    ? "bg-red-500/20 text-red-500 border border-red-500/50 hover:bg-red-500/30"
+                    : "bg-accent-orange text-dark-950 hover:bg-accent-orange/90"
+                    }`}>
                   {twoFactorEnabled ? "Disable 2FA" : "Activate 2FA"}
                 </button>
               </div>
@@ -592,6 +631,20 @@ const Settings = () => {
               )}
             </div>
 
+            <div className="mb-6">
+              <p className="font-questrial text-light/60 text-sm mb-2 text-center">
+                Enter the 6-digit code from your app
+              </p>
+              <input
+                type="text"
+                value={otpCode}
+                onChange={(e: any) => setOtpCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
+                placeholder="000000"
+                className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-light font-questrial text-center tracking-[0.5em] text-xl focus:outline-none focus:border-accent-green"
+                autoFocus
+              />
+            </div>
+
             <div className="flex gap-3">
               <button
                 onClick={() => setShowTwoFactorModal(false)}
@@ -599,12 +652,9 @@ const Settings = () => {
                 Cancel
               </button>
               <button
-                onClick={() => {
-                  setTwoFactorEnabled(true);
-                  setShowTwoFactorModal(false);
-                }}
+                onClick={handleVerify2FA}
                 className="flex-1 px-4 py-3 bg-accent-orange text-dark-950 rounded-lg font-questrial font-semibold hover:bg-accent-orange/90 transition-colors">
-                Done
+                Verify & Done
               </button>
             </div>
           </div>

@@ -9,6 +9,8 @@ import type UserModel from "../models/user.js";
 
 
 
+const PENDING_PREFIX = "PENDING_";
+
 /**
  * Custom error class for handling TOTP-related service errors.
  *
@@ -147,7 +149,11 @@ export default class TOTPService extends DataBaseWrapper {
             this.throwErr({ code: 400, message: `2fa is disabled for ${uid}` });
         }
 
-        return user!.secret!;
+        const secret = user!.secret!;
+        if (secret.startsWith(PENDING_PREFIX)) {
+            return secret.substring(PENDING_PREFIX.length);
+        }
+        return secret;
     }
 
     /**
@@ -163,7 +169,7 @@ export default class TOTPService extends DataBaseWrapper {
             this.throwErr({ code: 404, message: 'user not found' });
         }
 
-        return user!.secret !== null;
+        return user!.secret !== null && !user!.secret.startsWith(PENDING_PREFIX);
     }
 
     /**
@@ -180,10 +186,36 @@ export default class TOTPService extends DataBaseWrapper {
 
         const user: UserModel | null = await this.prisma.user.update({
             where: { id: uid },
-            data: { secret: this.fastify.service.totp.generateSecret() }
+            data: { secret: PENDING_PREFIX + this.fastify.service.totp.generateSecret() }
         });
 
         return user;
+    }
+
+    /**
+     * Activates 2FA for a user by removing the pending prefix from their secret.
+     *
+     * @param {string} uid - The user ID.
+     * @returns {Promise<UserModel | null>} The updated user object.
+     */
+    public async activate(uid: string): Promise<UserModel | null> {
+        const user = await this.prisma.user.findUnique({ where: { id: uid } });
+
+        if (!user || user.secret === null) {
+            this.throwErr({ code: 400, message: `2fa not initialized for ${uid}` });
+        }
+
+        if (!user!.secret!.startsWith(PENDING_PREFIX)) {
+            // Already active, just return user
+            return user;
+        }
+
+        const newSecret = user!.secret!.substring(PENDING_PREFIX.length);
+
+        return await this.prisma.user.update({
+            where: { id: uid },
+            data: { secret: newSecret }
+        });
     }
 
     /**

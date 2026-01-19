@@ -87,11 +87,26 @@ const LoginForm = () => {
       }
 
       // Handle specific error status codes
+      /// NOTE: @Ibnoukhalkanezakaria - this is fixed now!
+      ///       404 means the user is not found
+      ///       not page not found !!!
+      /// TODO: check the previouse commit
+      ///       clone, test and spot the difference
+      ///       -> e8f29b5786a900538ec4ba80c0dc789f6217994c
       if (res.status === 404) {
-        console.error("[Login] 404 - Endpoint not found");
-        console.error("[Login] Make sure backend is running on", backend);
-        console.error("[Login] Check that routes are registered in backend/src/app.ts");
-        setError(`Endpoint not found at ${loginUrl}. Is the backend running?`);
+        const contentType = res.headers.get("content-type") || "";
+        let errorMsg = "Endpoint not found. Is the backend running?";
+        if (contentType.includes("application/json")) {
+          try {
+            const errData = await res.json();
+            if (errData?.message === "not found!") {
+              setError("invalid_credentials");
+              setLoading(false);
+              return;
+            }
+          } catch (_) {}
+        }
+        setError(errorMsg);
         setLoading(false);
         return;
       }

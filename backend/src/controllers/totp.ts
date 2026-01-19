@@ -34,17 +34,17 @@ export const getOTPAuthUrlController = async (
   const user: UserModel | null = await req.server.service.user.fetchBy({
     id: req.user.uid,
   });
-  
+
   let userSecret: string;
   try {
-      userSecret = await req.server.service.totp.getUserSecret(req.user.uid);
+    userSecret = await req.server.service.totp.getUserSecret(req.user.uid);
   } catch (e: any) {
-      if (e.message && e.message.includes("2fa is disabled")) {
-          await req.server.service.totp.enable(req.user.uid);
-          userSecret = await req.server.service.totp.getUserSecret(req.user.uid);
-      } else {
-          throw e;
-      }
+    if (e.message && e.message.includes("2fa is disabled")) {
+      await req.server.service.totp.enable(req.user.uid);
+      userSecret = await req.server.service.totp.getUserSecret(req.user.uid);
+    } else {
+      throw e;
+    }
   }
 
   if (!user) {
@@ -79,31 +79,34 @@ export const OTPVerificationController = async (
       message: "invalid 2fa code 😡💢",
     });
   } else {
+    // Activate 2FA (remove pending prefix)
+    await req.server.service.totp.activate(req.user.uid);
+
     // Try to get token from cookies first, then Authorization header
     let ujwt = req.cookies["access_token"];
-    
+
     if (!ujwt && req.headers.authorization) {
-        const parts = req.headers.authorization.split(' ');
-        if (parts.length === 2 && parts[0] === 'Bearer') {
-            ujwt = parts[1];
-        }
+      const parts = req.headers.authorization.split(' ');
+      if (parts.length === 2 && parts[0] === 'Bearer') {
+        ujwt = parts[1];
+      }
     }
 
     if (ujwt) {
-        try {
-            const decoded = req.jwt.decode<{ exp?: number }>(ujwt);
-            if (decoded && decoded.exp) {
-                await prisma.blacklistedToken.create({
-                  data: {
-                    token: ujwt,
-                    expiresAt: new Date(decoded.exp * 1000),
-                  },
-                });
-            }
-        } catch (e) {
-            // Ignore token decoding/blacklisting errors if token is invalid
-            req.log.warn("Failed to blacklist old token during 2FA verification");
+      try {
+        const decoded = req.jwt.decode<{ exp?: number }>(ujwt);
+        if (decoded && decoded.exp) {
+          await prisma.blacklistedToken.create({
+            data: {
+              token: ujwt,
+              expiresAt: new Date(decoded.exp * 1000),
+            },
+          });
         }
+      } catch (e) {
+        // Ignore token decoding/blacklisting errors if token is invalid
+        req.log.warn("Failed to blacklist old token during 2FA verification");
+      }
     }
 
     const token = req.jwt.sign(

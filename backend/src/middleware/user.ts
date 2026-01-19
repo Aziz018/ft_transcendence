@@ -23,13 +23,15 @@ export const JWTAuthentication = async (
   req: FastifyRequest,
   rep: FastifyReply
 ): Promise<void> => {
-  let token = req.cookies.access_token;
+  let token: string | undefined;
+
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    token = authHeader.substring(7);
+  }
 
   if (!token) {
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith("Bearer ")) {
-      token = authHeader.substring(7);
-    }
+    token = req.cookies.access_token;
   }
 
   if (!token) {
@@ -57,15 +59,7 @@ export const JWTAuthentication = async (
    *       only and only if the mfa_required is set to true ??
    */
 
-  if (req.url.includes("/v1/totp/verify")) {
-    if (!decoded.mfa_required) {
-      return rep.code(401).send({
-        statusCode: 401,
-        error: "Unauthorized!",
-        message: "you are not supposed to be here, you are already verified!",
-      });
-    }
-  } else if (decoded.mfa_required) {
+  if (decoded.mfa_required && !req.url.includes("/v1/totp/verify")) {
     return rep.code(401).send({
       statusCode: 401,
       error: "Unauthorized!",
