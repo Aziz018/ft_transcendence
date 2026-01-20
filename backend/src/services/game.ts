@@ -42,7 +42,25 @@ export default class GameService extends DataBaseWrapper {
   private botIntervals = new Map<string, Timer>();
   private matchmakingInterval: Timer | null = null;
   private readyTimeouts = new Map<string, Timer>();
+  private readonly MATCHMAKING_TIMEOUT_MS = 60000; // 1 minute
   private readonly READY_TIMEOUT_MS = 30000; // 30 seconds to ready up
+
+  // XP Constants
+  private readonly WIN_XP = 100;
+  private readonly LOSS_XP = 20;
+  private readonly TIE_XP = 50;
+
+
+  // Game Physics Constants (Matched with Frontend)
+  private readonly GAME_WIDTH = 1150;
+  private readonly GAME_HEIGHT = 534;
+  private readonly PADDLE_HEIGHT = 144;
+  private readonly PADDLE_WIDTH = 20;
+  private readonly BALL_SIZE = 20;
+  private readonly BALL_SPEED = 5;
+  private readonly PADDLE_SPEED = 8;
+  private readonly FPS = 60;
+  private readonly FRAME_TIME = 1000 / 60;
 
   // Tournament system
   private tournaments = new Map<string, Tournament>();
@@ -64,13 +82,231 @@ export default class GameService extends DataBaseWrapper {
   }
 
   /**
+   * Normalize velocity vector to maintain constant speed
+   */
+  private normalizeVelocity(vx: number, vy: number): { vx: number, vy: number } {
+    const speed = Math.sqrt(vx * vx + vy * vy);
+    if (speed === 0) return { vx: this.BALL_SPEED, vy: 0 };
+    const scale = this.BALL_SPEED / speed;
+    return { vx: vx * scale, vy: vy * scale };
+  }
+
+  /**
+   * Calculates XP based on match result
+   */
+  private calculateXP(score1: number, score2: number): { p1Exp: number, p2Exp: number } {
+    if (score1 > score2) return { p1Exp: this.WIN_XP, p2Exp: this.LOSS_XP };
+    if (score2 > score1) return { p1Exp: this.LOSS_XP, p2Exp: this.WIN_XP };
+    return { p1Exp: this.TIE_XP, p2Exp: this.TIE_XP };
+  }
+
+  /**
+   * Starts the main game loop for a session
+   */
+  private startGameLoop(gameId: string): void {
+    const gameSession = this.gameSessions.get(gameId);
+    if (!gameSession) return;
+
+    // Initialize Physics State
+    gameSession.ballX = this.GAME_WIDTH / 2;
+    gameSession.ballY = this.GAME_HEIGHT / 2;
+    // Randomize start direction slightly
+    const startDirX = Math.random() > 0.5 ? 1 : -1;
+    const startDirY = (Math.random() * 2 - 1) * 0.5; // Random Y between -0.5 and 0.5
+    const vel = this.normalizeVelocity(startDirX * this.BALL_SPEED, startDirY * this.BALL_SPEED);
+
+    gameSession.ballVelX = vel.vx;
+    gameSession.ballVelY = vel.vy;
+
+    gameSession.leftPaddleY = (this.GAME_HEIGHT / 2) - (this.PADDLE_HEIGHT / 2);
+    gameSession.rightPaddleY = (this.GAME_HEIGHT / 2) - (this.PADDLE_HEIGHT / 2);
+    gameSession.leftScore = 0;
+    gameSession.rightScore = 0;
+    gameSession.lastUpdate = Date.now();
+
+    this.fastify.log.info(`🔄 Starting game loop for ${gameId}`);
+
+    // clear any existing loop
+    if (gameSession.gameLoopInterval) clearInterval(gameSession.gameLoopInterval);
+
+    gameSession.gameLoopInterval = setInterval(() => {
+      this.updateGame(gameId);
+    }, this.FRAME_TIME);
+  }
+
+  /**
+   * Updates game state (physics, collisions, scoring)
+   */
+  private updateGame(gameId: string): void {
+    const gameSession = this.gameSessions.get(gameId);
+    if (!gameSession || gameSession.status !== 'active') {
+      if (gameSession?.gameLoopInterval) clearInterval(gameSession.gameLoopInterval);
+      return;
+    }
+
+    // Positions
+    // Safety: Verify players are still connected
+    // Safety: Verify players are still connected
+    const p1 = gameSession.players[0];
+    const p2 = gameSession.players[1];
+
+    if (p1 && !this.activeConnections.has(p1)) {
+      this.fastify.log.warn(`⚠️ Player ${p1} disconnected but game ${gameId} loop active. Force ending.`);
+      if (gameSession.gameLoopInterval) clearInterval(gameSession.gameLoopInterval);
+      this.handlePlayerDisconnect(p1);
+      return;
+    }
+    if (p2 && !this.activeConnections.has(p2) && !p2.startsWith('bot-')) {
+      this.fastify.log.warn(`⚠️ Player ${p2} disconnected but game ${gameId} loop active. Force ending.`);
+      if (gameSession.gameLoopInterval) clearInterval(gameSession.gameLoopInterval);
+      this.handlePlayerDisconnect(p2);
+      return;
+    }
+
+    let bx = gameSession.ballX || this.GAME_WIDTH / 2;
+    let by = gameSession.ballY || this.GAME_HEIGHT / 2;
+    let bvx = gameSession.ballVelX || this.BALL_SPEED;
+    let bvy = gameSession.ballVelY || 0;
+
+    // Update Position
+    bx += bvx;
+    by += bvy;
+
+    // Wall Collisions (Top/Bottom)
+    if (by <= 0 || by + this.BALL_SIZE >= this.GAME_HEIGHT) {
+      bvy = -bvy;
+      // Clamp positions to avoid sticking
+      if (by <= 0) by = 1;
+      if (by + this.BALL_SIZE >= this.GAME_HEIGHT) by = this.GAME_HEIGHT - this.BALL_SIZE - 1;
+    }
+
+    // Paddle Collisions
+    // Left Paddle
+    const padLeftY = gameSession.leftPaddleY || 0;
+    if (bx <= this.PADDLE_WIDTH &&
+      by + this.BALL_SIZE >= padLeftY &&
+      by <= padLeftY + this.PADDLE_HEIGHT) {
+
+      bx = this.PADDLE_WIDTH + 1; // Push out
+      bvx = -bvx;
+
+      // Add "English" effect based on hit position
+      const hitPos = (by + this.BALL_SIZE / 2) - (padLeftY + this.PADDLE_HEIGHT / 2);
+      bvy += hitPos * 0.05;
+
+      // Normalize to keep speed constant
+      const v = this.normalizeVelocity(bvx, bvy);
+      bvx = v.vx;
+      bvy = v.vy;
+    }
+
+    // Right Paddle
+    const padRightY = gameSession.rightPaddleY || 0;
+    if (bx + this.BALL_SIZE >= this.GAME_WIDTH - this.PADDLE_WIDTH &&
+      by + this.BALL_SIZE >= padRightY &&
+      by <= padRightY + this.PADDLE_HEIGHT) {
+
+      bx = this.GAME_WIDTH - this.PADDLE_WIDTH - this.BALL_SIZE - 1; // Push out
+      bvx = -bvx;
+
+      const hitPos = (by + this.BALL_SIZE / 2) - (padRightY + this.PADDLE_HEIGHT / 2);
+      bvy += hitPos * 0.05;
+
+      const v = this.normalizeVelocity(bvx, bvy);
+      bvx = v.vx;
+      bvy = v.vy;
+    }
+
+    // Scoring
+    let scoreChanged = false;
+    if (bx < 0) {
+      gameSession.rightScore = (gameSession.rightScore || 0) + 1;
+      scoreChanged = true;
+      this.resetBall(gameSession, 'right');
+    } else if (bx > this.GAME_WIDTH) {
+      gameSession.leftScore = (gameSession.leftScore || 0) + 1;
+      scoreChanged = true;
+      this.resetBall(gameSession, 'left');
+    } else {
+      // Update state if no score
+      gameSession.ballX = bx;
+      gameSession.ballY = by;
+      gameSession.ballVelX = bvx;
+      gameSession.ballVelY = bvy;
+    }
+
+    // Broadcast State
+    this.broadcastGameState(gameSession);
+
+    // Check win condition (optional, standard is time-based but maybe score limit too?)
+    // For now, relies on time.
+  }
+
+  private resetBall(session: GameSession, winner: 'left' | 'right'): void {
+    session.ballX = this.GAME_WIDTH / 2;
+    session.ballY = this.GAME_HEIGHT / 2;
+
+    // Serve to the loser
+    const dirX = winner === 'left' ? 1 : -1;
+    const dirY = (Math.random() * 2 - 1) * 0.5;
+
+    const v = this.normalizeVelocity(dirX * this.BALL_SPEED, dirY * this.BALL_SPEED);
+    session.ballVelX = v.vx;
+    session.ballVelY = v.vy;
+  }
+
+  private broadcastGameState(session: GameSession): void {
+    this.notifyPlayers(session.players, {
+      type: 'game_state',
+      payload: {
+        ballX: session.ballX,
+        ballY: session.ballY,
+        leftPaddleY: session.leftPaddleY,
+        rightPaddleY: session.rightPaddleY,
+        leftScore: session.leftScore,
+        rightScore: session.rightScore,
+        timeLeft: Math.max(0, Math.floor(((session.matchStartTime || 0) + session.MATCH_DURATION_MS - Date.now()) / 1000)),
+        status: session.status
+      }
+    });
+  }
+
+  /**
    * Processes a player movement action in an active game.
    */
   async handlePlayerMove(userId: string, payload: PlayerMoveInput): Promise<{ success: boolean; message: string }> {
     this.fastify.log.debug(payload, `🎮 ${userId.startsWith('bot-') ? '🤖 Bot' : 'Player'} ${userId} moved`);
 
     const gameSession = this.gameSessions.get(payload.gameId);
-    if (gameSession) {
+    if (gameSession && gameSession.status === 'active') {
+      // Identify player side
+      const isPlayer1 = userId === gameSession.players[0];
+
+      if (isPlayer1) {
+        // Update left paddle
+        if (payload.position !== undefined) {
+          // Absolute positioning (mouse/touch) - clamp update
+          gameSession.leftPaddleY = Math.max(0, Math.min(this.GAME_HEIGHT - this.PADDLE_HEIGHT, payload.position));
+        } else if (payload.direction) {
+          // Relative positioning (keyboard)
+          const dy = payload.direction === 'up' ? -this.PADDLE_SPEED : (payload.direction === 'down' ? this.PADDLE_SPEED : 0);
+          const currentY = gameSession.leftPaddleY || (this.GAME_HEIGHT - this.PADDLE_HEIGHT) / 2;
+          gameSession.leftPaddleY = Math.max(0, Math.min(this.GAME_HEIGHT - this.PADDLE_HEIGHT, currentY + dy));
+        }
+      } else {
+        // Update right paddle
+        if (payload.position !== undefined) {
+          gameSession.rightPaddleY = Math.max(0, Math.min(this.GAME_HEIGHT - this.PADDLE_HEIGHT, payload.position));
+        } else if (payload.direction) {
+          const dy = payload.direction === 'up' ? -this.PADDLE_SPEED : (payload.direction === 'down' ? this.PADDLE_SPEED : 0);
+          const currentY = gameSession.rightPaddleY || (this.GAME_HEIGHT - this.PADDLE_HEIGHT) / 2;
+          gameSession.rightPaddleY = Math.max(0, Math.min(this.GAME_HEIGHT - this.PADDLE_HEIGHT, currentY + dy));
+        }
+      }
+
+      // Notify opponent (optional, or rely on game loop broadcast)
+      // Since we have a game loop, we don't strictly need to notify immediately if the loop is fast enough.
+      // But keeping the event-based notification for interpolation on client side is good.
       gameSession.players.forEach((playerId: string) => {
         if (playerId !== userId) {
           this.notifyPlayer(playerId, {
@@ -118,10 +354,17 @@ export default class GameService extends DataBaseWrapper {
    */
   async handleMatchEnd(initiatorId: string, payload: MatchEndInput): Promise<any> {
     this.fastify.log.info(payload, `⏰ Match end signal from ${initiatorId}`);
+    this.fastify.log.debug(`[DEBUG] handleMatchEnd payload: ${JSON.stringify(payload)}`);
 
     const gameSession = this.gameSessions.get(payload.gameId);
     if (!gameSession) {
       return { success: false, message: 'Game session not found' };
+    }
+
+    // Idempotency check
+    if (gameSession.status === 'completed') {
+      this.fastify.log.warn(`⚠️ Game ${payload.gameId} already completed. Ignoring match end.`);
+      return { success: false, message: 'Game already completed' };
     }
 
     const { player1Id, player2Id, player1Exp, player2Exp } = payload;
@@ -233,7 +476,8 @@ export default class GameService extends DataBaseWrapper {
       }
 
       this.fastify.log.info(`🎮 All players ready! Starting game ${payload.gameId}`);
-      this.startGame(payload.gameId);
+      this.fastify.log.info(`🎮 All players ready! Starting game ${payload.gameId}`);
+      await this.startGame(payload.gameId);
     }
 
     return { success: true, message: 'Player ready' };
@@ -454,7 +698,7 @@ export default class GameService extends DataBaseWrapper {
   /**
    * Initiates an active game session when all players are ready.
    */
-  private startGame(gameId: string): void {
+  private async startGame(gameId: string): Promise<void> {
     const gameSession = this.gameSessions.get(gameId);
     if (!gameSession) return;
 
@@ -472,18 +716,85 @@ export default class GameService extends DataBaseWrapper {
       }
     }
 
-    this.notifyPlayers(gameSession.players, {
-      type: 'game_start',
-      payload: {
-        gameId,
-        startedAt: gameSession.startedAt,
-        matchDurationMs: gameSession.MATCH_DURATION_MS
+    // Fetch player details (names, avatars)
+    const playerDetails = new Map<string, { name: string; avatar: string }>();
+
+    try {
+      const users = await this.prisma.user.findMany({
+        where: {
+          id: { in: gameSession.players }
+        },
+        select: {
+          id: true,
+          name: true,
+          avatar: true
+        }
+      });
+
+      users.forEach(u => {
+        playerDetails.set(u.id, {
+          name: u.name,
+          avatar: u.avatar || ""
+        });
+      });
+    } catch (err) {
+      this.fastify.log.error({ err }, "Failed to fetch player details for game start");
+    }
+
+    // Notify players individually with side AND opponent info
+    gameSession.players.forEach((playerId, index) => {
+      let opponentName = "Opponent";
+      let opponentAvatar = "";
+
+      const opponentId = gameSession.players.find(id => id !== playerId);
+      if (opponentId) {
+        if (opponentId.startsWith('bot-')) {
+          opponentName = "Bot";
+          opponentAvatar = ""; // Use default or specific bot avatar
+        } else {
+          const details = playerDetails.get(opponentId);
+          if (details) {
+            opponentName = details.name;
+            opponentAvatar = details.avatar;
+          }
+        }
       }
+
+      this.notifyPlayer(playerId, {
+        type: 'game_start',
+        payload: {
+          gameId,
+          startedAt: gameSession.startedAt,
+          matchDurationMs: gameSession.MATCH_DURATION_MS,
+          side: index === 0 ? 'left' : 'right',
+          players: gameSession.players,
+          opponentName,
+          opponentAvatar
+        }
+      });
     });
 
     gameSession.matchTimer = setTimeout(() => {
       this.fastify.log.info(`⏰ 1-minute timer expired for game ${gameId}`);
+      if (gameSession.gameLoopInterval) clearInterval(gameSession.gameLoopInterval);
+
+      const p1Score = gameSession.leftScore || 0;
+      const p2Score = gameSession.rightScore || 0;
+      const { p1Exp, p2Exp } = this.calculateXP(p1Score, p2Score);
+
+      this.handleMatchEnd(gameId, {
+        gameId,
+        player1Id: gameSession.players[0] || 'unknown',
+        player1Exp: p1Exp,
+        player2Id: gameSession.players[1] || 'unknown',
+        player2Exp: p2Exp,
+        matchDurationMs: gameSession.MATCH_DURATION_MS,
+        timestamp: Date.now()
+      });
     }, gameSession.MATCH_DURATION_MS);
+
+    // Start physics loop
+    this.startGameLoop(gameId);
   }
 
   /**
@@ -508,8 +819,8 @@ export default class GameService extends DataBaseWrapper {
           player1Id,
           player2Id,
           winnerId,
-          player1Score: gameSession.finalScores?.[player1Id] || 0,
-          player2Score: gameSession.finalScores?.[player2Id] || 0,
+          player1Score: gameSession.leftScore || 0,
+          player2Score: gameSession.rightScore || 0,
           player1Exp: gameSession.finalScores?.[player1Id] || 0,
           player2Exp: gameSession.finalScores?.[player2Id] || 0,
           durationMs: gameSession.matchDurationMs || 60000,
@@ -519,8 +830,11 @@ export default class GameService extends DataBaseWrapper {
       });
 
       // Update player stats
-      await this.updatePlayerStats(player1Id, winnerId === player1Id, gameSession.matchDurationMs);
-      await this.updatePlayerStats(player2Id, winnerId === player2Id, gameSession.matchDurationMs);
+      const p1XP = gameSession.finalScores?.[player1Id] || 0;
+      const p2XP = gameSession.finalScores?.[player2Id] || 0;
+
+      await this.updatePlayerStats(player1Id, winnerId === player1Id, gameSession.matchDurationMs, p1XP);
+      await this.updatePlayerStats(player2Id, winnerId === player2Id, gameSession.matchDurationMs, p2XP);
 
       this.fastify.log.info('✅ Game result saved to database');
     } catch (error) {
@@ -531,8 +845,14 @@ export default class GameService extends DataBaseWrapper {
   /**
    * Updates player statistics after a game.
    */
-  private async updatePlayerStats(userId: string, isWin: boolean, durationMs: number): Promise<void> {
+  /**
+   * Updates player statistics after a game.
+   */
+  private async updatePlayerStats(userId: string, isWin: boolean, durationMs: number, xpEarned: number): Promise<void> {
     try {
+      this.fastify.log.info(`📊 Updating stats for ${userId}: Win=${isWin}, XP=${xpEarned}`);
+
+      // 1. Update PlayerStats
       const stats = await this.prisma.playerStats.findUnique({ where: { userId } });
 
       if (!stats) {
@@ -544,6 +864,7 @@ export default class GameService extends DataBaseWrapper {
             totalLosses: isWin ? 0 : 1,
             winStreak: isWin ? 1 : 0,
             bestWinStreak: isWin ? 1 : 0,
+            totalExpEarned: xpEarned, // Correct field name
             averageGameDuration: durationMs,
           }
         });
@@ -557,12 +878,22 @@ export default class GameService extends DataBaseWrapper {
             totalLosses: !isWin ? { increment: 1 } : undefined,
             winStreak: newWinStreak,
             bestWinStreak: Math.max(stats.bestWinStreak, newWinStreak),
-            averageGameDuration: Math.floor(
-              (stats.averageGameDuration * stats.totalGames + durationMs) / (stats.totalGames + 1)
-            ),
+            totalExpEarned: { increment: xpEarned }, // Correct field name
+            averageGameDuration: Math.floor((stats.averageGameDuration * stats.totalGames + durationMs) / (stats.totalGames + 1))
           }
         });
       }
+
+      // 2. Update User Profile XP (What drives the UI level bar)
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          xp: { increment: xpEarned }
+        }
+      });
+
+      this.fastify.log.info(`✅ Stats and XP updated for ${userId}`);
+
     } catch (error) {
       this.fastify.log.error({ error }, 'Failed to update player stats');
     }
@@ -655,17 +986,74 @@ export default class GameService extends DataBaseWrapper {
 
     for (const [gameId, gameSession] of this.gameSessions.entries()) {
       if (gameSession.players.includes(userId)) {
-        this.fastify.log.debug(`Ending game ${gameId} due to player disconnect`);
+        this.fastify.log.debug(`[DEBUG] Found active game ${gameId} for disconnected player ${userId}`);
 
-        if (gameSession.botInterval) {
-          clearInterval(gameSession.botInterval);
+        // Idempotency check: If game is already completed, do nothing
+        if (gameSession.status === 'completed') {
+          this.fastify.log.warn(`⚠️ Game ${gameId} already completed. Ignoring disconnect cleanup for ${userId}.`);
+          return;
         }
+
+        if (gameSession.gameLoopInterval) {
+          this.fastify.log.debug(`[DEBUG] Clearing Interval: ${gameSession.gameLoopInterval}`);
+          clearInterval(gameSession.gameLoopInterval);
+          gameSession.gameLoopInterval = null;
+        }
+
+        if (gameSession.botInterval) clearInterval(gameSession.botInterval);
         if (this.botIntervals.has(gameId)) {
           clearInterval(this.botIntervals.get(gameId));
           this.botIntervals.delete(gameId);
         }
+        // Notify opponent they won
+        const opponentId = gameSession.players.find((id: string) => id !== userId);
+        if (opponentId) {
+          this.fastify.log.debug(`[DEBUG] Notifying opponent ${opponentId} of win`);
 
-        this.gameSessions.delete(gameId);
+          // Determine scores: Disconnected player gets 0, Opponent gets 999
+          const player1Id = gameSession.players[0] || '';
+          const player2Id = gameSession.players[1] || '';
+          let p1Exp = 0;
+          let p2Exp = 0;
+
+          if (userId === player1Id) {
+            this.fastify.log.debug(`[DEBUG] Host (P1) disconnected. Awarding win to Guest (P2).`);
+            p1Exp = this.LOSS_XP;
+            p2Exp = this.WIN_XP;
+          } else {
+            this.fastify.log.debug(`[DEBUG] Guest (P2) disconnected. Awarding win to Host (P1).`);
+            p1Exp = this.WIN_XP;
+            p2Exp = this.LOSS_XP;
+          }
+
+          this.fastify.log.debug(`[DEBUG] Calling handleMatchEnd with P1:${p1Exp} vs P2:${p2Exp}`);
+
+          // Safety: Manually notify opponent immediately to prevent UI freeze
+          this.notifyPlayer(opponentId, {
+            type: 'match_ended',
+            payload: {
+              gameId,
+              winnerId: opponentId,
+              isTie: false,
+              finalScores: { [player1Id]: p1Exp, [player2Id]: p2Exp },
+              matchDurationMs: Date.now() - (gameSession.matchStartTime || 0)
+            }
+          });
+
+          this.handleMatchEnd(userId, {
+            gameId,
+            player1Id,
+            player1Exp: p1Exp,
+            player2Id,
+            player2Exp: p2Exp,
+            matchDurationMs: Date.now() - (gameSession.matchStartTime || 0),
+            timestamp: Date.now()
+          });
+        } else {
+          // If no opponent (e.g. both disconnected?), just delete
+          this.gameSessions.delete(gameId);
+        }
+
         break;
       }
     }
@@ -712,7 +1100,20 @@ export default class GameService extends DataBaseWrapper {
    * Sends a message to multiple players.
    */
   notifyPlayers(userIds: string[], message: any): void {
-    userIds.forEach(userId => this.notifyPlayer(userId, message));
+    userIds.forEach(userId => {
+      // Create a shallow copy of the message to avoid mutating the original for other players
+      const personalizedMessage = { ...message };
+
+      // If this is a match_ended event, inject the specific XP earned by this player
+      if (message.type === 'match_ended' && message.payload?.finalScores) {
+        personalizedMessage.payload = {
+          ...message.payload,
+          xpEarned: message.payload.finalScores[userId] || 0
+        };
+      }
+
+      this.notifyPlayer(userId, personalizedMessage);
+    });
   }
 
   // ============================================================================

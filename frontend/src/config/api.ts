@@ -11,7 +11,8 @@ const WS_URL = (import.meta as any).env?.VITE_WS_URL || "ws://localhost:3000/v1/
 export const API_CONFIG = {
   BASE_URL: API_URL,
   WS_URL: WS_URL,
-  
+  GAME_WS_URL: (import.meta as any).env?.VITE_GAME_WS_URL || "ws://localhost:3000/v1/game/ws",
+
   // API Endpoints
   AUTH: {
     LOGIN: `${API_URL}/v1/user/login`,
@@ -20,7 +21,7 @@ export const API_CONFIG = {
     REFRESH: `${API_URL}/v1/user/refresh`,
     VERIFY_2FA: `${API_URL}/v1/totp/verify`,
   },
-  
+
   USER: {
     PROFILE: `${API_URL}/v1/user/profile`,
     SEARCH: `${API_URL}/v1/user/search`,
@@ -28,25 +29,25 @@ export const API_CONFIG = {
     UPLOAD_AVATAR: `${API_URL}/v1/user/avatar`,
     GET_USER: (id: string) => `${API_URL}/v1/user/${id}`,
   },
-  
+
   CHAT: {
     WS: WS_URL,
     MESSAGES: `${API_URL}/v1/chat/messages`,
     ROOMS: `${API_URL}/v1/chat/rooms`,
   },
-  
+
   FRIEND: {
     LIST: `${API_URL}/v1/friend/list`,
     ADD: `${API_URL}/v1/friend/add`,
     REMOVE: `${API_URL}/v1/friend/remove`,
     REQUESTS: `${API_URL}/v1/friend/requests`,
   },
-  
+
   GAME: {
     START: `${API_URL}/v1/game/start`,
     MATCH: (id: string) => `${API_URL}/v1/game/match/${id}`,
   },
-  
+
   MESSAGE: {
     SEND: `${API_URL}/v1/message/send`,
     GET: `${API_URL}/v1/message/get`,

@@ -66,6 +66,18 @@ export interface GameSession {
   MATCH_DURATION_MS: number;
   readyPlayers?: Set<string>;
   botInterval?: any;
+  gameLoopInterval?: any;
+
+  // Physics State
+  ballX?: number;
+  ballY?: number;
+  ballVelX?: number;
+  ballVelY?: number;
+  leftPaddleY?: number;
+  rightPaddleY?: number;
+  leftScore?: number;
+  rightScore?: number;
+  lastUpdate?: number;
 }
 
 export interface GameStats {
