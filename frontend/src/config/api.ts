@@ -46,6 +46,7 @@ export const API_CONFIG = {
   GAME: {
     START: `${API_URL}/v1/game/start`,
     MATCH: (id: string) => `${API_URL}/v1/game/match/${id}`,
+    HISTORY: (id: string) => `${API_URL}/v1/game/history/${id}`,
   },
 
   MESSAGE: {

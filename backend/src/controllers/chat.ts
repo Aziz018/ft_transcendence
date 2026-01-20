@@ -258,6 +258,71 @@ interface RoomRateLimit {
 
 const roomRateLimits: Map<string, Map<string, RoomRateLimit>> = new Map();
 
+// Track Pending Game Invites
+const inviteTimeouts = new Map<string, NodeJS.Timeout>(); // key: `${senderId}:${targetId}`
+
+const startInviteTimeout = (senderId: string, targetId: string, messageId: string, request: FastifyRequest) => {
+  const key = `${senderId}:${targetId}`;
+
+  // Clear existing if any
+  if (inviteTimeouts.has(key)) {
+    clearTimeout(inviteTimeouts.get(key));
+  }
+
+  const timeout = setTimeout(async () => {
+    inviteTimeouts.delete(key);
+    request.log.info(`⏳ Game invite from ${senderId} to ${targetId} expired. Starting Bot Game.`);
+
+    try {
+      // 1. Start Bot Game for Sender
+      await request.server.service.game.createBotGame(senderId);
+
+      // 2. Update Message and Notify Sender & Target
+      const expiredContent = `🎮 Game Invitation: Let's play Pong! (Expired)`;
+
+      await prisma.message.update({
+        where: { id: messageId },
+        data: { content: expiredContent }
+      });
+
+      const notify = (uid: string) => {
+        const conns = userConnections.get(uid);
+        if (conns) {
+          conns.forEach(ws => {
+            if (ws.readyState === WS.OPEN) {
+              ws.send(JSON.stringify({
+                type: "receive_message",
+                payload: {
+                  id: messageId,
+                  content: expiredContent,
+                  senderId,
+                  receiverId: targetId,
+                  createdAt: new Date().toISOString()
+                }
+              }));
+              if (uid === senderId) {
+                ws.send(JSON.stringify({
+                  type: "game_start_instruction", // Redirect sender to Bot Game
+                  payload: { opponentIsBot: true }
+                }));
+              }
+            }
+          });
+        }
+      };
+
+      notify(senderId);
+      notify(targetId);
+
+    } catch (e) {
+      console.error("Failed to handle invite timeout:", e);
+    }
+  }, 15000); // 15 Seconds
+
+  inviteTimeouts.set(key, timeout);
+};
+
+
 // Cleanup function for room rate limits
 const cleanupExpiredRoomRateLimits = () => {
   const now = Date.now();
@@ -2564,6 +2629,9 @@ export const websocketHandler = async (
             include: { sender: true }
           });
 
+          // Start Timeout
+          startInviteTimeout(connection.authenticatedUser.uid, payload.targetId, savedMessage.id, request);
+
           // 2. Notify Target via WS (Notification + Chat Message)
           // We need to find the specific connection(s) for the target user.
           // We can use the 'userConnections' map which we have access to in this scope.
@@ -2620,7 +2688,51 @@ export const websocketHandler = async (
           console.error("Failed to handle game invite:", e);
         }
       }
+      else if (type === "accept_game_invite" && payload && payload.inviterId) {
+        const senderId = payload.inviterId;
+        const targetId = connection.authenticatedUser.uid;
+        const key = `${senderId}:${targetId}`;
+
+        // Clear Timeout
+        if (inviteTimeouts.has(key)) {
+          clearTimeout(inviteTimeouts.get(key));
+          inviteTimeouts.delete(key);
+        }
+
+        try {
+          // Create Private Game
+          await request.server.service.game.createPrivateGame(senderId, targetId);
+
+          // Broadcast Redirect Instruction to BOTH players
+          [senderId, targetId].forEach(uid => {
+            const conns = userConnections.get(uid);
+            if (conns) {
+              conns.forEach(ws => {
+                if (ws.readyState === WS.OPEN) {
+                  ws.send(JSON.stringify({
+                    type: "game_start_instruction",
+                    payload: { matchId: "new" }
+                  }));
+                }
+              });
+            }
+          });
+
+        } catch (e) {
+          console.error("Failed to accept invite:", e);
+        }
+      }
       else if (type === "reject_game" && payload && payload.targetId) {
+        // Clear Timeout
+        // Note: Payload targetId is the SENDER of the invite (who we are rejecting)
+        // Correct? Frontend sends { targetId: message.senderId }
+        const key = `${payload.targetId}:${connection.authenticatedUser.uid}`;
+
+        if (inviteTimeouts.has(key)) {
+          clearTimeout(inviteTimeouts.get(key));
+          inviteTimeouts.delete(key);
+        }
+
         const targetConns = userConnections.get(payload.targetId);
         if (targetConns) {
           targetConns.forEach(client => {

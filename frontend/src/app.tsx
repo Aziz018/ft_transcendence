@@ -11,6 +11,7 @@ import Settings from "./screens/Settings/Settings";
 import Leaderboard from "./screens/Leaderboard/Leaderboard";
 import Tournament from "./screens/Tournament/Tournament";
 import SecondaryLogin from "./screens/SecondaryLogin/SecondaryLogin";
+import Career from "./screens/Career/Career";
 import ToastContainer from "./components/Toast/ToastContainer";
 
 const App: FunctionComponent = () => {
@@ -25,6 +26,7 @@ const App: FunctionComponent = () => {
         <Router path="/chat" Component={Chat} protectedRoute={true} />
         <Router path="/settings" Component={Settings} protectedRoute={true} />
         <Router path="/leaderboard" Component={Leaderboard} protectedRoute={true} />
+        <Router path="/career" Component={Career} protectedRoute={true} />
         <Router path="/tournament" Component={Tournament} protectedRoute={true} />
         <Router path="/secondary-login" Component={SecondaryLogin} />
       </main>

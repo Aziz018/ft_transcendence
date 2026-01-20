@@ -245,7 +245,10 @@ export const Game = () => {
       cleanupState();
       cleanupOver();
       gameWsService.leaveGame();
-      gameWsService.disconnect();
+      // Delay disconnect to ensure 'leave_game' message is sent
+      setTimeout(() => {
+        gameWsService.disconnect();
+      }, 500);
     };
   }, [isAuthenticated]);
 

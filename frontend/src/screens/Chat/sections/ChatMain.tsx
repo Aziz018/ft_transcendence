@@ -48,6 +48,8 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  // Track locally disabled invites (clicked accept/reject)
+  const [disabledInvites, setDisabledInvites] = useState<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const messageContainerRef = useRef<HTMLDivElement>(null);
@@ -286,9 +288,14 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
           message.receiverId === selectedFriend.id)
       ) {
         setMessages((prev) => {
-          // Check if message already exists (by ID)
-          if (prev.some((msg) => msg.id === message.id)) {
-            return prev;
+          // Check if message already exists (by ID) - If so, UPDATE it (e.g. for expiration)
+          const existingIndex = prev.findIndex((msg) => msg.id === message.id);
+          if (existingIndex !== -1) {
+            const newMessages = [...prev];
+            // Only update if content changed/different? Or just overwrite.
+            // Overwriting is safer for updates like "Expired"
+            newMessages[existingIndex] = message;
+            return newMessages;
           }
 
           // Check if we have a temp message that matches this one (by content and timestamp proximity)
@@ -323,6 +330,11 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
 
     const unsubscribe = chatService.onMessage(handleNewMessage);
 
+    // Listen for game start instruction (for Inviter)
+    const unsubscribeGame = wsService.on('game_start_instruction', () => {
+      redirect('/game');
+    });
+
     const token = getToken();
     if (token) {
       chatService.connectWebSocket(token);
@@ -330,6 +342,7 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
 
     return () => {
       unsubscribe();
+      unsubscribeGame();
     };
   }, [selectedFriend, loadMessages, handleNewMessage]);
 
@@ -492,36 +505,43 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
                     className={`flex flex-col ${isMe ? "items-end" : "items-start"
                       }`}>
                     <div
-                      className={`max-w-[70%] rounded-2xl p-4 ${isMe
+                      className={`w-fit max-w-full break-words rounded-2xl p-4 ${isMe
                         ? "bg-blue-600 text-white rounded-tr-none"
                         : "bg-white/10 text-white rounded-tl-none"
                         }`}>
                       {message.content.includes("🎮 Game Invitation") ? (
                         <div className="flex flex-col gap-3">
                           <p className="font-[Questrial] text-sm">{message.content}</p>
-                          {!isMe && (
+
+                          {!isMe && !message.content.includes("(Expired)") && (
                             <div className="flex gap-2">
                               <button
                                 onClick={() => {
-                                  // Join game via WS and redirect
-                                  // wsService.joinGame({ mode: "standard" }); // Or specific ID if available
-                                  // redirect("/game");
+                                  setDisabledInvites(prev => new Set(prev).add(message.id));
+                                  wsService.sendGameAction("accept_game_invite", { inviterId: message.senderId });
+                                  // Redirect happens via game_start_instruction or manually
                                 }}
-                                className="bg-accent-green text-dark-950 px-4 py-2 rounded-lg font-bold hover:bg-accent-green/90 transition-colors text-sm">
+                                disabled={disabledInvites.has(message.id)}
+                                className="bg-accent-green text-dark-950 px-4 py-2 rounded-lg font-bold hover:bg-accent-green/90 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed">
                                 Accept & Play
                               </button>
                               <button
                                 onClick={() => {
+                                  setDisabledInvites(prev => new Set(prev).add(message.id));
                                   wsService.sendGameAction("reject_game", { targetId: message.senderId });
                                 }}
-                                className="bg-red-500/20 text-red-400 border border-red-500/50 px-4 py-2 rounded-lg font-bold hover:bg-red-500/30 transition-colors text-sm">
+                                disabled={disabledInvites.has(message.id)}
+                                className="bg-red-500/20 text-red-400 border border-red-500/50 px-4 py-2 rounded-lg font-bold hover:bg-red-500/30 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed">
                                 Reject
                               </button>
                             </div>
                           )}
+                          {message.content.includes("(Expired)") && (
+                            <span className="text-xs text-white/40 italic">Invitation Expired</span>
+                          )}
                         </div>
                       ) : (
-                        <p className="font-[Questrial] text-sm leading-relaxed">
+                        <p className="font-[Questrial] text-sm leading-relaxed whitespace-pre-wrap break-words">
                           {message.content}
                         </p>
                       )}

@@ -24,6 +24,7 @@ const navigationItems = [
   { label: "Chat", active: false, icon: ChatIcon },
   { label: "Tournament", active: false, icon: TournamentIcon },
   { label: "Leaderboard", active: false, icon: LeaderboardIcon },
+  { label: "Career", active: false, icon: LeaderboardIcon },
   { label: "Settings", active: false, icon: SettingsIcon },
 ];
 
@@ -176,26 +177,23 @@ const Dashboard = () => {
               key={index}
               className="cursor-pointer flex items-center gap-3 px -3 py -2 w-full max-w-full transition-colors duration-150">
               <div
-                className={`${
-                  item.active
+                className={`${item.active
                     ? "bg-transparent border border-white/10 border-solid rounded-full p-3"
                     : "bg-transparent border border-white/10 border-solid rounded-full p-3"
-                }`}>
+                  }`}>
                 <img
                   src={item.icon}
                   alt={`${item.label} icon`}
-                  className={`${
-                    item.active
+                  className={`${item.active
                       ? "w-[15px] opacity-100"
                       : "w-[15px] text-red-500 opacity-30"
-                  }`}
+                    }`}
                 />
               </div>
               <Link to={item.label.toLowerCase()}>
                 <span
-                  className={`[font-family:'Questrial',Helvetica] font-normal text-base tracking-[0] leading-[15px] whitespace-nowrap ${
-                    item.active ? "text-white" : "text-white/30"
-                  }`}>
+                  className={`[font-family:'Questrial',Helvetica] font-normal text-base tracking-[0] leading-[15px] whitespace-nowrap ${item.active ? "text-white" : "text-white/30"
+                    }`}>
                   {item.label}
                 </span>
               </Link>

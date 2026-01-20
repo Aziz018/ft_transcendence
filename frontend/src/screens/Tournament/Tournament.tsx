@@ -31,6 +31,7 @@ const navigationItems = [
     icon: LeaderboardIcon,
     path: "leaderboard",
   },
+  { label: "Career", active: false, icon: LeaderboardIcon, path: "career" },
   { label: "Settings", active: false, icon: SettingsIcon, path: "settings" },
 ];
 

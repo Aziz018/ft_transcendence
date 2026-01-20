@@ -107,6 +107,7 @@ class ChatService {
     console.log("[ChatService] Received message:", data);
 
     switch (data.type) {
+      case "receive_message":
       case "direct_message":
       case "message":
         // Ensure the payload matches the Message interface
@@ -114,11 +115,11 @@ class ChatService {
         // If sender info is missing but senderId is present, we might need to fetch it or rely on frontend to handle it
         // The backend now sends senderName and senderAvatar in payload, so we can construct sender object if needed
         if (!message.sender && message.senderName) {
-            message.sender = {
-                id: message.senderId,
-                name: message.senderName,
-                avatar: message.senderAvatar
-            };
+          message.sender = {
+            id: message.senderId,
+            name: message.senderName,
+            avatar: message.senderAvatar
+          };
         }
         this.notifyMessageListeners(message);
         break;

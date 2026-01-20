@@ -102,6 +102,30 @@ class WebSocketService {
       case "notification":
         this.handleNotification(message.payload);
         break;
+      case "game_start_instruction":
+        // Redirect to /game
+        // We can't import Router 'redirect' easily here if it causes circles, or just use window.location
+        // But better to dispatch an event or use a callback registered by the app.
+        // For now, let's try window.location or import { redirect } if safe.
+        // window.location.href = '/game'; // Hard reload is safe but maybe not SPA-friendly.
+
+        // Better: Dispatch a custom event that App.tsx or Router can listen to?
+        // Or just import redirect.
+        window.history.pushState({}, '', '/game');
+        // We need to trigger a render update.
+        // Let's use a simpler approach: Just like notification, we might rely on the App listening.
+        // But wait, ChatMain.tsx manual redirect works.
+        // The Inviter is just sitting in Chat.
+
+        // Let's create a listener in ChatMain or Global?
+        const instructionListener = this.messageListeners.get("game_start_instruction");
+        if (instructionListener) instructionListener(message.payload);
+
+        // Provide a default fallback if no listener (e.g. forced nav)
+        if (!instructionListener) {
+          window.location.href = '/game';
+        }
+        break;
       default:
 
         const listener = this.messageListeners.get(message.type);

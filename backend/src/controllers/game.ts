@@ -71,6 +71,10 @@ export const gameWebSocketHandler = async (connection: ExtendedWS, request: Fast
           }));
           break;
 
+        case 'leave_game':
+          await gameService.handleLeaveGame(userId);
+          break;
+
         case 'matchmaking':
           const matchmakingResult = await gameService.handleMatchmaking(userId, parsedMessage.payload);
           connection.send(JSON.stringify({
@@ -194,18 +198,50 @@ export const getRecentGamesController = async (
     const limit = parseInt(request.query.limit || '10');
     const gameService = request.server.service.game;
 
+    // 1. Fetch History
     const games = await gameService.prisma.gameHistory.findMany({
       where: {
-        OR: [
-          { player1Id: userId },
-          { player2Id: userId }
-        ]
+        OR: [{ player1Id: userId }, { player2Id: userId }]
       },
       orderBy: { playedAt: 'desc' },
       take: limit
     });
 
-    reply.send({ games });
+    // 2. Fetch related data (XP from Session, Avatars from User)
+    const sessionIds = games.map(g => g.gameSessionId);
+    const userIds = Array.from(new Set(games.flatMap(g => [g.player1Id, g.player2Id])));
+
+    const [sessions, users] = await Promise.all([
+      gameService.prisma.gameSession.findMany({
+        where: { id: { in: sessionIds } },
+        select: { id: true, player1Exp: true, player2Exp: true }
+      }),
+      gameService.prisma.user.findMany({
+        where: { id: { in: userIds } },
+        select: { id: true, avatar: true }
+      })
+    ]);
+
+    // 3. Create lookups for faster merging
+    const sessionMap = new Map(sessions.map(s => [s.id, s]));
+    const userMap = new Map(users.map(u => [u.id, u]));
+
+    // 4. Merge Data
+    const enrichedGames = games.map(game => {
+      const session = sessionMap.get(game.gameSessionId);
+      const p1User = userMap.get(game.player1Id);
+      const p2User = userMap.get(game.player2Id);
+
+      return {
+        ...game,
+        player1Exp: session?.player1Exp || 0,
+        player2Exp: session?.player2Exp || 0,
+        player1Avatar: p1User?.avatar || "",
+        player2Avatar: p2User?.avatar || ""
+      };
+    });
+
+    reply.send({ games: enrichedGames });
   } catch (error) {
     request.log.error({ error }, 'Failed to get recent games');
     reply.code(500).send({ error: 'Internal Server Error' });

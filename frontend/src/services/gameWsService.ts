@@ -116,8 +116,8 @@ class GameWebSocketService {
 
     leaveGame() {
         this.send({
-            type: "matchmaking",
-            payload: { action: 'leave', gameType: 'classic' }
+            type: "leave_game",
+            payload: {}
         });
     }
 

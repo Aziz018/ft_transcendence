@@ -552,6 +552,142 @@ export default class GameService extends DataBaseWrapper {
   }
 
   /**
+   * explicit command to leave an active game (forfeit).
+   */
+  async handleLeaveGame(userId: string): Promise<{ success: boolean; message: string }> {
+    this.fastify.log.info(`🏳️ Player ${userId} explicitly left the game (forfeit)`);
+
+    // Check if player is in any active or starting game logic
+    // We can reuse removeConnection logic partially, or just find the game and kill it.
+
+    let foundGame = false;
+
+    for (const [gameId, session] of this.gameSessions.entries()) {
+      if (session.players.includes(userId)) {
+        foundGame = true;
+        if (session.status === 'active' || session.status === 'starting') {
+          // Treat explicit leave exactly like a disconnect (Win for opponent)
+          // But ensures it happens immediately even if socket is still "open" for a split second.
+          this.handlePlayerDisconnect(userId);
+        }
+        break; // User can only be in one game
+      }
+    }
+
+    // Also remove from matchmaking just in case
+    this.leaveMatchmaking(userId);
+
+    return { success: true, message: foundGame ? 'Forfeited game' : 'Left matchmaking' };
+  }
+
+  /**
+   * Creates a game against a bot for the specified user.
+   */
+  async createBotGame(userId: string): Promise<string> {
+    const botId = `bot-${Date.now()}`;
+    const gameType = 'classic'; // Default to classic for now
+    this.fastify.log.info(`🤖 Creating bot game for ${userId} vs ${botId}`);
+
+    const gameSession = await this.createGameSession(userId, botId, gameType);
+
+    // Auto-start the game logic since it's a bot game
+    // createGameSession already handles notification and bot auto-ready
+    // But we might need to trigger the start if the user is already ready? 
+    // Actually createGameSession sends 'game_matched'. The client will connect via WS.
+
+    return gameSession.id;
+  }
+
+  /**
+   * Creates a private game between two specific players (invites).
+   */
+  async createPrivateGame(player1Id: string, player2Id: string): Promise<string> {
+    const gameId = crypto.randomUUID();
+
+    // Create session
+    const gameSession: GameSession = {
+      id: gameId,
+      players: [player1Id, player2Id], // p1=Host?
+      gameType: 'classic',
+      status: 'starting',
+      createdAt: new Date(),
+      isBotGame: false,
+      expScores: { [player1Id]: 0, [player2Id]: 0 },
+      MATCH_DURATION_MS: 180000,
+      matchTimer: null,
+      matchStartTime: null,
+      readyPlayers: new Set()
+    };
+
+    this.gameSessions.set(gameId, gameSession);
+    this.activeGames.set(player1Id, gameId);
+    this.activeGames.set(player2Id, gameId);
+
+    // Look up names/avatars 
+    const p1Stats = await this.prisma.user.findUnique({ where: { id: player1Id }, select: { name: true, avatar: true } });
+    const p2Stats = await this.prisma.user.findUnique({ where: { id: player2Id }, select: { name: true, avatar: true } });
+
+    const playerNames: any = {};
+    if (p1Stats) playerNames[player1Id] = p1Stats.name;
+    if (p2Stats) playerNames[player2Id] = p2Stats.name;
+
+    const playerAvatars: any = {};
+    if (p1Stats) playerAvatars[player1Id] = p1Stats.avatar;
+    if (p2Stats) playerAvatars[player2Id] = p2Stats.avatar;
+
+    // Notify Players
+    // We reuse 'game_matched' so frontend behaves correctly
+    const payloadP1 = {
+      type: 'game_matched',
+      id: gameId,
+      opponentId: player2Id,
+      opponentName: p2Stats?.name || 'Opponent',
+      opponentAvatar: p2Stats?.avatar || '',
+      yourPlayerId: player1Id,
+      side: 'left'
+    };
+
+    const payloadP2 = {
+      type: 'game_matched',
+      id: gameId,
+      opponentId: player1Id,
+      opponentName: p1Stats?.name || 'Opponent',
+      opponentAvatar: p1Stats?.avatar || '',
+      yourPlayerId: player2Id,
+      side: 'right'
+    };
+
+    // We need to notify via GameSocket if they are connected
+    // But they might not be on GameSocket yet if they are in Chat.
+    // However, the frontend flow is: "Accept" -> Redirect to /game -> Connect GameSocket -> "matchmaking" or "game_ready"?
+    // If they redirect, they will connect to GameSocket.
+    // If we create the game here BEFORE they connect, we need to handle their connection.
+    // "handleGameJoin" or "handleGameReady"?
+
+    // Ideally:
+    // 1. Chat sends "accept".
+    // 2. Backend creates game.
+    // 3. Backend tells Chat "Okay, go to /game".
+    // 4. Frontend goes to /game.
+    // 5. Frontend connects to GameSocket.
+    // 6. GameSocket sees user is in `activeGames`, so it RECONNECTS them automatically? 
+    //    Or they send "join_game"?
+
+    // In `handleGameJoin` (which is what usually happens?), let's see.
+    // Or `handleMatchmaking`?
+
+    // Let's rely on stored activeGames.
+
+    // Notify via Chat Socket? Or assume they will connect?
+    // Let's just create it and let them join.
+
+    // BUT we need to notify them to GO to the game. 
+    // This method returns gameId. ChatController can use it.
+
+    return gameId;
+  }
+
+  /**
    * Attempts to match players in the queue or assign bots.
    */
   private async tryMatchPlayers(gameType: string): Promise<void> {
@@ -841,7 +977,8 @@ export default class GameService extends DataBaseWrapper {
       }
 
       // Create game session in database
-      await this.prisma.gameSession.create({
+      // Create game session in database
+      const savedSession = await this.prisma.gameSession.create({
         data: {
           gameType: gameSession.gameType.toUpperCase(),
           status: 'COMPLETED',
@@ -857,6 +994,33 @@ export default class GameService extends DataBaseWrapper {
           completedAt: gameSession.endedAt
         }
       });
+
+      // Create GameHistory record (for leaderboard/history display)
+      try {
+        const [p1, p2] = await Promise.all([
+          this.prisma.user.findUnique({ where: { id: player1Id }, select: { name: true } }),
+          this.prisma.user.findUnique({ where: { id: player2Id }, select: { name: true } })
+        ]);
+
+        await this.prisma.gameHistory.create({
+          data: {
+            gameSessionId: savedSession.id,
+            gameType: savedSession.gameType, // Enum matches
+            player1Id,
+            player2Id,
+            winnerId,
+            player1Name: p1?.name || "Unknown",
+            player2Name: p2?.name || "Unknown",
+            player1Score: savedSession.player1Score,
+            player2Score: savedSession.player2Score,
+            durationMs: savedSession.durationMs || 0,
+            playedAt: savedSession.completedAt || new Date()
+          }
+        });
+        this.fastify.log.info('✅ GameHistory record created');
+      } catch (historyError) {
+        this.fastify.log.error({ error: historyError }, 'Failed to create GameHistory record');
+      }
 
       // Update player stats
       const p1XP = gameSession.finalScores?.[player1Id] || 0;
@@ -1017,47 +1181,62 @@ export default class GameService extends DataBaseWrapper {
       if (gameSession.players.includes(userId)) {
         this.fastify.log.debug(`[DEBUG] Found active game ${gameId} for disconnected player ${userId}`);
 
-        // Idempotency check: If game is already completed, do nothing
         if (gameSession.status === 'completed') {
-          this.fastify.log.warn(`⚠️ Game ${gameId} already completed. Ignoring disconnect cleanup for ${userId}.`);
+          this.fastify.log.warn(`⚠️ Game ${gameId} already completed. Resending match_end to ensure opponent is notified.`);
+
+          // Redundant safety: Ensure opponent gets the message even if we think it's over
+          const player1Id = gameSession.players[0] || 'unknown';
+          const player2Id = gameSession.players[1] || 'unknown';
+          const isP1 = player1Id === userId;
+          const opponentId = isP1 ? player2Id : player1Id;
+
+          if (opponentId !== 'unknown') {
+            this.notifyPlayer(opponentId, {
+              type: 'match_ended',
+              payload: {
+                gameId,
+                winnerId: opponentId,
+                isTie: false,
+                finalScores: { [player1Id]: (isP1 ? this.LOSS_XP : this.WIN_XP), [player2Id]: (isP1 ? this.WIN_XP : this.LOSS_XP) },
+                matchDurationMs: Date.now() - (gameSession.matchStartTime || 0)
+              }
+            });
+          }
           return;
         }
 
+        this.fastify.log.info(`🛑 Force ending game ${gameId} because ${userId} disconnected.`);
+
+        // Clear intervals
         if (gameSession.gameLoopInterval) {
-          this.fastify.log.debug(`[DEBUG] Clearing Interval: ${gameSession.gameLoopInterval}`);
           clearInterval(gameSession.gameLoopInterval);
           gameSession.gameLoopInterval = null;
         }
-
-        if (gameSession.botInterval) clearInterval(gameSession.botInterval);
-        if (this.botIntervals.has(gameId)) {
-          clearInterval(this.botIntervals.get(gameId));
-          this.botIntervals.delete(gameId);
+        if (gameSession.botInterval) {
+          clearInterval(gameSession.botInterval);
+          gameSession.botInterval = null;
         }
-        // Notify opponent they won
-        const opponentId = gameSession.players.find((id: string) => id !== userId);
-        if (opponentId) {
-          this.fastify.log.debug(`[DEBUG] Notifying opponent ${opponentId} of win`);
+        if (gameSession.matchTimer) {
+          clearTimeout(gameSession.matchTimer);
+          gameSession.matchTimer = null;
+        }
 
-          // Determine scores: Disconnected player gets 0, Opponent gets 999
-          const player1Id = gameSession.players[0] || '';
-          const player2Id = gameSession.players[1] || '';
-          let p1Exp = 0;
-          let p2Exp = 0;
+        // Determine IDs
+        const player1Id = gameSession.players[0] || 'unknown';
+        const player2Id = gameSession.players[1] || 'unknown';
+        const isP1 = player1Id === userId;
+        const opponentId = isP1 ? player2Id : player1Id;
 
-          if (userId === player1Id) {
-            this.fastify.log.debug(`[DEBUG] Host (P1) disconnected. Awarding win to Guest (P2).`);
-            p1Exp = this.LOSS_XP;
-            p2Exp = this.WIN_XP;
-          } else {
-            this.fastify.log.debug(`[DEBUG] Guest (P2) disconnected. Awarding win to Host (P1).`);
-            p1Exp = this.WIN_XP;
-            p2Exp = this.LOSS_XP;
-          }
+        // Scores
+        const p1Score = gameSession.leftScore || 0;
+        const p2Score = gameSession.rightScore || 0; // Not used for XP calculation here, but for records
 
-          this.fastify.log.debug(`[DEBUG] Calling handleMatchEnd with P1:${p1Exp} vs P2:${p2Exp}`);
+        // Assign XP: Disconnector gets LOSS, Opponent gets WIN
+        const p1Exp = isP1 ? this.LOSS_XP : this.WIN_XP;
+        const p2Exp = isP1 ? this.WIN_XP : this.LOSS_XP;
 
-          // Safety: Manually notify opponent immediately to prevent UI freeze
+        // Notify Opponent
+        if (opponentId !== 'unknown') {
           this.notifyPlayer(opponentId, {
             type: 'match_ended',
             payload: {
@@ -1068,25 +1247,25 @@ export default class GameService extends DataBaseWrapper {
               matchDurationMs: Date.now() - (gameSession.matchStartTime || 0)
             }
           });
-
-          this.handleMatchEnd(userId, {
-            gameId,
-            player1Id,
-            player1Exp: p1Exp,
-            player2Id,
-            player2Exp: p2Exp,
-            matchDurationMs: Date.now() - (gameSession.matchStartTime || 0),
-            timestamp: Date.now()
-          });
-        } else {
-          // If no opponent (e.g. both disconnected?), just delete
-          this.gameSessions.delete(gameId);
         }
 
+        // End Match Logic
+        this.handleMatchEnd(userId, {
+          gameId,
+          player1Id,
+          player1Exp: p1Exp,
+          player2Id,
+          player2Exp: p2Exp,
+          matchDurationMs: Date.now() - (gameSession.matchStartTime || 0),
+          timestamp: Date.now()
+        });
+
+        // Break after handling the game
         break;
       }
     }
   }
+
 
   /**
    * Retrieves the Game ID for a given player ID if they are in an active session.
