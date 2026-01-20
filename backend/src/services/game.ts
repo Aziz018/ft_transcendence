@@ -84,10 +84,10 @@ export default class GameService extends DataBaseWrapper {
   /**
    * Normalize velocity vector to maintain constant speed
    */
-  private normalizeVelocity(vx: number, vy: number): { vx: number, vy: number } {
+  private normalizeVelocity(vx: number, vy: number, targetSpeed: number): { vx: number, vy: number } {
     const speed = Math.sqrt(vx * vx + vy * vy);
-    if (speed === 0) return { vx: this.BALL_SPEED, vy: 0 };
-    const scale = this.BALL_SPEED / speed;
+    if (speed === 0) return { vx: targetSpeed, vy: 0 };
+    const scale = targetSpeed / speed;
     return { vx: vx * scale, vy: vy * scale };
   }
 
@@ -110,10 +110,14 @@ export default class GameService extends DataBaseWrapper {
     // Initialize Physics State
     gameSession.ballX = this.GAME_WIDTH / 2;
     gameSession.ballY = this.GAME_HEIGHT / 2;
+
+    // Initialize Speed
+    gameSession.currentBallSpeed = this.BALL_SPEED;
+
     // Randomize start direction slightly
     const startDirX = Math.random() > 0.5 ? 1 : -1;
     const startDirY = (Math.random() * 2 - 1) * 0.5; // Random Y between -0.5 and 0.5
-    const vel = this.normalizeVelocity(startDirX * this.BALL_SPEED, startDirY * this.BALL_SPEED);
+    const vel = this.normalizeVelocity(startDirX * this.BALL_SPEED, startDirY * this.BALL_SPEED, gameSession.currentBallSpeed);
 
     gameSession.ballVelX = vel.vx;
     gameSession.ballVelY = vel.vy;
@@ -194,8 +198,11 @@ export default class GameService extends DataBaseWrapper {
       const hitPos = (by + this.BALL_SIZE / 2) - (padLeftY + this.PADDLE_HEIGHT / 2);
       bvy += hitPos * 0.05;
 
+      // Increase Speed on Hit (5%)
+      gameSession.currentBallSpeed = (gameSession.currentBallSpeed || this.BALL_SPEED) * 1.05;
+
       // Normalize to keep speed constant
-      const v = this.normalizeVelocity(bvx, bvy);
+      const v = this.normalizeVelocity(bvx, bvy, gameSession.currentBallSpeed);
       bvx = v.vx;
       bvy = v.vy;
     }
@@ -212,7 +219,10 @@ export default class GameService extends DataBaseWrapper {
       const hitPos = (by + this.BALL_SIZE / 2) - (padRightY + this.PADDLE_HEIGHT / 2);
       bvy += hitPos * 0.05;
 
-      const v = this.normalizeVelocity(bvx, bvy);
+      // Increase Speed on Hit (5%)
+      gameSession.currentBallSpeed = (gameSession.currentBallSpeed || this.BALL_SPEED) * 1.05;
+
+      const v = this.normalizeVelocity(bvx, bvy, gameSession.currentBallSpeed);
       bvx = v.vx;
       bvy = v.vy;
     }
@@ -250,7 +260,10 @@ export default class GameService extends DataBaseWrapper {
     const dirX = winner === 'left' ? 1 : -1;
     const dirY = (Math.random() * 2 - 1) * 0.5;
 
-    const v = this.normalizeVelocity(dirX * this.BALL_SPEED, dirY * this.BALL_SPEED);
+    // Reset Speed
+    session.currentBallSpeed = this.BALL_SPEED;
+
+    const v = this.normalizeVelocity(dirX * this.BALL_SPEED, dirY * this.BALL_SPEED, session.currentBallSpeed);
     session.ballVelX = v.vx;
     session.ballVelY = v.vy;
   }
@@ -290,7 +303,7 @@ export default class GameService extends DataBaseWrapper {
         } else if (payload.direction) {
           // Relative positioning (keyboard)
           const dy = payload.direction === 'up' ? -this.PADDLE_SPEED : (payload.direction === 'down' ? this.PADDLE_SPEED : 0);
-          const currentY = gameSession.leftPaddleY || (this.GAME_HEIGHT - this.PADDLE_HEIGHT) / 2;
+          const currentY = gameSession.leftPaddleY ?? (this.GAME_HEIGHT - this.PADDLE_HEIGHT) / 2;
           gameSession.leftPaddleY = Math.max(0, Math.min(this.GAME_HEIGHT - this.PADDLE_HEIGHT, currentY + dy));
         }
       } else {
@@ -299,7 +312,7 @@ export default class GameService extends DataBaseWrapper {
           gameSession.rightPaddleY = Math.max(0, Math.min(this.GAME_HEIGHT - this.PADDLE_HEIGHT, payload.position));
         } else if (payload.direction) {
           const dy = payload.direction === 'up' ? -this.PADDLE_SPEED : (payload.direction === 'down' ? this.PADDLE_SPEED : 0);
-          const currentY = gameSession.rightPaddleY || (this.GAME_HEIGHT - this.PADDLE_HEIGHT) / 2;
+          const currentY = gameSession.rightPaddleY ?? (this.GAME_HEIGHT - this.PADDLE_HEIGHT) / 2;
           gameSession.rightPaddleY = Math.max(0, Math.min(this.GAME_HEIGHT - this.PADDLE_HEIGHT, currentY + dy));
         }
       }
@@ -669,27 +682,43 @@ export default class GameService extends DataBaseWrapper {
    * Starts autonomous behavior for a Pong bot opponent.
    */
   private startBotBehavior(gameSession: GameSession, botId: string): void {
-    this.fastify.log.debug(`Starting Pong bot behavior for bot ${botId} in game ${gameSession.id}`);
+    this.fastify.log.debug(`Starting Smart Pong Bot behavior for bot ${botId} in game ${gameSession.id}`);
 
-    const pongDirections = ['up', 'down'] as const;
+    const UPDATE_RATE = 16; // Update roughly 60 times a second matches game loop
+    const DEADZONE = 10; // Pixels of tolerance to prevent jitter
 
     const botInterval = setInterval(() => {
-      if (!this.gameSessions.has(gameSession.id)) {
+      // Cleanup if game doesn't exist or is finished
+      if (!this.gameSessions.has(gameSession.id) || gameSession.status === 'completed') {
         clearInterval(botInterval);
         this.botIntervals.delete(gameSession.id);
         return;
       }
 
-      const moveDirection = pongDirections[Math.random() > 0.5 ? 0 : 1];
-      const moveMessage = {
-        gameId: gameSession.id,
-        direction: moveDirection,
-        timestamp: Date.now()
-      };
+      // Determine bot paddle position
+      const isP1 = gameSession.players[0] === botId;
+      const myPaddleY = isP1 ? gameSession.leftPaddleY : gameSession.rightPaddleY;
+      const paddleCenter = (myPaddleY || 0) + this.PADDLE_HEIGHT / 2;
+      const ballY = gameSession.ballY || this.GAME_HEIGHT / 2;
 
-      this.fastify.log.debug(`🤖 Pong Bot ${botId} moving ${moveDirection}`);
-      this.handlePlayerMove(botId, moveMessage);
-    }, 1500);
+      // Smart tracking logic
+      let direction: 'up' | 'down' | null = null;
+
+      if (ballY < paddleCenter - DEADZONE) {
+        direction = 'up';
+      } else if (ballY > paddleCenter + DEADZONE) {
+        direction = 'down';
+      }
+
+      if (direction) {
+        // Send move command
+        this.handlePlayerMove(botId, {
+          gameId: gameSession.id,
+          direction,
+          timestamp: Date.now()
+        });
+      }
+    }, UPDATE_RATE);
 
     gameSession.botInterval = botInterval;
     this.botIntervals.set(gameSession.id, botInterval);

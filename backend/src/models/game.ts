@@ -78,6 +78,7 @@ export interface GameSession {
   leftScore?: number;
   rightScore?: number;
   lastUpdate?: number;
+  currentBallSpeed?: number;
 }
 
 export interface GameStats {
