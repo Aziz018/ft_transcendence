@@ -4,6 +4,8 @@ import { useEffect } from "../../library/hooks/useEffect";
 import { Link, redirect } from "../../library/Router/Router";
 import { getToken, clearToken, decodeTokenPayload } from "../../lib/auth";
 import { wsService } from "../../services/wsService";
+import { fetchWithAuth } from "../../lib/fetch";
+import { API_CONFIG } from "../../config/api";
 import TopRightBlurEffect from "../../components/ui/BlurEffect/TopRightBlurEffect";
 
 import DashboardIcon from "../../assets/dd.svg";
@@ -71,18 +73,7 @@ const Tournament = () => {
   const fetchTournaments = async () => {
     setIsLoading(true);
     try {
-      const backend =
-        (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-        "/api";
-      const token = getToken();
-
-      const res = await fetch(`${backend}/v1/tournament`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
+      const res = await fetchWithAuth(`${API_CONFIG.BASE_URL}/v1/tournament`);
 
       if (!res.ok) {
         throw new Error("Failed to fetch tournaments");
@@ -101,15 +92,8 @@ const Tournament = () => {
 
   const handleJoinTournament = async (tournamentId: string) => {
     try {
-      const backend = (import.meta as any).env?.VITE_BACKEND_ORIGIN || "/api";
-      const token = getToken();
-
-      const res = await fetch(`${backend}/v1/tournament/${tournamentId}/join`, {
+      const res = await fetchWithAuth(`${API_CONFIG.BASE_URL}/v1/tournament/${tournamentId}/join`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
       });
 
       if (res.ok) {
@@ -126,17 +110,8 @@ const Tournament = () => {
     if (!newTournamentName.trim()) return;
 
     try {
-      const backend =
-        (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-        "/api";
-      const token = getToken();
-
-      const res = await fetch(`${backend}/v1/tournament`, {
+      const res = await fetchWithAuth(`${API_CONFIG.BASE_URL}/v1/tournament`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({
           name: newTournamentName,
           maxPlayers: 8, // Default or from UI if added
@@ -158,17 +133,9 @@ const Tournament = () => {
 
   const handleLogout = async () => {
     try {
-      const backend =
-        (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-        "/api";
-      const token = getToken();
-
-      await fetch(`${backend}/v1/auth/logout`, {
+      await fetchWithAuth(API_CONFIG.AUTH.LOGOUT, {
         method: "POST",
         credentials: "include",
-        headers: {
-          ...(token && { Authorization: `Bearer ${token}` }),
-        },
       });
     } catch (e) {
       console.warn("Logout request failed", e);

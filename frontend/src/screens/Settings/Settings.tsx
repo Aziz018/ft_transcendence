@@ -5,6 +5,8 @@ import { Link, redirect } from "../../library/Router/Router";
 import { getToken, clearToken, decodeTokenPayload } from "../../lib/auth";
 import { wsService } from "../../services/wsService";
 import TopRightBlurEffect from "../../components/ui/BlurEffect/TopRightBlurEffect";
+import { fetchWithAuth } from "../../lib/fetch";
+import { API_CONFIG } from "../../config/api";
 import QRCode from "qrcode";
 
 import DashboardIcon from "../../assets/dd.svg";
@@ -73,16 +75,7 @@ const Settings = () => {
 
   const fetchUserProfile = async () => {
     try {
-      const backend =
-        (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-        "/api";
-      const token = getToken();
-
-      const res = await fetch(`${backend}/v1/user/profile`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const res = await fetchWithAuth(API_CONFIG.USER.PROFILE);
 
       if (res.ok) {
         const data = await res.json();
@@ -100,16 +93,7 @@ const Settings = () => {
 
   const check2FAStatus = async () => {
     try {
-      const backend =
-        (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-        "/api";
-      const token = getToken();
-
-      const res = await fetch(`${backend}/v1/totp/status`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const res = await fetchWithAuth(`${API_CONFIG.BASE_URL}/v1/totp/status`);
 
       if (res.ok) {
         const data = await res.json();
@@ -167,16 +151,10 @@ const Settings = () => {
     }
 
     try {
-      const backend =
-        (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-        "/api";
-      const token = getToken();
-
       // Update Name
-      const nameRes = await fetch(`${backend}/v1/user/profile`, {
+      const nameRes = await fetchWithAuth(`${API_CONFIG.BASE_URL}/v1/user/profile`, {
         method: "PUT",
         headers: {
-          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -191,10 +169,10 @@ const Settings = () => {
       }
 
       // Update Email (if changed)
-      const emailRes = await fetch(`${backend}/v1/user/profile`, {
+      // Update Email (if changed)
+      const emailRes = await fetchWithAuth(`${API_CONFIG.BASE_URL}/v1/user/profile`, {
         method: "PUT",
         headers: {
-          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -241,19 +219,11 @@ const Settings = () => {
     setIsUploadingAvatar(true);
 
     try {
-      const backend =
-        (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-        "/api";
-      const token = getToken();
-
       const formData = new FormData();
       formData.append("avatar", file);
 
-      const res = await fetch(`${backend}/v1/user/avatar`, {
+      const res = await fetchWithAuth(`${API_CONFIG.BASE_URL}/v1/user/avatar`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
         body: formData,
       });
 
@@ -275,17 +245,9 @@ const Settings = () => {
 
   const handleLogout = async () => {
     try {
-      const backend =
-        (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-        "/api";
-      const token = getToken();
-
-      await fetch(`${backend}/v1/auth/logout`, {
+      await fetchWithAuth(API_CONFIG.AUTH.LOGOUT, {
         method: "POST",
         credentials: "include",
-        headers: {
-          ...(token && { Authorization: `Bearer ${token}` }),
-        },
       });
     } catch (e) {
       console.warn("Logout request failed", e);
@@ -303,16 +265,8 @@ const Settings = () => {
       if (!confirmed) return;
 
       try {
-        const backend =
-          (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-          "/api";
-        const token = getToken();
-
-        const res = await fetch(`${backend}/v1/totp/disable`, {
+        const res = await fetchWithAuth(`${API_CONFIG.BASE_URL}/v1/totp/disable`, {
           method: "PUT",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
         });
 
         if (res.ok) {
@@ -328,16 +282,7 @@ const Settings = () => {
     }
 
     try {
-      const backend =
-        (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-        "/api";
-      const token = getToken();
-
-      const res = await fetch(`${backend}/v1/totp/qr-code`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const res = await fetchWithAuth(`${API_CONFIG.BASE_URL}/v1/totp/qr-code`);
 
       if (res.ok) {
         const data = await res.json();
@@ -364,13 +309,9 @@ const Settings = () => {
     }
 
     try {
-      const backend = (import.meta as any).env?.VITE_BACKEND_ORIGIN || "/api";
-      const token = getToken();
-
-      const res = await fetch(`${backend}/v1/totp/verify`, {
+      const res = await fetchWithAuth(`${API_CONFIG.BASE_URL}/v1/totp/verify`, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json"
         },
         body: JSON.stringify({ mfa_code: otpCode })

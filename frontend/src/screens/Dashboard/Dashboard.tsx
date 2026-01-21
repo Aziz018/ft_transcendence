@@ -1,3 +1,4 @@
+import { fetchWithAuth } from "../../lib/fetch";
 import Fuego from "../../index";
 import Logo from "../../assets/secondLogo.svg";
 import Avatar from "../../assets/Ellipse 46.svg";
@@ -17,6 +18,7 @@ import { getToken, decodeTokenPayload, clearToken } from "../../lib/auth";
 import { Link, redirect } from "../../library/Router/Router";
 import { useEffect } from "../../library/hooks/useEffect";
 // import { Button } from "../../components/ui/button";
+import { API_CONFIG } from "../../config/api";
 
 const navigationItems = [
   { label: "Dashboard", active: false, icon: DashboardIcon },
@@ -50,22 +52,7 @@ const Dashboard = () => {
 
   const fetchUserProfile = async () => {
     try {
-      const token = getToken();
-      if (!token) {
-        console.warn("[Profile] No token available");
-        return;
-      }
-
-      const backend = (import.meta as any).env?.VITE_BACKEND_ORIGIN || "/api";
-
-      const res = await fetch(`${backend}/v1/user/profile`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-      });
+      const res = await fetchWithAuth(API_CONFIG.USER.PROFILE);
 
       if (!res.ok) {
         let errorMsg = `HTTP ${res.status}`;
@@ -107,9 +94,11 @@ const Dashboard = () => {
     const defaultAvatar = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect fill='%23e5e7eb' width='200' height='200'/%3E%3Ccircle cx='100' cy='70' r='35' fill='%23d1d5db'/%3E%3Cpath d='M 50 180 Q 50 140 100 140 Q 150 140 150 180' fill='%23d1d5db'/%3E%3C/svg%3E";
     if (!path || !path.trim()) return defaultAvatar;
     if (path.startsWith("/public/"))
-      return `/api${path}`;
-    if (path.startsWith("/")) return `/api${path}`;
-    if (path.startsWith("http")) return path;
+      return `${API_CONFIG.BASE_URL}${path.replace("/public", "")}`;
+    if (path.startsWith("/"))
+      return `${API_CONFIG.BASE_URL}${path}`;
+    if (path.startsWith("http"))
+      return path;
     return defaultAvatar;
   };
 
@@ -178,15 +167,15 @@ const Dashboard = () => {
               className="cursor-pointer flex items-center gap-3 px -3 py -2 w-full max-w-full transition-colors duration-150">
               <div
                 className={`${item.active
-                    ? "bg-transparent border border-white/10 border-solid rounded-full p-3"
-                    : "bg-transparent border border-white/10 border-solid rounded-full p-3"
+                  ? "bg-transparent border border-white/10 border-solid rounded-full p-3"
+                  : "bg-transparent border border-white/10 border-solid rounded-full p-3"
                   }`}>
                 <img
                   src={item.icon}
                   alt={`${item.label} icon`}
                   className={`${item.active
-                      ? "w-[15px] opacity-100"
-                      : "w-[15px] text-red-500 opacity-30"
+                    ? "w-[15px] opacity-100"
+                    : "w-[15px] text-red-500 opacity-30"
                     }`}
                 />
               </div>

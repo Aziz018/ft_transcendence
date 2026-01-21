@@ -4,6 +4,8 @@ import { useEffect } from "../../library/hooks/useEffect";
 import { Link, redirect } from "../../library/Router/Router";
 import { getToken, clearToken, decodeTokenPayload } from "../../lib/auth";
 import { wsService } from "../../services/wsService";
+import { fetchWithAuth } from "../../lib/fetch";
+import { API_CONFIG } from "../../config/api";
 import TopRightBlurEffect from "../../components/ui/BlurEffect/TopRightBlurEffect";
 
 import DashboardIcon from "../../assets/dd.svg";
@@ -70,18 +72,7 @@ const Leaderboard = () => {
   const fetchLeaderboard = async () => {
     setIsLoading(true);
     try {
-      const backend =
-        (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-        "/api";
-      const token = getToken();
-
-      const res = await fetch(`${backend}/v1/leaderboard/top10`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
+      const res = await fetchWithAuth(`${API_CONFIG.BASE_URL}/v1/leaderboard/top10`);
 
       if (!res.ok) {
         throw new Error("Failed to fetch leaderboard");
@@ -111,17 +102,9 @@ const Leaderboard = () => {
 
   const handleLogout = async () => {
     try {
-      const backend =
-        (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-        "/api";
-      const token = getToken();
-
-      await fetch(`${backend}/v1/auth/logout`, {
+      await fetchWithAuth(API_CONFIG.AUTH.LOGOUT, {
         method: "POST",
         credentials: "include",
-        headers: {
-          ...(token && { Authorization: `Bearer ${token}` }),
-        },
       });
     } catch (e) {
       console.warn("Logout request failed", e);

@@ -5,6 +5,7 @@ import { Link, redirect } from "../../library/Router/Router";
 import { getToken, clearToken, decodeTokenPayload } from "../../lib/auth";
 import { wsService } from "../../services/wsService";
 import { API_CONFIG } from "../../config/api";
+import { fetchWithAuth } from "../../lib/fetch";
 import TopRightBlurEffect from "../../components/ui/BlurEffect/TopRightBlurEffect";
 
 import DashboardIcon from "../../assets/dd.svg";
@@ -71,14 +72,7 @@ const Career = () => {
     const fetchHistory = async (uid: string) => {
         setIsLoading(true);
         try {
-            const token = getToken();
-            const res = await fetch(API_CONFIG.GAME.HISTORY(uid), {
-                method: "GET",
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "application/json",
-                },
-            });
+            const res = await fetchWithAuth(API_CONFIG.GAME.HISTORY(uid));
 
             if (!res.ok) {
                 throw new Error("Failed to fetch history");
@@ -95,11 +89,9 @@ const Career = () => {
 
     const handleLogout = async () => {
         try {
-            const token = getToken();
-            await fetch(API_CONFIG.AUTH.LOGOUT, {
+            await fetchWithAuth(API_CONFIG.AUTH.LOGOUT, {
                 method: "POST",
                 credentials: "include",
-                headers: { ...(token && { Authorization: `Bearer ${token}` }) },
             });
         } catch (e) { console.warn("Logout failed", e); }
         wsService.disconnect();
