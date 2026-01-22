@@ -13,6 +13,7 @@ export async function fetchWithAuth(url: string, options: FetchOptions = {}): Pr
     if (!options.skipAuth && token && !headers.has("Authorization")) {
         headers.set("Authorization", `Bearer ${token}`);
     }
+    headers.set("ngrok-skip-browser-warning", "true");
 
     const config = { ...options, headers };
 

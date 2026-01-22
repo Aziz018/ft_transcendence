@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy": "npm run build && vite --host 0.0.0.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.3",

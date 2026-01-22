@@ -16,7 +16,10 @@ function openGooglePopup() {
   );
 
   function handleMessage(e: MessageEvent) {
-    if (!e.origin.startsWith(new URL(API_CONFIG.BASE_URL).origin)) {
+    if (
+      !e.origin.startsWith(new URL(API_CONFIG.BASE_URL).origin) &&
+      !e.origin.startsWith("http://localhost:3000")
+    ) {
       return;
     }
     const data = e.data as any;
@@ -27,14 +30,14 @@ function openGooglePopup() {
         if (popup && !popup.closed) {
           popup.close();
         }
-      } catch (e) {}
-      
+      } catch (e) { }
+
       // Check if 2FA is required based on the token payload or response message
       // Since we only get the token here, we might need to decode it or check the message if passed
       // But typically the backend authHelper returns a token.
       // If the token has mfa_required: true, the dashboard/protected routes will redirect to secondary-login.
       // So redirecting to dashboard is fine, as dashboard will redirect to secondary-login if needed.
-      
+
       redirect("/dashboard");
     }
   }

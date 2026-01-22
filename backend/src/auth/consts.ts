@@ -1,4 +1,4 @@
-const baseURL: string = `http://localhost:${process.env.PORT || 3000}`;
+const baseURL: string = process.env.BACKEND_URL || "http://localhost:3000";
 
 /**
  * Type definition for OAuth redirect options.

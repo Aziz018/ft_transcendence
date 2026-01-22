@@ -116,7 +116,7 @@ export default class Server {
           description: "API documentation",
           version: "1.0.0",
         },
-        servers: [{ url: "http://localhost:3000" }],
+        servers: [{ url: `http://${process.env.HOST || "localhost"}:${process.env.PORT || "3000"}` }],
       },
     };
     this.swaggerUIOpts = {
@@ -169,26 +169,10 @@ export default class Server {
     });
     await this.fastify.register(rateLimit, this.rateLimitOpts);
     await this.fastify.register(fcors, {
-      origin: (origin, cb) => {
-        const allowedOrigins = [
-          ...this.defaultOrigins,
-          process.env.FRONTEND_ORIGIN,
-        ].filter(Boolean);
-
-        // Allow requests with no origin (like mobile apps or curl requests)
-        if (!origin) return cb(null, true);
-
-        if (allowedOrigins.includes(origin)) {
-          cb(null, true);
-        } else {
-          // Log the blocked origin for debugging
-          console.warn(`Blocked CORS origin: ${origin}`);
-          cb(new Error("Not allowed by CORS"), false);
-        }
-      },
+      origin: true,
       credentials: true,
       methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-      allowedHeaders: ["Content-Type", "Authorization"],
+      allowedHeaders: ["Content-Type", "Authorization", "ngrok-skip-browser-warning"],
       exposedHeaders: ["Authorization"],
     });
     for (const plugin of this.plugins) {
@@ -296,7 +280,7 @@ export default class Server {
       console.log(`✓ Environment: ${process.env.NODE_ENV || "development"}`);
     } catch (error) {
       this.fastify.log.error(error);
-      
+
       // If port is in use, suggest alternatives
       if ((error as any)?.code === "EADDRINUSE") {
         console.error(
@@ -305,7 +289,7 @@ export default class Server {
         console.error("Quick fix: lsof -ti:3000 | xargs kill -9");
         console.error("Or set a different PORT in .env");
       }
-      
+
       process.exit(1);
     }
   }
@@ -316,16 +300,16 @@ export default class Server {
     await this.connectPrismaClient();
     this.addHooks();
     await this.registerPlugs();
-    
+
     // CRITICAL: Register routes BEFORE setting notFoundHandler
     this.registerRoutes();
-    
+
     // Set error handler BEFORE notFoundHandler
     this.fastify.setErrorHandler(this.errorHandler());
-    
+
     // Set notFoundHandler LAST without preHandler that might interfere
     this.fastify.setNotFoundHandler(this.notFoundHandler());
-    
+
     // Start listening
     await this.start();
   }

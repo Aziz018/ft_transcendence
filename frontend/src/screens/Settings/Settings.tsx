@@ -50,6 +50,7 @@ const Settings = () => {
   const [otpCode, setOtpCode] = useState(""); // State for OTP input
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const fileInputRef = Fuego.useRef<HTMLInputElement>(null);
 
   // Store original values to revert on cancel
@@ -88,6 +89,8 @@ const Settings = () => {
       }
     } catch (error) {
       console.error("Failed to fetch profile:", error);
+    } finally {
+      setIsLoadingProfile(false);
     }
   };
 
@@ -339,14 +342,15 @@ const Settings = () => {
   }
 
   const getAvatarUrl = (path: string | null | undefined): string => {
-    const backend =
-      (import.meta as any).env?.VITE_BACKEND_ORIGIN || "/api";
-    if (!path || !path.trim()) return `${backend}/images/default-avatar.png`;
+    const defaultAvatar = "/api/images/default-avatar.png";
+    if (!path || !path.trim()) return defaultAvatar;
     if (path.startsWith("/public/"))
-      return `${backend}${path.replace("/public", "")}`;
-    if (path.startsWith("/")) return `${backend}${path}`;
-    if (path.startsWith("http")) return path;
-    return `${backend}/images/default-avatar.png`;
+      return `/api${path.replace("/public", "")}`;
+    if (path.startsWith("/"))
+      return `/api${path}`;
+    if (path.startsWith("http"))
+      return path;
+    return defaultAvatar;
   };
 
   return (
@@ -444,11 +448,18 @@ const Settings = () => {
 
               <div className="flex items-start gap-6">
                 <div className="flex-shrink-0 relative group">
-                  <img
-                    src={getAvatarUrl(userAvatar)}
-                    alt="Avatar"
-                    className="w-24 h-24 rounded-full object-cover border-2 border-accent-green/50"
-                  />
+                  {isLoadingProfile ? (
+                    <div className="w-24 h-24 rounded-full bg-white/10 animate-pulse border-2 border-transparent" />
+                  ) : (
+                    <img
+                      src={getAvatarUrl(userAvatar)}
+                      alt="Avatar"
+                      className="w-24 h-24 rounded-full object-cover border-2 border-accent-green/50"
+                      onError={(e: any) => {
+                        e.currentTarget.src = "/api/images/default-avatar.png";
+                      }}
+                    />
+                  )}
                   {isEditing && (
                     <div
                       onClick={handleAvatarClick}

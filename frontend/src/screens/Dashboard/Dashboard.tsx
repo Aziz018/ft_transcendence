@@ -33,6 +33,7 @@ const navigationItems = [
 const Dashboard = () => {
   const [isAuthenticated, setIsAuthenticated] = Fuego.useState(true);
   const [userAvatar, setUserAvatar] = Fuego.useState("");
+  const [isLoadingProfile, setIsLoadingProfile] = Fuego.useState(true);
 
   // Check if user is authenticated and fetch profile
   useEffect(() => {
@@ -82,6 +83,8 @@ const Dashboard = () => {
       setUserAvatar(data?.avatar || "");
     } catch (error) {
       console.error("[Profile] Network or parsing error:", error);
+    } finally {
+      setIsLoadingProfile(false);
     }
   };
 
@@ -91,12 +94,12 @@ const Dashboard = () => {
   }
 
   const getAvatarUrl = (path: string | null | undefined): string => {
-    const defaultAvatar = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect fill='%23e5e7eb' width='200' height='200'/%3E%3Ccircle cx='100' cy='70' r='35' fill='%23d1d5db'/%3E%3Cpath d='M 50 180 Q 50 140 100 140 Q 150 140 150 180' fill='%23d1d5db'/%3E%3C/svg%3E";
+    const defaultAvatar = "/api/images/default-avatar.png";
     if (!path || !path.trim()) return defaultAvatar;
     if (path.startsWith("/public/"))
-      return `${API_CONFIG.BASE_URL}${path.replace("/public", "")}`;
+      return `/api${path.replace("/public", "")}`;
     if (path.startsWith("/"))
-      return `${API_CONFIG.BASE_URL}${path}`;
+      return `/api${path}`;
     if (path.startsWith("http"))
       return path;
     return defaultAvatar;
@@ -114,6 +117,11 @@ const Dashboard = () => {
   };
 
   const TokenAvatar = () => {
+    if (isLoadingProfile) {
+      return (
+        <div className="w-[150px] h-[150px] rounded-full bg-white/10 animate-pulse" />
+      );
+    }
     return (
       <img
         className="w-[150px] object-cover rounded-full"
@@ -121,7 +129,8 @@ const Dashboard = () => {
         src={getAvatarUrl(userAvatar)}
         onError={(e: any) => {
           // Use a data URI for default avatar to avoid network calls
-          e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect fill='%23e5e7eb' width='200' height='200'/%3E%3Ccircle cx='100' cy='70' r='35' fill='%23d1d5db'/%3E%3Cpath d='M 50 180 Q 50 140 100 140 Q 150 140 150 180' fill='%23d1d5db'/%3E%3C/svg%3E";
+          // Use API config or relative path for default avatar
+          e.currentTarget.src = "/api/images/default-avatar.png";
         }}
       />
     );
