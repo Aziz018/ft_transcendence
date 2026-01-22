@@ -33,6 +33,7 @@ const navigationItems = [
     icon: LeaderboardIcon,
     path: "leaderboard",
   },
+  { label: "Career", active: false, icon: LeaderboardIcon, path: "career" },
   { label: "Settings", active: false, icon: SettingsIcon, path: "settings" },
 ];
 
@@ -107,23 +108,20 @@ const Chat = () => {
             <Link key={index} to={`/${item.path}`}>
               <div className="cursor-pointer flex items-center gap-3 px-3 py-2 w-full transition-all duration-150 hover:bg-white/5 rounded-lg">
                 <div
-                  className={`${
-                    item.active
-                      ? "bg-blue-600/20 border border-blue-600/50"
-                      : "bg-transparent border border-white/10"
-                  } rounded-full p-3 transition-all duration-150`}>
+                  className={`${item.active
+                    ? "bg-blue-600/20 border border-blue-600/50"
+                    : "bg-transparent border border-white/10"
+                    } rounded-full p-3 transition-all duration-150`}>
                   <img
                     src={item.icon}
                     alt={`${item.label} icon`}
-                    className={`w-[15px] ${
-                      item.active ? "opacity-100" : "opacity-30"
-                    } transition-opacity duration-150`}
+                    className={`w-[15px] ${item.active ? "opacity-100" : "opacity-30"
+                      } transition-opacity duration-150`}
                   />
                 </div>
                 <span
-                  className={`[font-family:'Questrial',Helvetica] font-normal text-base tracking-[0] leading-[15px] whitespace-nowrap ${
-                    item.active ? "text-white" : "text-white/30"
-                  } transition-colors duration-150`}>
+                  className={`[font-family:'Questrial',Helvetica] font-normal text-base tracking-[0] leading-[15px] whitespace-nowrap ${item.active ? "text-white" : "text-white/30"
+                    } transition-colors duration-150`}>
                   {item.label}
                 </span>
               </div>

@@ -6,12 +6,17 @@
  */
 
 const API_URL = (import.meta as any).env?.VITE_API_URL || "http://localhost:3000";
-const WS_URL = (import.meta as any).env?.VITE_WS_URL || "ws://localhost:3000/v1/chat/ws";
+
+// Derive WS Base URL from API URL (http -> ws, https -> wss)
+const WS_BASE = API_URL.replace(/^http/, "ws");
+
+const WS_URL = (import.meta as any).env?.VITE_WS_URL || `${WS_BASE}/v1/chat/ws`;
+const GAME_WS_URL = (import.meta as any).env?.VITE_GAME_WS_URL || `${WS_BASE}/v1/game/ws`;
 
 export const API_CONFIG = {
   BASE_URL: API_URL,
   WS_URL: WS_URL,
-  GAME_WS_URL: (import.meta as any).env?.VITE_GAME_WS_URL || "ws://localhost:3000/v1/game/ws",
+  GAME_WS_URL: GAME_WS_URL,
 
   // API Endpoints
   AUTH: {

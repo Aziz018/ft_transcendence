@@ -2,6 +2,7 @@ import type { FastifyRequest, FastifyReply } from "fastify";
 import { WebSocket } from "ws";
 
 type ExtendedWS = WebSocket & {
+  id: string;
   authenticatedUser?: { uid: string; id: string; name: string };
 };
 
@@ -41,7 +42,8 @@ export const gameWebSocketHandler = async (connection: ExtendedWS, request: Fast
   }
 
   const userId = connection.authenticatedUser.uid;
-  request.log.info(`🔗 User ${userId} (${connection.authenticatedUser.name}) connected to game`);
+  connection.id = crypto.randomUUID();
+  request.log.info(`🔗 User ${userId} (${connection.authenticatedUser.name}) connected to game (ConnID: ${connection.id})`);
 
   // Access game service from fastify instance
   const gameService = request.server.service.game;
@@ -129,7 +131,7 @@ export const gameWebSocketHandler = async (connection: ExtendedWS, request: Fast
 
   connection.on('close', () => {
     request.log.info(`🔌 User ${userId} disconnected from game`);
-    gameService.removeConnection(userId);
+    gameService.removeConnection(userId, connection);
     request.log.debug(gameService.getStats(), `📊 Stats:`);
   });
 

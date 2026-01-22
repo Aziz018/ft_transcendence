@@ -8,7 +8,7 @@ import type {
   GameResultInput,
   ScoreUpdateInput,
   MatchEndInput,
-  GameSession,
+  GameSession as GameSessionModel,
   GameStats,
   Tournament,
   TournamentPlayer,
@@ -16,6 +16,10 @@ import type {
   TournamentActionInput,
   TournamentCreateInput
 } from "../models/game.js";
+
+interface GameSession extends GameSessionModel {
+  savedResult?: boolean;
+}
 
 type Timer = ReturnType<typeof setTimeout> | ReturnType<typeof setInterval>;
 
@@ -42,6 +46,7 @@ export default class GameService extends DataBaseWrapper {
   private botIntervals = new Map<string, Timer>();
   private matchmakingInterval: Timer | null = null;
   private readyTimeouts = new Map<string, Timer>();
+  private activeGames = new Map<string, string>(); // userId -> gameId
   private readonly MATCHMAKING_TIMEOUT_MS = 60000; // 1 minute
   private readonly READY_TIMEOUT_MS = 30000; // 30 seconds to ready up
 
@@ -49,6 +54,7 @@ export default class GameService extends DataBaseWrapper {
   private readonly WIN_XP = 100;
   private readonly LOSS_XP = 20;
   private readonly TIE_XP = 50;
+  private readonly FORFEIT_XP = 0;
 
 
   // Game Physics Constants (Matched with Frontend)
@@ -400,6 +406,16 @@ export default class GameService extends DataBaseWrapper {
       gameSession.matchTimer = null;
     }
 
+    if (gameSession.gameLoopInterval) {
+      clearInterval(gameSession.gameLoopInterval);
+      gameSession.gameLoopInterval = null;
+    }
+
+    if (gameSession.botInterval) {
+      clearInterval(gameSession.botInterval);
+      gameSession.botInterval = null;
+    }
+
     this.notifyPlayers(gameSession.players, {
       type: 'match_ended',
       payload: {
@@ -526,6 +542,13 @@ export default class GameService extends DataBaseWrapper {
    * Adds a player to the matchmaking queue.
    */
   private async joinMatchmaking(userId: string, gameType: string): Promise<any> {
+    // Check if player is already in a game
+    const existingGameId = this.getGameIdByPlayerId(userId);
+    if (existingGameId) {
+      this.fastify.log.warn(`⚠️ Player ${userId} tried to join matchmaking but is already in game ${existingGameId}`);
+      return { success: false, message: 'You are already in a game', gameId: existingGameId };
+    }
+
     if (!this.matchmakingQueue.includes(userId)) {
       this.matchmakingQueue.push(userId);
       this.matchmakingJoinTimes.set(userId, Date.now());
@@ -742,8 +765,19 @@ export default class GameService extends DataBaseWrapper {
       matchStartTime: null,
       matchTimer: null,
       MATCH_DURATION_MS: 60000,
-      readyPlayers: new Set() // Initialize empty - players must signal ready
+      readyPlayers: new Set(),
+      playerConnectionIds: {}
     };
+
+    // Bind current connection IDs to the session
+    const p1Conn = this.activeConnections.get(player1Id);
+    if (p1Conn && p1Conn.id) {
+      gameSession.playerConnectionIds![player1Id] = p1Conn.id;
+    }
+    const p2Conn = this.activeConnections.get(player2Id);
+    if (p2Conn && p2Conn.id) {
+      gameSession.playerConnectionIds![player2Id] = p2Conn.id;
+    }
 
     this.gameSessions.set(gameSession.id, gameSession);
 
@@ -965,16 +999,33 @@ export default class GameService extends DataBaseWrapper {
   /**
    * Saves game result to database.
    */
-  private async saveGameResult(gameSession: any, winnerId: string | null): Promise<void> {
+  private async saveGameResult(gameSession: GameSession, winnerId: string | null): Promise<void> {
+    if (gameSession.savedResult) {
+      this.fastify.log.warn(`⚠️ Game ${gameSession.id} result already saved (memory flag). Skipping.`);
+      return;
+    }
+    gameSession.savedResult = true;
+
+    // Double-check database to be absolutely sure
+    const existingSession = await this.prisma.gameSession.findUnique({
+      where: { id: gameSession.id }
+    });
+    if (existingSession) {
+      this.fastify.log.warn(`⚠️ Game ${gameSession.id} result already in DB. Skipping.`);
+      return;
+    }
+
     try {
       const player1Id = gameSession.players[0];
       const player2Id = gameSession.players[1];
 
-      // Don't save bot games to database
+      // Allow saving bot games so humans get XP, but handle bot IDs carefully
+      /*
       if (player1Id?.startsWith('bot-') || player2Id?.startsWith('bot-')) {
         this.fastify.log.debug('Skipping database save for bot game');
         return;
       }
+      */
 
       // Create game session in database
       // Create game session in database
@@ -998,8 +1049,8 @@ export default class GameService extends DataBaseWrapper {
       // Create GameHistory record (for leaderboard/history display)
       try {
         const [p1, p2] = await Promise.all([
-          this.prisma.user.findUnique({ where: { id: player1Id }, select: { name: true } }),
-          this.prisma.user.findUnique({ where: { id: player2Id }, select: { name: true } })
+          player1Id.startsWith('bot-') ? { name: 'Smart Bot' } : this.prisma.user.findUnique({ where: { id: player1Id }, select: { name: true } }),
+          player2Id.startsWith('bot-') ? { name: 'Smart Bot' } : this.prisma.user.findUnique({ where: { id: player2Id }, select: { name: true } })
         ]);
 
         await this.prisma.gameHistory.create({
@@ -1026,8 +1077,13 @@ export default class GameService extends DataBaseWrapper {
       const p1XP = gameSession.finalScores?.[player1Id] || 0;
       const p2XP = gameSession.finalScores?.[player2Id] || 0;
 
-      await this.updatePlayerStats(player1Id, winnerId === player1Id, gameSession.matchDurationMs, p1XP);
-      await this.updatePlayerStats(player2Id, winnerId === player2Id, gameSession.matchDurationMs, p2XP);
+      if (!player1Id.startsWith('bot-')) {
+        await this.updatePlayerStats(player1Id, winnerId === player1Id, gameSession.matchDurationMs, p1XP);
+      }
+
+      if (!player2Id.startsWith('bot-')) {
+        await this.updatePlayerStats(player2Id, winnerId === player2Id, gameSession.matchDurationMs, p2XP);
+      }
 
       this.fastify.log.info('✅ Game result saved to database');
     } catch (error) {
@@ -1103,19 +1159,38 @@ export default class GameService extends DataBaseWrapper {
    * Removes a player's WebSocket connection.
    * Handles disconnection during matchmaking and game phases.
    */
-  removeConnection(userId: string): void {
-    this.activeConnections.delete(userId);
+  removeConnection(userId: string, connection?: any): void {
+    // Only remove if it matches the current connection (prevents race condition on reconnect)
+    const current = this.activeConnections.get(userId);
+
+    // If connection object matches, remove it from active tracking
+    if (connection && current === connection) {
+      this.activeConnections.delete(userId);
+    }
+    // If not matching, it means we have a NEW connection. We DO NOT delete it.
+    // BUT we still proceed to check if the OLD connection belongs to an active game that needs to be killed.
 
     // Remove from matchmaking queue if present
     const wasInQueue = this.matchmakingQueue.includes(userId);
-    if (wasInQueue) {
+    if (wasInQueue && (!connection || current === connection)) {
       this.leaveMatchmaking(userId);
       this.fastify.log.info(`🚪 Player ${userId} left matchmaking queue`);
     }
 
-    // Check if player is in a game session
+    // Check if player is in a game session AND if the game belongs to THIS connection
     this.gameSessions.forEach((session, gameId) => {
       if (session.players.includes(userId)) {
+        // Validation: Does this game belong to the dying connection?
+        // If we have connection-binding (which we are adding), check it.
+        // For now, if we don't have it fully populated, we might be risky.
+        // But let's assume we populated it.
+
+        const registeredConnectionId = session.playerConnectionIds?.[userId];
+        if (connection && connection.id && registeredConnectionId && registeredConnectionId !== connection.id) {
+          this.fastify.log.debug(`Ignoring disconnect for game ${gameId} (Connection ID mismatch: Game=${registeredConnectionId} vs Close=${connection.id})`);
+          return;
+        }
+
         // Handle disconnection based on game state
         if (session.status === 'starting') {
           // Player disconnected during ready phase
@@ -1227,29 +1302,21 @@ export default class GameService extends DataBaseWrapper {
         const isP1 = player1Id === userId;
         const opponentId = isP1 ? player2Id : player1Id;
 
-        // Scores
-        const p1Score = gameSession.leftScore || 0;
-        const p2Score = gameSession.rightScore || 0; // Not used for XP calculation here, but for records
+        // Scores - Forfeit Logic
+        // If it's a forfeit, set score to 5-0 for the winner
+        gameSession.leftScore = isP1 ? 0 : 5;
+        gameSession.rightScore = isP1 ? 5 : 0;
 
-        // Assign XP: Disconnector gets LOSS, Opponent gets WIN
-        const p1Exp = isP1 ? this.LOSS_XP : this.WIN_XP;
-        const p2Exp = isP1 ? this.WIN_XP : this.LOSS_XP;
+        // Also update the in-memory scores used for saving
+        const p1Score = isP1 ? 0 : 5;
+        const p2Score = isP1 ? 5 : 0;
 
-        // Notify Opponent
-        if (opponentId !== 'unknown') {
-          this.notifyPlayer(opponentId, {
-            type: 'match_ended',
-            payload: {
-              gameId,
-              winnerId: opponentId,
-              isTie: false,
-              finalScores: { [player1Id]: p1Exp, [player2Id]: p2Exp },
-              matchDurationMs: Date.now() - (gameSession.matchStartTime || 0)
-            }
-          });
-        }
+        // Assign XP: Disconnector gets FORFEIT_XP (0), Opponent gets WIN
+        const p1Exp = isP1 ? this.FORFEIT_XP : this.WIN_XP;
+        const p2Exp = isP1 ? this.WIN_XP : this.FORFEIT_XP;
 
-        // End Match Logic
+        // End Match Logic (this will notify everyone, including the opponent)
+        // We use 'handleMatchEnd' which broadcasts to all players in the session.
         this.handleMatchEnd(userId, {
           gameId,
           player1Id,

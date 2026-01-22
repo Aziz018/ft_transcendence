@@ -1,5 +1,5 @@
 export default {
-    level: 'debug',
+    level: 'info',
     transport: {
         target: 'pino-pretty',
         options: {

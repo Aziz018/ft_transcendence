@@ -224,6 +224,7 @@ class ChatService {
         {
           method: "GET",
           headers: {
+            "ngrok-skip-browser-warning": "true",
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
@@ -254,6 +255,7 @@ class ChatService {
       const response = await fetch(`${this.baseUrl}/v1/message/send`, {
         method: "POST",
         headers: {
+          "ngrok-skip-browser-warning": "true",
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
@@ -283,6 +285,7 @@ class ChatService {
       const response = await fetch(`${this.baseUrl}/v1/message`, {
         method: "DELETE",
         headers: {
+          "ngrok-skip-browser-warning": "true",
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
@@ -308,6 +311,7 @@ class ChatService {
       const response = await fetch(`${this.baseUrl}/v1/friend/friends`, {
         method: "GET",
         headers: {
+          "ngrok-skip-browser-warning": "true",
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
@@ -330,6 +334,7 @@ class ChatService {
             `${this.baseUrl}/v1/user/${friendId}`,
             {
               headers: {
+                "ngrok-skip-browser-warning": "true",
                 Authorization: `Bearer ${token}`,
               },
             }
@@ -381,6 +386,7 @@ class ChatService {
       const response = await fetch(`${this.baseUrl}/v1/friend/incoming`, {
         method: "GET",
         headers: {
+          "ngrok-skip-browser-warning": "true",
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
@@ -406,6 +412,7 @@ class ChatService {
       const response = await fetch(`${this.baseUrl}/v1/friend/block`, {
         method: "POST",
         headers: {
+          "ngrok-skip-browser-warning": "true",
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
@@ -431,6 +438,7 @@ class ChatService {
       const response = await fetch(`${this.baseUrl}/v1/friend/unfriend`, {
         method: "DELETE",
         headers: {
+          "ngrok-skip-browser-warning": "true",
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },

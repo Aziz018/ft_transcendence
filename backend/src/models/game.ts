@@ -67,6 +67,7 @@ export interface GameSession {
   readyPlayers?: Set<string>;
   botInterval?: any;
   gameLoopInterval?: any;
+  playerConnectionIds?: Record<string, string>;
 
   // Physics State
   ballX?: number;
