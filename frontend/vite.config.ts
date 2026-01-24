@@ -11,7 +11,7 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api/, ""),
       },
     },
-    allowedHosts: ["pong.rush.io"]
+    allowedHosts: ["pong.rush.io", "pongrush.game"]
   },
   build: {
     outDir: "dist",
