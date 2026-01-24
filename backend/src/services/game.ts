@@ -52,7 +52,7 @@ export default class GameService extends DataBaseWrapper {
 
   // XP Constants
   private readonly WIN_XP = 100;
-  private readonly LOSS_XP = 20;
+  private readonly LOSS_XP = 10;
   private readonly TIE_XP = 50;
   private readonly FORFEIT_XP = 0;
 
@@ -1019,6 +1019,12 @@ export default class GameService extends DataBaseWrapper {
       const player1Id = gameSession.players[0];
       const player2Id = gameSession.players[1];
 
+      // Guard against missing player IDs
+      if (!player1Id || !player2Id) {
+        this.fastify.log.warn(`⚠️ Game ${gameSession.id} missing player IDs. Skipping save.`);
+        return;
+      }
+
       // Allow saving bot games so humans get XP, but handle bot IDs carefully
       /*
       if (player1Id?.startsWith('bot-') || player2Id?.startsWith('bot-')) {
@@ -1028,10 +1034,9 @@ export default class GameService extends DataBaseWrapper {
       */
 
       // Create game session in database
-      // Create game session in database
       const savedSession = await this.prisma.gameSession.create({
         data: {
-          gameType: gameSession.gameType.toUpperCase(),
+          gameType: gameSession.gameType.toUpperCase() as 'CLASSIC' | 'TOURNAMENT' | 'RANKED' | 'CASUAL',
           status: 'COMPLETED',
           player1Id,
           player2Id,
@@ -1056,7 +1061,7 @@ export default class GameService extends DataBaseWrapper {
         await this.prisma.gameHistory.create({
           data: {
             gameSessionId: savedSession.id,
-            gameType: savedSession.gameType, // Enum matches
+            gameType: savedSession.gameType,
             player1Id,
             player2Id,
             winnerId,
@@ -1073,16 +1078,21 @@ export default class GameService extends DataBaseWrapper {
         this.fastify.log.error({ error: historyError }, 'Failed to create GameHistory record');
       }
 
-      // Update player stats
-      const p1XP = gameSession.finalScores?.[player1Id] || 0;
-      const p2XP = gameSession.finalScores?.[player2Id] || 0;
+      // Update player stats - SKIP XP for bot games to prevent leaderboard grinding
+      const isBotGame = player1Id.startsWith('bot-') || player2Id.startsWith('bot-');
+      const p1XP = isBotGame ? 0 : (gameSession.finalScores?.[player1Id] || 0);
+      const p2XP = isBotGame ? 0 : (gameSession.finalScores?.[player2Id] || 0);
+
+      if (isBotGame) {
+        this.fastify.log.info('🤖 Bot game detected - No XP awarded to prevent leaderboard grinding');
+      }
 
       if (!player1Id.startsWith('bot-')) {
-        await this.updatePlayerStats(player1Id, winnerId === player1Id, gameSession.matchDurationMs, p1XP);
+        await this.updatePlayerStats(player1Id, winnerId === player1Id, gameSession.matchDurationMs || 60000, p1XP);
       }
 
       if (!player2Id.startsWith('bot-')) {
-        await this.updatePlayerStats(player2Id, winnerId === player2Id, gameSession.matchDurationMs, p2XP);
+        await this.updatePlayerStats(player2Id, winnerId === player2Id, gameSession.matchDurationMs || 60000, p2XP);
       }
 
       this.fastify.log.info('✅ Game result saved to database');

@@ -164,12 +164,11 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
         return;
       }
 
-      // Use WS to send invite for better notification handling
+      // Send invite via WebSocket - DO NOT redirect immediately
+      // The backend will send game_start_instruction when the opponent accepts
       wsService.sendGameAction("game_invite", { targetId: selectedFriend.id });
 
-      // Check if we need to manually persist invite to localStorage or if we rely on WS echo
-      // The backend echo will handle the chat message display
-
+      // Store pending invite info for when we get redirected
       localStorage.setItem(
         "pendingGameInvite",
         JSON.stringify({
@@ -177,10 +176,12 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
           opponentName: selectedFriend.name,
           opponentAvatar: selectedFriend.avatar,
           timestamp: Date.now(),
+          waitingForAcceptance: true,
         })
       );
 
-      redirect("/game");
+      // Show notification that invite was sent - don't redirect yet!
+      alert(`Game invitation sent to ${selectedFriend.name}. Waiting for them to accept...`);
     } catch (error) {
       console.error("[ChatMain] Failed to send game invitation:", error);
       alert("Failed to send game invitation. Please try again.");

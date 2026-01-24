@@ -43,6 +43,7 @@ interface FriendRequest {
 type MessageListener = (message: Message) => void;
 type OnlineStatusListener = (userId: string, isOnline: boolean) => void;
 type GameStartListener = (payload: any) => void;
+type FriendRequestListener = (request: FriendRequest) => void;
 
 class ChatService {
   private baseUrl: string;
@@ -51,6 +52,7 @@ class ChatService {
   private messageListeners: Set<MessageListener> = new Set();
   private onlineStatusListeners: Set<OnlineStatusListener> = new Set();
   private gameStartListeners: Set<GameStartListener> = new Set();
+  private friendRequestListeners: Set<FriendRequestListener> = new Set();
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectDelay = 3000;
@@ -137,6 +139,14 @@ class ChatService {
         this.notifyGameStartListeners(data.payload);
         break;
 
+      case "friend_request_received":
+        this.notifyFriendRequestListeners(data.payload);
+        break;
+
+      case "friend_request_accepted":
+        console.log("[ChatService] Friend request accepted:", data.payload);
+        break;
+
       default:
         console.log("[ChatService] Unhandled message type:", data.type);
     }
@@ -172,6 +182,7 @@ class ChatService {
     this.messageListeners.clear();
     this.onlineStatusListeners.clear();
     this.gameStartListeners.clear();
+    this.friendRequestListeners.clear();
   }
 
   /**
@@ -196,6 +207,14 @@ class ChatService {
   onGameStart(listener: GameStartListener): () => void {
     this.gameStartListeners.add(listener);
     return () => this.gameStartListeners.delete(listener);
+  }
+
+  /**
+   * Subscribe to friend request notifications
+   */
+  onFriendRequest(listener: FriendRequestListener): () => void {
+    this.friendRequestListeners.add(listener);
+    return () => this.friendRequestListeners.delete(listener);
   }
 
   /**
@@ -233,6 +252,19 @@ class ChatService {
         listener(payload);
       } catch (error) {
         console.error("[ChatService] Error in game start listener:", error);
+      }
+    });
+  }
+
+  /**
+   * Notify all friend request listeners
+   */
+  private notifyFriendRequestListeners(request: any): void {
+    this.friendRequestListeners.forEach((listener) => {
+      try {
+        listener(request);
+      } catch (error) {
+        console.error("[ChatService] Error in friend request listener:", error);
       }
     });
   }

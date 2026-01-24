@@ -61,6 +61,7 @@ type WSMessageType =
   | "move_paddle"
   | "pause_game"
   | "game_invite"
+  | "accept_game_invite"
   | "reject_game";
 
 interface WSMessage<T = any> {
@@ -1926,7 +1927,7 @@ const sendDirectMessage = async (
               id: message.id,
               senderId,
               receiverId,
-              text: sanitizedText,
+              content: sanitizedText,
               createdAt: message.createdAt,
               senderName: sender.name,
               senderAvatar: sender.avatar,
