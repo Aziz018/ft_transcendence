@@ -6,7 +6,7 @@ import { getToken } from "../../lib/auth";
 
 const Main = () => {
   const token = getToken();
-  const destination = token ? "/dashboard" : "/login";
+  const destination = token ? "/dashboard" : "/secondary-login";
 
   return (
     <div className="pt-[11%] pb-[9%] relative">
