@@ -83,9 +83,16 @@ export default class MessageService extends DataBaseWrapper {
     };
 
     // Notify receiver via WebSocket using the userConnections map from chat controller
+    console.log(`[MessageService] Attempting to notify receiver ${receiverId}`);
+    console.log(`[MessageService] userConnections has ${userConnections.size} users`);
+    console.log(`[MessageService] userConnections keys:`, Array.from(userConnections.keys()));
+
     const receiverConns = userConnections.get(receiverId);
+    console.log(`[MessageService] Receiver ${receiverId} has ${receiverConns?.size || 0} connections`);
+
     if (receiverConns) {
       receiverConns.forEach((ws) => {
+        console.log(`[MessageService] WS readyState: ${ws.readyState} (OPEN=1)`);
         if (ws.readyState === WS.OPEN) {
           ws.send(
             JSON.stringify({
@@ -93,12 +100,15 @@ export default class MessageService extends DataBaseWrapper {
               payload: messagePayload,
             })
           );
+          console.log(`[MessageService] Sent direct_message to receiver ${receiverId}`);
         }
       });
     }
 
     // Also notify sender's other tabs for sync
     const senderConns = userConnections.get(senderId);
+    console.log(`[MessageService] Sender ${senderId} has ${senderConns?.size || 0} connections`);
+
     if (senderConns) {
       senderConns.forEach((ws) => {
         if (ws.readyState === WS.OPEN) {
@@ -108,6 +118,7 @@ export default class MessageService extends DataBaseWrapper {
               payload: messagePayload,
             })
           );
+          console.log(`[MessageService] Sent direct_message to sender ${senderId}`);
         }
       });
     }

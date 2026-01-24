@@ -19,6 +19,7 @@ import { Link, redirect } from "../../library/Router/Router";
 import { useEffect } from "../../library/hooks/useEffect";
 // import { Button } from "../../components/ui/button";
 import { API_CONFIG } from "../../config/api";
+import { wsService } from "../../services/wsService";
 
 const navigationItems = [
   { label: "Dashboard", active: false, icon: DashboardIcon },
@@ -47,6 +48,8 @@ const Dashboard = () => {
         redirect("/secondary-login");
         return;
       }
+      // Connect to WebSocket for real-time notifications (friend requests, etc.)
+      wsService.connect();
       fetchUserProfile();
     }
   }, []);
