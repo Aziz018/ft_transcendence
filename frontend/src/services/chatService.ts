@@ -42,6 +42,7 @@ interface FriendRequest {
 
 type MessageListener = (message: Message) => void;
 type OnlineStatusListener = (userId: string, isOnline: boolean) => void;
+type GameStartListener = (payload: any) => void;
 
 class ChatService {
   private baseUrl: string;
@@ -49,6 +50,7 @@ class ChatService {
   private ws: WebSocket | null = null;
   private messageListeners: Set<MessageListener> = new Set();
   private onlineStatusListeners: Set<OnlineStatusListener> = new Set();
+  private gameStartListeners: Set<GameStartListener> = new Set();
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectDelay = 3000;
@@ -131,6 +133,10 @@ class ChatService {
         );
         break;
 
+      case "game_start_instruction":
+        this.notifyGameStartListeners(data.payload);
+        break;
+
       default:
         console.log("[ChatService] Unhandled message type:", data.type);
     }
@@ -165,6 +171,7 @@ class ChatService {
     }
     this.messageListeners.clear();
     this.onlineStatusListeners.clear();
+    this.gameStartListeners.clear();
   }
 
   /**
@@ -181,6 +188,14 @@ class ChatService {
   onOnlineStatus(listener: OnlineStatusListener): () => void {
     this.onlineStatusListeners.add(listener);
     return () => this.onlineStatusListeners.delete(listener);
+  }
+
+  /**
+   * Subscribe to game start instructions
+   */
+  onGameStart(listener: GameStartListener): () => void {
+    this.gameStartListeners.add(listener);
+    return () => this.gameStartListeners.delete(listener);
   }
 
   /**
@@ -205,6 +220,19 @@ class ChatService {
         listener(userId, isOnline);
       } catch (error) {
         console.error("[ChatService] Error in online status listener:", error);
+      }
+    });
+  }
+
+  /**
+   * Notify all game start listeners
+   */
+  private notifyGameStartListeners(payload: any): void {
+    this.gameStartListeners.forEach((listener) => {
+      try {
+        listener(payload);
+      } catch (error) {
+        console.error("[ChatService] Error in game start listener:", error);
       }
     });
   }

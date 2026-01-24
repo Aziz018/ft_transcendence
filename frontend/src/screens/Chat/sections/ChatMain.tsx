@@ -330,8 +330,8 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
 
     const unsubscribe = chatService.onMessage(handleNewMessage);
 
-    // Listen for game start instruction (for Inviter)
-    const unsubscribeGame = wsService.on('game_start_instruction', () => {
+    // Listen for game start instruction (for Inviter and Acceptor)
+    const unsubscribeGame = chatService.onGameStart(() => {
       redirect('/game');
     });
 
