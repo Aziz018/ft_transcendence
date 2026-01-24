@@ -161,7 +161,18 @@ class WebSocketService {
 
   private handleNotification(payload: any) {
     console.log("[WebSocket] Notification received:", payload);
-    // Use notificationService to display
+
+    // Special handling for game invites - show as actionable notification
+    if (payload.gameInvite && payload.inviterId) {
+      notificationService.gameInvite({
+        inviterId: payload.inviterId,
+        inviterName: payload.message?.replace(' invited you to play!', '') || 'Someone',
+        title: payload.title || 'Game Invite',
+      });
+      return;
+    }
+
+    // Use notificationService to display regular notifications
     switch (payload.type) {
       case 'success': notificationService.success(payload.message, payload.duration); break;
       case 'error': notificationService.error(payload.message, payload.duration); break;

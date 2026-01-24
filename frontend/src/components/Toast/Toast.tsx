@@ -1,6 +1,7 @@
 import Fuego from "../../index";
 import { Notification } from "../../services/notificationService";
 import Mason from "../../assets/1.svg";
+import { wsService } from "../../services/wsService";
 
 interface ToastProps {
   notification: Notification;
@@ -18,6 +19,8 @@ const Toast = ({ notification, onRemove }: ToastProps) => {
         return "bg-[#f59e0b]";
       case "friend-request":
         return "bg-[#8b5cf6]";
+      case "game-invite":
+        return "bg-[#06b6d4]"; // Cyan for game invites
       case "info":
       default:
         return "bg-[#3b82f6]";
@@ -34,9 +37,25 @@ const Toast = ({ notification, onRemove }: ToastProps) => {
         return "⚠";
       case "friend-request":
         return "👤";
+      case "game-invite":
+        return "🎮";
       case "info":
       default:
         return "ℹ";
+    }
+  };
+
+  const handleAcceptGameInvite = () => {
+    if (notification.data?.inviterId) {
+      wsService.sendGameAction("accept_game_invite", { inviterId: notification.data.inviterId });
+      onRemove(notification.id);
+    }
+  };
+
+  const handleRejectGameInvite = () => {
+    if (notification.data?.inviterId) {
+      wsService.sendGameAction("reject_game", { targetId: notification.data.inviterId });
+      onRemove(notification.id);
     }
   };
 
@@ -73,7 +92,22 @@ const Toast = ({ notification, onRemove }: ToastProps) => {
         </div>
       )}
 
-      {notification.type !== "friend-request" && (
+      {notification.type === "game-invite" && notification.data && (
+        <div className="flex gap-2 ml-2">
+          <button
+            onClick={handleAcceptGameInvite}
+            className="bg-[#10b981] hover:bg-[#059669] px-3 py-1 rounded text-xs font-bold transition-colors">
+            Accept
+          </button>
+          <button
+            onClick={handleRejectGameInvite}
+            className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded text-xs font-medium transition-colors">
+            Reject
+          </button>
+        </div>
+      )}
+
+      {notification.type !== "friend-request" && notification.type !== "game-invite" && (
         <button
           onClick={() => onRemove(notification.id)}
           className="ml-2 text-white/70 hover:text-white transition-colors">

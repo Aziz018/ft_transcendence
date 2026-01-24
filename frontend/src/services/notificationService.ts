@@ -1,7 +1,7 @@
 
 export interface Notification {
   id: string;
-  type: "info" | "success" | "error" | "warning" | "friend-request";
+  type: "info" | "success" | "error" | "warning" | "friend-request" | "game-invite";
   message: string;
   title?: string;
   duration?: number;
@@ -87,6 +87,20 @@ class NotificationService {
       title: "Friend Request",
       message: `${data.requesterName} sent you a friend request`,
       duration: 0, // Don't auto-dismiss friend requests
+      data,
+    });
+  }
+
+  gameInvite(data: {
+    inviterId: string;
+    inviterName: string;
+    title?: string;
+  }) {
+    return this.notify({
+      type: "game-invite",
+      title: data.title || "Game Invite",
+      message: `${data.inviterName} invited you to play Pong!`,
+      duration: 0, // Don't auto-dismiss game invites - user must respond
       data,
     });
   }

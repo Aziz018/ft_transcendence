@@ -1,6 +1,8 @@
 import type { FastifyInstance } from "fastify";
 import DataBaseWrapper from "../utils/prisma.js";
 import ServiceError, { type ServiceError_t } from "../utils/service-error.js";
+import { userConnections } from "../controllers/chat.js";
+import { WebSocket as WS } from "ws";
 
 export default class MessageService extends DataBaseWrapper {
   constructor(fastify: FastifyInstance) {
@@ -80,34 +82,34 @@ export default class MessageService extends DataBaseWrapper {
       createdAt: message.createdAt,
     };
 
-    // Notify the receiver via WebSocket
-    // We need to access the WebSocket server instance from Fastify
-    // The websocket plugin attaches 'websocketServer' to fastify instance
-    const wss = this.fastify.websocketServer;
-    
-    if (wss) {
-        wss.clients.forEach((client: any) => {
-            // Check if client is authenticated and matches receiverId
-            // The 'authenticatedUser' property is attached in the websocketHandler
-            if (client.readyState === 1 && client.authenticatedUser?.uid === receiverId) {
-                client.send(
-                    JSON.stringify({
-                        type: "direct_message",
-                        payload: messagePayload,
-                    })
-                );
-            }
-            
-            // Also notify sender's other tabs (optional but good UX)
-            if (client.readyState === 1 && client.authenticatedUser?.uid === senderId) {
-                 client.send(
-                    JSON.stringify({
-                        type: "direct_message",
-                        payload: messagePayload,
-                    })
-                );
-            }
-        });
+    // Notify receiver via WebSocket using the userConnections map from chat controller
+    const receiverConns = userConnections.get(receiverId);
+    if (receiverConns) {
+      receiverConns.forEach((ws) => {
+        if (ws.readyState === WS.OPEN) {
+          ws.send(
+            JSON.stringify({
+              type: "direct_message",
+              payload: messagePayload,
+            })
+          );
+        }
+      });
+    }
+
+    // Also notify sender's other tabs for sync
+    const senderConns = userConnections.get(senderId);
+    if (senderConns) {
+      senderConns.forEach((ws) => {
+        if (ws.readyState === WS.OPEN) {
+          ws.send(
+            JSON.stringify({
+              type: "direct_message",
+              payload: messagePayload,
+            })
+          );
+        }
+      });
     }
 
     return messagePayload;

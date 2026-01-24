@@ -76,7 +76,7 @@ type ExtendedWS = WS & {
 };
 
 const liveConnections: Record<string, Set<ExtendedWS>> = {};
-const userConnections: Map<string, Set<ExtendedWS>> = new Map();
+export const userConnections: Map<string, Set<ExtendedWS>> = new Map();
 
 // HTTP Handlers
 export const createMessageHandler = async (

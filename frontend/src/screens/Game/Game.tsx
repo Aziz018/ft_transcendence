@@ -584,7 +584,7 @@ export const Game = () => {
               </span>
             </div>
 
-            {(displayedXP > 0 || iWon) && (
+            {displayedXP > 0 && (
               <div className="flex flex-col items-center gap-2 mt-4 px-8 py-4 bg-accent-green/10 rounded-lg border border-accent-green/30 animate-fadeIn">
                 <span className="font-questrial font-normal text-light/70 text-sm">
                   XP Earned
