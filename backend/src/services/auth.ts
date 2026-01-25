@@ -271,6 +271,16 @@ export default class AuthService extends DataBaseWrapper {
     const user = await this.fastify.service.user.fetchBy({
       email: user_info.email,
     });
+
+    // Auto-update avatar if it's default/missing and we have a new one from provider
+    if (user && user_info.picture && (!user.avatar || user.avatar.includes("default-avatar"))) {
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { avatar: user_info.picture }
+      });
+      // Update local user object reference if needed (though we only use id/name/email for JWT below)
+      user.avatar = user_info.picture;
+    }
     return this.fastify.jwt.sign(
       {
         uid: user!.id,

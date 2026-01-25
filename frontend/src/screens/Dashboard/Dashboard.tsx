@@ -8,6 +8,7 @@ import Game from "../../assets/game-icon.svg";
 import ChatIcon from "../../assets/chat-icon.svg";
 import TournamentIcon from "../../assets/Tournament-icon.svg";
 import SettingsIcon from "../../assets/Settings.svg";
+import CareerIcon from "../../assets/view-profile.svg";
 import LogOutIcon from "../../assets/Logout.svg";
 import WelcomeHeaderSection from "./sections/WelcomeHeaderSection";
 import PingPongShowcaseSection from "./sections/PingPongShowcaseSection";
@@ -26,7 +27,7 @@ const navigationItems = [
   { label: "Chat", active: false, icon: ChatIcon },
   { label: "Tournament", active: false, icon: TournamentIcon },
   { label: "Leaderboard", active: false, icon: LeaderboardIcon },
-  { label: "Career", active: false, icon: LeaderboardIcon },
+  { label: "Career", active: false, icon: CareerIcon },
   { label: "Settings", active: false, icon: SettingsIcon },
 ];
 
@@ -128,9 +129,8 @@ const Dashboard = () => {
         alt="User Avatar"
         src={getAvatarUrl(userAvatar)}
         onError={(e: any) => {
-          // Use a data URI for default avatar to avoid network calls
-          // Use API config or relative path for default avatar
-          e.currentTarget.src = "/api/images/default-avatar.png";
+          // Fallback to local asset if remote image fails
+          e.currentTarget.src = Avatar;
         }}
       />
     );

@@ -83,7 +83,8 @@ model User {
 
   sentMessages      Message[] @relation("MessageSender")
   receivedMessages  Message[] @relation("MessageReceiver")
-  roomMembers       RoomMember[]
+  rooms             RoomMember[]
+  tournaments       TournamentParticipant[]
   
 
 
@@ -289,4 +290,38 @@ model GameHistory {
   @@index([player1Id, playedAt])
   @@index([player2Id, playedAt])
   @@index([winnerId, playedAt])
+}
+
+enum TournamentStatus {
+  PENDING
+  ONGOING
+  FINISHED
+}
+
+model Tournament {
+  id             String                @id @default(uuid())
+  name           String
+  status         TournamentStatus      @default(PENDING)
+  creatorId      String
+  maxPlayers     Int                   @default(8)
+  currentPlayers Int                   @default(0)
+  prize          String?
+  startDate      DateTime              @default(now())
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  participants   TournamentParticipant[]
+}
+
+model TournamentParticipant {
+  id           String     @id @default(uuid())
+  tournamentId String
+  userId       String
+  score        Int        @default(0)
+  joinedAt     DateTime   @default(now())
+
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, userId])
 }

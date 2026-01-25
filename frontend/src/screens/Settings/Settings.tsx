@@ -15,6 +15,7 @@ import Game from "../../assets/game-icon.svg";
 import ChatIcon from "../../assets/chat-icon.svg";
 import TournamentIcon from "../../assets/Tournament-icon.svg";
 import SettingsIcon from "../../assets/Settings.svg";
+import CareerIcon from "../../assets/view-profile.svg";
 import LogOutIcon from "../../assets/Logout.svg";
 import Logo from "../../assets/secondLogo.svg";
 
@@ -34,7 +35,7 @@ const navigationItems = [
     icon: LeaderboardIcon,
     path: "leaderboard",
   },
-  { label: "Career", active: false, icon: LeaderboardIcon, path: "career" },
+  { label: "Career", active: false, icon: CareerIcon, path: "career" },
   { label: "Settings", active: true, icon: SettingsIcon, path: "settings" },
 ];
 

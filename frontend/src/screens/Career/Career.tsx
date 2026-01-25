@@ -14,6 +14,7 @@ import Game from "../../assets/game-icon.svg";
 import ChatIcon from "../../assets/chat-icon.svg";
 import TournamentIcon from "../../assets/Tournament-icon.svg";
 import SettingsIcon from "../../assets/Settings.svg";
+import CareerIcon from "../../assets/view-profile.svg";
 import LogOutIcon from "../../assets/Logout.svg";
 import Logo from "../../assets/secondLogo.svg";
 
@@ -23,7 +24,7 @@ const navigationItems = [
     { label: "Chat", active: false, icon: ChatIcon, path: "chat" },
     { label: "Tournament", active: false, icon: TournamentIcon, path: "tournament" },
     { label: "Leaderboard", active: false, icon: LeaderboardIcon, path: "leaderboard" },
-    { label: "Career", active: true, icon: LeaderboardIcon, path: "career" }, // Reusing Icon for now or find a new one?
+    { label: "Career", active: true, icon: CareerIcon, path: "career" },
     { label: "Settings", active: false, icon: SettingsIcon, path: "settings" },
 ];
 

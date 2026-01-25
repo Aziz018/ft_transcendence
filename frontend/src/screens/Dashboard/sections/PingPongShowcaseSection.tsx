@@ -12,6 +12,7 @@ import { Link } from "../../../library/Router/Router";
 const PingPongShowcaseSection = () => {
   const [userXP, setUserXP] = useState(0);
   const [displayedXP, setDisplayedXP] = useState(0);
+  const [userRank, setUserRank] = useState(0);
 
   useEffect(() => {
     fetchUserXP();
@@ -67,8 +68,29 @@ const PingPongShowcaseSection = () => {
       console.log("[Dashboard] User XP:", xp);
       setUserXP(xp);
       animateXP(xp);
+      fetchUserRank();
     } catch (error) {
       console.error("[Dashboard] Network or parsing error:", error);
+    }
+  };
+
+  const fetchUserRank = async () => {
+    try {
+      const token = getToken();
+      const backend = (import.meta as any).env?.VITE_BACKEND_ORIGIN || "/api";
+      const res = await fetch(`${backend}/v1/leaderboard/my-rank`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUserRank(data.rank);
+      }
+    } catch (e) {
+      console.error("Failed to fetch rank", e);
     }
   };
 
@@ -118,6 +140,7 @@ const PingPongShowcaseSection = () => {
             <p className="pt-3 font-family:'Questrial',Helvetica] font-normal text-theme-text-primary text-5xl tracking-[0] leading-[15px] whitespace-nowrap">
               {formatXP(displayedXP)}xp
             </p>
+
           </div>
 
           {/* <Separator orientation="vertical" className="h-[58px] bg-white/20" /> */}

@@ -454,6 +454,29 @@ export const userProfileUpdateController = async (
       break;
     }
 
+    case "email": {
+      const email = req.body.value;
+      if (!email || !email.trim()) {
+        return rep.code(400).send({
+          message: "Email is required",
+        });
+      }
+
+      // Check if email is already taken by another user
+      const existingUser = await prisma.user.findUnique({
+        where: { email: email.toLowerCase() },
+      });
+
+      if (existingUser && existingUser.id !== req.user.uid) {
+        return rep.code(409).send({
+          message: "Email already taken",
+        });
+      }
+
+      update_data = { email: email.trim().toLowerCase() };
+      break;
+    }
+
     /// you can add other things to change, for now ill stick with username & email.
 
     default: {

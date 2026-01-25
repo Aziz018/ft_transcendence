@@ -169,7 +169,7 @@ export default class TOTPService extends DataBaseWrapper {
             this.throwErr({ code: 404, message: 'user not found' });
         }
 
-        return user!.secret !== null && !user!.secret.startsWith(PENDING_PREFIX);
+        return user!.secret !== null && user!.secret !== "" && !user!.secret.startsWith(PENDING_PREFIX);
     }
 
     /**

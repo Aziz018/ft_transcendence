@@ -120,7 +120,7 @@ export const userProfileUpdateSchema = {
     properties: {
       field: {
         type: "string",
-        enum: ["name", "avatar", "xp"],
+        enum: ["name", "avatar", "xp", "email"],
       },
       value: { type: "string" },
     },

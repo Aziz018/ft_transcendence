@@ -7,6 +7,11 @@ export const getTop10Controller = async (
 ): Promise<void> => {
     try {
         const topUsers = await prisma.user.findMany({
+            where: {
+                xp: {
+                    gt: 0,
+                },
+            },
             orderBy: {
                 xp: "desc",
             },
@@ -16,13 +21,48 @@ export const getTop10Controller = async (
                 name: true,
                 avatar: true,
                 xp: true,
-                // We can add wins/losses later if we have game history, for now XP is the metric
             },
         });
 
         res.code(200).send(topUsers);
     } catch (error) {
         req.log.error(error, "Failed to fetch top 10 leaderboard");
+        res.code(500).send({ message: "Internal Server Error" });
+    }
+};
+
+export const getMyRankController = async (
+    req: FastifyRequest,
+    res: FastifyReply
+): Promise<void> => {
+    try {
+        const userId = req.user.uid;
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { xp: true },
+        });
+
+        if (!user) {
+            res.code(404).send({ message: "User not found" });
+            return;
+        }
+
+        if (user.xp <= 0) {
+            res.code(200).send({ rank: 0, xp: 0 });
+            return;
+        }
+
+        const betterPlayersCount = await prisma.user.count({
+            where: {
+                xp: {
+                    gt: user.xp,
+                },
+            },
+        });
+
+        res.code(200).send({ rank: betterPlayersCount + 1, xp: user.xp });
+    } catch (error) {
+        req.log.error(error, "Failed to fetch user rank");
         res.code(500).send({ message: "Internal Server Error" });
     }
 };

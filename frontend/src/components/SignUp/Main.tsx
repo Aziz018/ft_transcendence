@@ -41,10 +41,8 @@ const Main = () => {
     setLoading(true);
 
     try {
-      const backend =
-        (import.meta as any).env?.VITE_API_URL || "/api";
-      const registerUrl = `${backend}/v1/user/register`;
-      
+      const registerUrl = API_CONFIG.AUTH.REGISTER;
+
       console.log("[SignUp] Registering user at:", registerUrl);
 
       const response = await fetch(registerUrl, {
@@ -75,7 +73,7 @@ const Main = () => {
 
       if (!response.ok) {
         console.error("[SignUp] Registration failed:", data);
-        
+
         // Handle specific error codes
         if (response.status === 409) {
           setError("This email is already registered. Please log in or use a different email.");

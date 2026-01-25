@@ -60,6 +60,7 @@ const WelcomeHeaderSection = () => {
 
   const [name, setName] = useState<string>(deriveNameFromToken());
   const [xp, setXp] = useState<number>(0);
+  const [userRank, setUserRank] = useState<number>(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -68,6 +69,28 @@ const WelcomeHeaderSection = () => {
   const [notificationCount, setNotificationCount] = useState(0);
 
   useEffect(() => {
+    // Fetch Rank
+    const fetchRank = async () => {
+      try {
+        const token = getToken();
+        const backend = (import.meta as any).env?.VITE_BACKEND_ORIGIN || "/api";
+        const res = await fetch(`${backend}/v1/leaderboard/my-rank`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setUserRank(data.rank);
+        }
+      } catch (e) {
+        console.error("Failed to fetch rank", e);
+      }
+    };
+    fetchRank();
+
     if (name && name !== "Guest") {
       return;
     }
@@ -380,7 +403,7 @@ const WelcomeHeaderSection = () => {
               Current Rank
             </span>
             <span className="font-questrial text-light text-sm font-bold leading-none">
-              Level {Math.floor(xp / 100) + 1}
+              {userRank > 0 ? `Rank #${userRank}` : "Unranked"}
             </span>
           </div>
           <div className="w-8 h-8 rounded-full bg-accent-green/20 flex items-center justify-center border border-accent-green/50">

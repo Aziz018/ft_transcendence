@@ -14,6 +14,29 @@ const Main = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // Redirect if MFA is not required
+  Fuego.useEffect(() => {
+    const token = getToken();
+    if (token) {
+      // Need to import decodeTokenPayload or move it to a shared lib if not available here
+      // Fortunately saveToken is imported from lib/auth, likely decodeTokenPayload is there too
+      // Check imports above: import { saveToken } from "../../lib/auth";
+      // We need to add decodeTokenPayload to imports.
+      const payload = parseJwt(token);
+      if (payload && !payload.mfa_required) {
+        redirect("/dashboard");
+      }
+    }
+  }, []);
+
+  const parseJwt = (token: string) => {
+    try {
+      return JSON.parse(atob(token.split('.')[1]));
+    } catch (e) {
+      return null;
+    }
+  };
+
   const handleVerify = async (e: Event) => {
     e.preventDefault();
     setError("");
@@ -80,6 +103,17 @@ const Main = () => {
             disabled={loading || code.length !== 6}
             className="w-full bg-accent-green text-dark-950 font-semibold py-3 rounded-lg hover:bg-accent-green/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-questrial">
             {loading ? "Verifying..." : "Verify"}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              localStorage.removeItem("pongrush_token");
+              document.cookie = "access_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+              redirect("/login");
+            }}
+            className="w-full bg-white/10 text-light py-3 rounded-lg hover:bg-white/20 transition-colors font-questrial text-sm mt-4">
+            Cancel / Log Out
           </button>
         </form>
       </div>
