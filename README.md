@@ -1,6 +1,3 @@
-
-<<<<<<< HEAD
-=======
 # Project Structure
 
 ```
@@ -97,4 +94,3 @@ ft_transcendence
 ├── Makefile
 └── README.md
 ```
->>>>>>> backend
