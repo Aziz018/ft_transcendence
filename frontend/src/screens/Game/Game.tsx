@@ -5,6 +5,7 @@ import Avatar from "../../assets/Ellipse 46.svg";
 import { getToken, decodeTokenPayload } from "../../lib/auth";
 import { gameWsService } from "../../services/gameWsService";
 import { redirect } from "../../library/Router/Router";
+import { chatService } from "../../services/chatService"; // Import chatService
 
 const navigationItems = [
   { label: "Dashboard", active: false },
@@ -140,14 +141,32 @@ export const Game = () => {
   const gameStarted = status === "playing";
   const gameEnded = status === "finished";
 
+  const [rejectionMessage, setRejectionMessage] = useState<string | null>(null);
+
   // Connect and Join
   useEffect(() => {
     if (!isAuthenticated) return;
 
     gameWsService.connect().then(() => {
       console.log("Connected to Game WS, joining game queue...");
-      setStatus("waiting");
-      gameWsService.joinGame({ mode: "standard" });
+      const pendingGameId = localStorage.getItem("pendingGameId");
+      if (pendingGameId) {
+        console.log("Joining private game:", pendingGameId);
+        gameWsService.joinGame({ gameId: pendingGameId });
+        localStorage.removeItem("pendingGameId");
+      } else {
+        // Safety check: if we have a pending invite but no game ID yet, 
+        // it means we are waiting for the game to start (Sender or Receiver timing issue).
+        // DO NOT join standard queue.
+        const pendingInvite = localStorage.getItem("pendingGameInvite");
+        if (pendingInvite) {
+          console.log("Waiting for private game start instruction...");
+          setStatus("waiting");
+        } else {
+          gameWsService.joinGame({ mode: "standard" });
+        }
+      }
+      setStatus("waiting"); // Set waiting initially
     });
 
     // Listeners
@@ -239,11 +258,21 @@ export const Game = () => {
       }
     });
 
+    const cleanupRejection = chatService.onMessage((msg) => {
+      if (msg.content && msg.content.includes("(Rejected)")) {
+        setRejectionMessage("Game invitation was rejected.");
+        setTimeout(() => {
+          redirect('/chat');
+        }, 2000);
+      }
+    });
+
     return () => {
       cleanupStart();
       cleanupMatch();
       cleanupState();
       cleanupOver();
+      cleanupRejection();
       gameWsService.leaveGame();
       // Delay disconnect to ensure 'leave_game' message is sent
       setTimeout(() => {
@@ -454,6 +483,21 @@ export const Game = () => {
                 </span>
                 <span className="font-questrial font-normal text-light/60 text-lg tracking-[0] leading-[27px]">
                   Game will start automatically
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* REJECTION OVERLAY */}
+          {rejectionMessage && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm z-50">
+              <div className="flex flex-col items-center gap-4 animate-fadeIn">
+                <div className="text-6xl mb-2">🚫</div>
+                <span className="font-questrial font-bold text-red-400 text-2xl tracking-[0] leading-[27px]">
+                  {rejectionMessage}
+                </span>
+                <span className="font-questrial font-normal text-light/60 text-lg tracking-[0] leading-[27px]">
+                  Returning to chat...
                 </span>
               </div>
             </div>

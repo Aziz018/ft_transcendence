@@ -93,25 +93,24 @@ class GameWebSocketService {
     }
 
     // Game Specific Methods
-    joinGame(payload: { mode: string; tournamentId?: string }) {
-        // Backend expects: { action: 'join', gameType: 'classic' }
-        // Frontend sends: { mode: 'standard' } -> map to backend format
-
-        // NOTE: The previous chat.ts implementation mapped 'join_queue' -> 'matchmaking'
-        // But verify_game.ts used 'matchmaking' directly.
-        // Let's check what 'controllers/game.ts' expects.
-        // It expects 'matchmaking' message with { action: 'join', gameType: 'classic' }
-
-        // However, Game.tsx might be calling joinGame with specific payload.
-        // Let's adapt to what the backend expects.
-
-        this.send({
-            type: "matchmaking",
-            payload: {
-                action: 'join',
-                gameType: payload.mode === 'standard' ? 'classic' : 'tournament' // simple mapping
-            }
-        });
+    joinGame(payload: { mode?: string; tournamentId?: string; gameId?: string }) {
+        if (payload.gameId) {
+            this.send({
+                type: "game_join",
+                payload: {
+                    gameId: payload.gameId
+                }
+            });
+            this.setGameId(payload.gameId);
+        } else {
+            this.send({
+                type: "matchmaking",
+                payload: {
+                    action: 'join',
+                    gameType: payload.mode === 'standard' ? 'classic' : 'tournament'
+                }
+            });
+        }
     }
 
     leaveGame() {

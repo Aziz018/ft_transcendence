@@ -61,7 +61,8 @@ type WSMessageType =
   | "move_paddle"
   | "pause_game"
   | "game_invite"
-  | "reject_game";
+  | "reject_game"
+  | "accept_game";
 
 interface WSMessage<T = any> {
   type: WSMessageType;
@@ -259,18 +260,21 @@ interface RoomRateLimit {
 const roomRateLimits: Map<string, Map<string, RoomRateLimit>> = new Map();
 
 // Track Pending Game Invites
-const inviteTimeouts = new Map<string, NodeJS.Timeout>(); // key: `${senderId}:${targetId}`
+const inviteTimeouts = new Map<string, { timeout: NodeJS.Timeout, messageId: string }>(); // key: `${senderId}:${targetId}`
 
 const startInviteTimeout = (senderId: string, targetId: string, messageId: string, request: FastifyRequest) => {
   const key = `${senderId}:${targetId}`;
 
   // Clear existing if any
   if (inviteTimeouts.has(key)) {
-    clearTimeout(inviteTimeouts.get(key));
+    clearTimeout(inviteTimeouts.get(key)!.timeout);
   }
 
   const timeout = setTimeout(async () => {
     inviteTimeouts.delete(key);
+    // Mark sender as available again
+    request.server.service.game.markAsAvailable(senderId);
+
     request.log.info(`⏳ Game invite from ${senderId} to ${targetId} expired. Starting Bot Game.`);
 
     try {
@@ -319,7 +323,7 @@ const startInviteTimeout = (senderId: string, targetId: string, messageId: strin
     }
   }, 15000); // 15 Seconds
 
-  inviteTimeouts.set(key, timeout);
+  inviteTimeouts.set(key, { timeout, messageId });
 };
 
 
@@ -2589,7 +2593,7 @@ export const websocketHandler = async (
       "friend_request_declined",
     ];
 
-    const gameTypes = ["join_queue", "leave_queue", "move_paddle", "pause_game", "game_invite", "reject_game"];
+    const gameTypes = ["join_queue", "leave_queue", "move_paddle", "pause_game", "game_invite", "reject_game", "accept_game"];
 
     if (gameTypes.includes(type)) {
       if (type === "join_queue") {
@@ -2688,20 +2692,61 @@ export const websocketHandler = async (
           console.error("Failed to handle game invite:", e);
         }
       }
-      else if (type === "accept_game_invite" && payload && payload.inviterId) {
-        const senderId = payload.inviterId;
+      else if (type === "accept_game" && payload && payload.senderId) {
+        const senderId = payload.senderId;
         const targetId = connection.authenticatedUser.uid;
         const key = `${senderId}:${targetId}`;
 
-        // Clear Timeout
+        // Clear Timeout and get Message ID
+        let inviteMessageId: string | undefined;
         if (inviteTimeouts.has(key)) {
-          clearTimeout(inviteTimeouts.get(key));
+          const entry = inviteTimeouts.get(key)!;
+          clearTimeout(entry.timeout);
+          inviteMessageId = entry.messageId;
           inviteTimeouts.delete(key);
         }
 
+        // Mark sender as available - MOVED to after createPrivateGame
+        // request.server.service.game.markAsAvailable(senderId);
+
         try {
+          // Update invite message to Accepted
+          if (inviteMessageId) {
+            const acceptedContent = `🎮 Game Invitation: Let's play Pong! (Accepted)`;
+            await prisma.message.update({
+              where: { id: inviteMessageId },
+              data: { content: acceptedContent }
+            });
+
+            // Notify both users about the message update
+            [senderId, targetId].forEach(uid => {
+              const conns = userConnections.get(uid);
+              if (conns) {
+                conns.forEach(ws => {
+                  if (ws.readyState === WS.OPEN) {
+                    ws.send(JSON.stringify({
+                      type: "receive_message",
+                      payload: {
+                        id: inviteMessageId,
+                        content: acceptedContent,
+                        senderId,
+                        receiverId: targetId,
+                        createdAt: new Date().toISOString(),
+                        // minimal sender info needed
+                        sender: connection.authenticatedUser
+                      }
+                    }));
+                  }
+                });
+              }
+            });
+          }
+
           // Create Private Game
-          await request.server.service.game.createPrivateGame(senderId, targetId);
+          const newGameId = await request.server.service.game.createPrivateGame(senderId, targetId);
+
+          // Mark sender as available (no longer "inviting") - NOW safe because they are in a game session
+          request.server.service.game.markAsAvailable(senderId);
 
           // Broadcast Redirect Instruction to BOTH players
           [senderId, targetId].forEach(uid => {
@@ -2711,7 +2756,7 @@ export const websocketHandler = async (
                 if (ws.readyState === WS.OPEN) {
                   ws.send(JSON.stringify({
                     type: "game_start_instruction",
-                    payload: { matchId: "new" }
+                    payload: { gameId: newGameId }
                   }));
                 }
               });
@@ -2721,22 +2766,62 @@ export const websocketHandler = async (
         } catch (e) {
           console.error("Failed to accept invite:", e);
         }
+        return;
       }
-      else if (type === "reject_game" && payload && payload.targetId) {
-        // Clear Timeout
-        // Note: Payload targetId is the SENDER of the invite (who we are rejecting)
-        // Correct? Frontend sends { targetId: message.senderId }
-        const key = `${payload.targetId}:${connection.authenticatedUser.uid}`;
+      else if (type === "reject_game" && payload && payload.senderId) {
+        // payload.senderId is the person who Sent the invite (Inviter)
+        // connection.authenticatedUser.uid is the person Rejecting (Invitee)
+        const key = `${payload.senderId}:${connection.authenticatedUser.uid}`;
 
+        let inviteMessageId: string | undefined;
         if (inviteTimeouts.has(key)) {
-          clearTimeout(inviteTimeouts.get(key));
+          const entry = inviteTimeouts.get(key)!;
+          clearTimeout(entry.timeout);
+          inviteMessageId = entry.messageId;
           inviteTimeouts.delete(key);
         }
 
-        const targetConns = userConnections.get(payload.targetId);
+        // Mark sender as available
+        request.server.service.game.markAsAvailable(payload.senderId);
+
+        // Update invite message to Rejected
+        if (inviteMessageId) {
+          const rejectedContent = `🎮 Game Invitation: Let's play Pong! (Rejected)`;
+          try {
+            await prisma.message.update({
+              where: { id: inviteMessageId },
+              data: { content: rejectedContent }
+            });
+
+            // Notify both users about message update (so sender sees rejection text too)
+            [payload.senderId, connection.authenticatedUser.uid].forEach(uid => {
+              const conns = userConnections.get(uid);
+              if (conns) {
+                conns.forEach(ws => {
+                  if (ws.readyState === WS.OPEN) {
+                    ws.send(JSON.stringify({
+                      type: "receive_message",
+                      payload: {
+                        id: inviteMessageId,
+                        content: rejectedContent,
+                        senderId: payload.senderId,
+                        receiverId: connection.authenticatedUser.uid,
+                        createdAt: new Date().toISOString()
+                      }
+                    }));
+                  }
+                });
+              }
+            });
+          } catch (e) {
+            console.error("Failed to update rejected message:", e);
+          }
+        }
+
+        const targetConns = userConnections.get(payload.senderId);
         if (targetConns) {
           targetConns.forEach(client => {
-            if (client.authenticatedUser && client.authenticatedUser.uid === payload.targetId) {
+            if (client.authenticatedUser && client.authenticatedUser.uid === payload.senderId) {
               if (client.readyState === WebSocket.OPEN) {
                 client.send(JSON.stringify({
                   type: "notification",
@@ -2920,6 +3005,21 @@ export const websocketHandler = async (
             break;
           }
 
+          case "game_invite": {
+            handleGameInvite(connection, authUser, payload, request);
+            break;
+          }
+
+          case "accept_game": {
+            handleAcceptGame(connection, authUser, payload, request);
+            break;
+          }
+
+          case "reject_game": {
+            handleRejectGame(connection, authUser, payload, request);
+            break;
+          }
+
           default:
             connection.send(
               JSON.stringify({
@@ -3013,6 +3113,11 @@ export const websocketHandler = async (
     // GameService handles its own connections via /ws endpoint and 'removeConnection'.
     // If we want to notify it about chat disconnect, we can, but it might track separate WS.
     // For now, removing the call as 'handleDisconnect' doesn't exist on GameService in the same way.
+
+    // Ensure we clear any pending invite status
+    if (userId) {
+      request.server.service.game.markAsAvailable(userId);
+    }
   });
 
   connection.on("error", (error) => {
@@ -3186,6 +3291,129 @@ const broadcastStatusChange = async (userId: string, isOnline: boolean) => {
 
   } catch (error) {
     console.error(`Error broadcasting status change for user ${userId}:`, error);
+  }
+};
+
+const handleGameInvite = async (
+  connection: ExtendedWS,
+  authUser: User & { uid: string },
+  payload: any,
+  request: FastifyRequest
+) => {
+  const { targetId } = payload;
+  if (!targetId) return;
+
+  // Prevent self-invite
+  if (targetId === authUser.uid) return;
+
+  // Check if sender already has a pending invite (prevent spam/race)
+  // iterate keys of inviteTimeouts to see if senderId is start of any key
+  for (const key of inviteTimeouts.keys()) {
+    if (key.startsWith(`${authUser.uid}:`)) {
+      connection.send(JSON.stringify({
+        type: 'error',
+        message: 'You already have a pending invite sent.'
+      }));
+      return;
+    }
+  }
+
+  // Find target connection
+  const targetConns = userConnections.get(targetId);
+  if (!targetConns || targetConns.size === 0) {
+    connection.send(JSON.stringify({
+      type: 'error',
+      message: 'User is offline'
+    }));
+    return;
+  }
+
+  // Notify target
+  targetConns.forEach(ws => {
+    if (ws.readyState === WS.OPEN) {
+      ws.send(JSON.stringify({
+        type: 'game_invite_received',
+        payload: {
+          senderId: authUser.uid,
+          senderName: authUser.name,
+          senderAvatar: authUser.avatar, // Ensure type User has avatar or cast it
+          timestamp: new Date().toISOString()
+        }
+      }));
+    }
+  });
+
+  // Confirm to sender
+  connection.send(JSON.stringify({
+    type: 'game_invite_sent',
+    payload: { targetId }
+  }));
+
+  // Mark sender as inviting
+  request.server.service.game.markAsInviting(authUser.uid);
+};
+
+const handleAcceptGame = async (
+  connection: ExtendedWS,
+  authUser: User & { uid: string },
+  payload: any,
+  request: FastifyRequest
+) => {
+  const { senderId } = payload;
+  // Create private game
+  try {
+    const gameId = await request.server.service.game.createPrivateGame(senderId, authUser.uid);
+
+    // Notify both users to redirect to game with this ID
+    const notifyStart = (uid: string, opponentId: string) => {
+      const conns = userConnections.get(uid);
+      if (conns) {
+        conns.forEach(ws => {
+          if (ws.readyState === WS.OPEN) {
+            ws.send(JSON.stringify({
+              type: 'game_start_instruction',
+              payload: {
+                gameId,
+                opponentId
+              }
+            }));
+          }
+        });
+      }
+    };
+
+    notifyStart(senderId, authUser.uid);
+    notifyStart(authUser.uid, senderId);
+
+  } catch (error) {
+    request.log.error({ error }, 'Failed to create private game');
+    connection.send(JSON.stringify({
+      type: 'error',
+      message: 'Failed to create private game'
+    }));
+  }
+};
+
+const handleRejectGame = async (
+  connection: ExtendedWS,
+  authUser: User & { uid: string },
+  payload: any,
+  request: FastifyRequest
+) => {
+  const { senderId } = payload;
+  const senderConns = userConnections.get(senderId);
+  if (senderConns) {
+    senderConns.forEach(ws => {
+      if (ws.readyState === WS.OPEN) {
+        ws.send(JSON.stringify({
+          type: 'game_invite_declined',
+          payload: {
+            declinedBy: authUser.uid,
+            declinedByName: authUser.name
+          }
+        }));
+      }
+    });
   }
 };
 

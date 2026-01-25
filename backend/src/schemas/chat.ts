@@ -476,4 +476,58 @@ export const chatSchema = {
             additionalProperties: 'No extra properties allowed',
         }
     },
+    game_invite: {
+        type: 'object',
+        required: ['targetId'],
+        properties: {
+            targetId: { type: 'string', format: 'uuid' },
+        },
+        additionalProperties: false,
+        errorMessage: {
+            type: 'Payload must be an object',
+            required: {
+                targetId: 'targetId is required',
+            },
+            properties: {
+                targetId: 'targetId must be a valid UUID string',
+            },
+            additionalProperties: 'No extra properties allowed',
+        }
+    },
+    reject_game: {
+        type: 'object',
+        required: ['senderId'], // The user who SENT the invite we are rejecting
+        properties: {
+            senderId: { type: 'string', format: 'uuid' },
+        },
+        additionalProperties: false,
+        errorMessage: {
+            type: 'Payload must be an object',
+            required: {
+                senderId: 'senderId is required'
+            },
+            properties: {
+                senderId: 'senderId must be a valid UUID string',
+            },
+            additionalProperties: 'No extra properties allowed',
+        }
+    },
+    accept_game: {
+        type: 'object',
+        required: ['senderId'], // The user who SENT the invite we are accepting
+        properties: {
+            senderId: { type: 'string', format: 'uuid' },
+        },
+        additionalProperties: false,
+        errorMessage: {
+            type: 'Payload must be an object',
+            required: {
+                senderId: 'senderId is required'
+            },
+            properties: {
+                senderId: 'senderId must be a valid UUID string',
+            },
+            additionalProperties: 'No extra properties allowed',
+        }
+    }
 };

@@ -47,6 +47,7 @@ export default class GameService extends DataBaseWrapper {
   private matchmakingInterval: Timer | null = null;
   private readyTimeouts = new Map<string, Timer>();
   private activeGames = new Map<string, string>(); // userId -> gameId
+  private invitingPlayers = new Set<string>(); // userId
   private readonly MATCHMAKING_TIMEOUT_MS = 60000; // 1 minute
   private readonly READY_TIMEOUT_MS = 30000; // 30 seconds to ready up
 
@@ -549,6 +550,11 @@ export default class GameService extends DataBaseWrapper {
       return { success: false, message: 'You are already in a game', gameId: existingGameId };
     }
 
+    if (this.invitingPlayers.has(userId)) {
+      this.fastify.log.warn(`⚠️ Player ${userId} tried to join matchmaking but has a pending invite.`);
+      return { success: false, message: 'Cannot join queue while waiting for an invite response.' };
+    }
+
     if (!this.matchmakingQueue.includes(userId)) {
       this.matchmakingQueue.push(userId);
       this.matchmakingJoinTimes.set(userId, Date.now());
@@ -742,6 +748,27 @@ export default class GameService extends DataBaseWrapper {
         this.matchmakingJoinTimes.delete(playerId);
       }
     }
+  }
+
+  /**
+   * Marks a player as having a pending invite.
+   */
+  markAsInviting(userId: string): void {
+    this.invitingPlayers.add(userId);
+  }
+
+  /**
+   * Marks a player as available (invite accepted, rejected, or timed out).
+   */
+  markAsAvailable(userId: string): void {
+    this.invitingPlayers.delete(userId);
+  }
+
+  /**
+   * Checks if a player has a pending invite.
+   */
+  isPlayerInviting(userId: string): boolean {
+    return this.invitingPlayers.has(userId);
   }
 
   /**

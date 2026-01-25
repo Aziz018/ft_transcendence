@@ -16,7 +16,16 @@ function openIntraPopup() {
   );
 
   function handleMessage(e: MessageEvent) {
+    // Ignore messages from the app itself
+    if (e.origin === window.location.origin) {
+      return;
+    }
+
     if (!e.origin.startsWith(new URL(API_CONFIG.BASE_URL).origin)) {
+      console.warn("OAuth Origin mismatch:", {
+        expected: new URL(API_CONFIG.BASE_URL).origin,
+        received: e.origin,
+      });
       return;
     }
     const data = e.data as any;
@@ -27,7 +36,7 @@ function openIntraPopup() {
         if (popup && !popup.closed) {
           popup.close();
         }
-      } catch (e) {}
+      } catch (e) { }
       redirect("/dashboard");
     }
   }

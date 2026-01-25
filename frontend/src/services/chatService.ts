@@ -483,6 +483,16 @@ class ChatService {
       throw error;
     }
   }
+  /**
+   * Send a generic WebSocket message
+   */
+  sendWebSocketMessage(type: string, payload: any): void {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify({ type, payload }));
+    } else {
+      console.warn("[ChatService] WebSocket not connected, cannot send message");
+    }
+  }
 }
 
 export const chatService = new ChatService();

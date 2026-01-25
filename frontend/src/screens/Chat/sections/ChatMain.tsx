@@ -331,7 +331,15 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
     const unsubscribe = chatService.onMessage(handleNewMessage);
 
     // Listen for game start instruction (for Inviter and Acceptor)
-    const unsubscribeGame = chatService.onGameStart(() => {
+    const unsubscribeGame = chatService.onGameStart((payload) => {
+      if (payload.gameId) {
+        localStorage.setItem("pendingGameId", payload.gameId);
+        // Also save opponent info if available to show correctly in Game
+        if (payload.opponentId) {
+          // We might not have name/avatar here, but Game.tsx tries to load 'pendingGameInvite' for that.
+          // Let's rely on Game.tsx fetching/receiving opponent info from 'game_start' event or 'game_matched'.
+        }
+      }
       redirect('/game');
     });
 
@@ -513,13 +521,15 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
                         <div className="flex flex-col gap-3">
                           <p className="font-[Questrial] text-sm">{message.content}</p>
 
-                          {!isMe && !message.content.includes("(Expired)") && (
+                          {!isMe && !message.content.includes("(Expired)") && !message.content.includes("(Accepted)") && !message.content.includes("(Rejected)") && (
                             <div className="flex gap-2">
                               <button
                                 onClick={() => {
                                   setDisabledInvites(prev => new Set(prev).add(message.id));
-                                  wsService.sendGameAction("accept_game_invite", { inviterId: message.senderId });
-                                  // Redirect happens via game_start_instruction or manually
+                                  // Set pending flag for RECEIVER as well to prevent auto-join public queue
+                                  localStorage.setItem("pendingGameInvite", "true");
+                                  // Send 'accept_game' with 'senderId' (the person who sent the invite)
+                                  chatService.sendWebSocketMessage("accept_game", { senderId: message.senderId });
                                 }}
                                 disabled={disabledInvites.has(message.id)}
                                 className="bg-accent-green text-dark-950 px-4 py-2 rounded-lg font-bold hover:bg-accent-green/90 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed">
@@ -528,7 +538,7 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
                               <button
                                 onClick={() => {
                                   setDisabledInvites(prev => new Set(prev).add(message.id));
-                                  wsService.sendGameAction("reject_game", { targetId: message.senderId });
+                                  chatService.sendWebSocketMessage("reject_game", { senderId: message.senderId });
                                 }}
                                 disabled={disabledInvites.has(message.id)}
                                 className="bg-red-500/20 text-red-400 border border-red-500/50 px-4 py-2 rounded-lg font-bold hover:bg-red-500/30 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed">
@@ -538,6 +548,12 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
                           )}
                           {message.content.includes("(Expired)") && (
                             <span className="text-xs text-white/40 italic">Invitation Expired</span>
+                          )}
+                          {message.content.includes("(Accepted)") && (
+                            <span className="text-xs text-green-400 font-bold">Invitation Accepted</span>
+                          )}
+                          {message.content.includes("(Rejected)") && (
+                            <span className="text-xs text-red-400 font-bold">Invitation Rejected</span>
                           )}
                         </div>
                       ) : (
