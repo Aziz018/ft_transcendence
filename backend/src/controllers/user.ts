@@ -477,6 +477,48 @@ export const userProfileUpdateController = async (
       break;
     }
 
+    case "password": {
+      const password = req.body.value;
+      const oldPassword = (req.body as any).oldPassword;
+
+      if (!oldPassword) {
+        return rep.code(400).send({
+          message: "Current password is required",
+        });
+      }
+
+      const currentUser = await req.server.service.user.fetchBy({
+        id: req.user.uid,
+      });
+
+      if (!currentUser || !currentUser.password) {
+        return rep.code(404).send({ message: "User not found" });
+      }
+
+      const isMatch = await bcrypt.compare(oldPassword, currentUser.password);
+      if (!isMatch) {
+        return rep.code(401).send({
+          message: "Incorrect current password",
+        });
+      }
+
+      if (!password || password.length < 6) {
+        return rep.code(400).send({
+          message: "New password must be at least 6 characters",
+        });
+      }
+
+      if (oldPassword === password) {
+        return rep.code(400).send({
+          message: "New password cannot be the same as old password",
+        });
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+      update_data = { password: hashedPassword };
+      break;
+    }
+
     /// you can add other things to change, for now ill stick with username & email.
 
     default: {

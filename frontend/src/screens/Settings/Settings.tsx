@@ -7,6 +7,7 @@ import { wsService } from "../../services/wsService";
 import TopRightBlurEffect from "../../components/ui/BlurEffect/TopRightBlurEffect";
 import { fetchWithAuth } from "../../lib/fetch";
 import { API_CONFIG } from "../../config/api";
+import { notificationService } from "../../services/notificationService";
 import QRCode from "qrcode";
 
 import DashboardIcon from "../../assets/dd.svg";
@@ -116,19 +117,38 @@ const Settings = () => {
     return re.test(email);
   };
 
+  /* State for Password Update */
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  /* Validation State */
+  const [errors, setErrors] = useState<{ name?: string; email?: string; password?: string; currentPassword?: string }>({});
+
+  const [selectedAvatarFile, setSelectedAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+
   const handleStartEdit = () => {
     setOriginalUserName(userName);
     setOriginalUserEmail(userEmail);
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+    setErrors({});
     setIsEditing(true);
   };
 
   const handleCancelEdit = () => {
     setUserName(originalUserName);
     setUserEmail(originalUserEmail);
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+    setErrors({});
     setIsEditing(false);
+    setSelectedAvatarFile(null);
+    setAvatarPreview(null);
 
-    // Force re-render by re-fetching if state update is batched/delayed
-    // This is a fallback for the custom framework's state handling
+    // Force re-render
     setTimeout(() => {
       const nameInput = document.querySelector('input[type="text"][value]') as HTMLInputElement;
       const emailInput = document.querySelector('input[type="email"][value]') as HTMLInputElement;
@@ -138,65 +158,128 @@ const Settings = () => {
   };
 
   const handleSaveProfile = async () => {
-    // Validation
+    // Reset errors
+    setErrors({});
+    let newErrors: { name?: string; email?: string; password?: string; currentPassword?: string } = {};
+    let isValid = true;
+
+    // Validate Name
     if (!userName.trim()) {
-      alert("Username cannot be empty");
-      return;
+      newErrors.name = "Username is required";
+      isValid = false;
     }
 
+    // Validate Email
     if (!userEmail.trim()) {
-      alert("Email cannot be empty");
-      return;
+      newErrors.email = "Email is required";
+      isValid = false;
+    } else if (!validateEmail(userEmail)) {
+      newErrors.email = "Invalid email format";
+      isValid = false;
     }
 
-    if (!validateEmail(userEmail)) {
-      alert("Please enter a valid email address");
+    // Validate Password (only if entered)
+    if (newPassword || confirmPassword || currentPassword) {
+      if (!currentPassword) {
+        newErrors.currentPassword = "Current password is required to change password";
+        isValid = false;
+      }
+
+      if (!newPassword) {
+        // If they entered current but no new, that's ambiguous, but let's assume they want to change
+        // Actually if they just want to verify current without changing new.. no that makes no sense.
+        // If current is entered, new must be entered?
+        // Let's say: If ANY password field is touched, validate full interactions.
+        if (newPassword.length < 6) {
+          newErrors.password = "New password must be at least 6 characters";
+          isValid = false;
+        }
+      } else if (newPassword.length < 6) {
+        newErrors.password = "New password must be at least 6 characters";
+        isValid = false;
+      }
+
+      if (newPassword !== confirmPassword) {
+        newErrors.password = "Passwords do not match";
+        isValid = false;
+      }
+    }
+
+    if (!isValid) {
+      setErrors(newErrors);
       return;
     }
 
     try {
-      // Update Name
-      const nameRes = await fetchWithAuth(`${API_CONFIG.BASE_URL}/v1/user/profile`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          field: "name",
-          value: userName.trim(),
-        }),
-      });
-
-      if (!nameRes.ok) {
-        const error = await nameRes.json();
-        throw new Error(error.message || "Failed to update name");
+      // 1. Update Name (if changed)
+      if (userName !== originalUserName) {
+        const nameRes = await fetchWithAuth(`${API_CONFIG.BASE_URL}/v1/user/profile`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ field: "name", value: userName.trim() }),
+        });
+        if (!nameRes.ok) throw new Error((await nameRes.json()).message || "Failed to update name");
       }
 
-      // Update Email (if changed)
-      // Update Email (if changed)
-      const emailRes = await fetchWithAuth(`${API_CONFIG.BASE_URL}/v1/user/profile`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          field: "email",
-          value: userEmail.trim(),
-        }),
-      });
+      // 2. Update Email (if changed)
+      if (userEmail !== originalUserEmail) {
+        const emailRes = await fetchWithAuth(`${API_CONFIG.BASE_URL}/v1/user/profile`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ field: "email", value: userEmail.trim() }),
+        });
+        if (!emailRes.ok) throw new Error((await emailRes.json()).message || "Failed to update email");
+      }
 
-      if (!emailRes.ok) {
-        const error = await emailRes.json();
-        throw new Error(error.message || "Failed to update email");
+      // 3. Update Password (if provided)
+      if (newPassword) {
+        const passRes = await fetchWithAuth(`${API_CONFIG.BASE_URL}/v1/user/profile`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            field: "password",
+            value: newPassword,
+            oldPassword: currentPassword
+          }),
+        });
+        if (!passRes.ok) throw new Error((await passRes.json()).message || "Failed to update password");
+      }
+
+      // 4. Update Avatar (if selected)
+      if (selectedAvatarFile) {
+        const formData = new FormData();
+        formData.append("avatar", selectedAvatarFile);
+
+        const avatarRes = await fetchWithAuth(`${API_CONFIG.BASE_URL}/v1/user/avatar`, {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!avatarRes.ok) {
+          throw new Error((await avatarRes.json()).message || "Failed to upload avatar");
+        }
       }
 
       setIsEditing(false);
+      setSelectedAvatarFile(null);
+      setAvatarPreview(null);
+
       await fetchUserProfile();
-      alert("Profile updated successfully");
+
+      // Dispatch event to update Header
+      const event = new CustomEvent("profile-updated", {
+        detail: { name: userName.trim(), xp: (await (await fetchWithAuth(API_CONFIG.USER.PROFILE)).json()).xp }
+      });
+      window.dispatchEvent(event);
+
+      notificationService.success("Profile updated successfully", 3000);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
 
     } catch (error: any) {
       console.error("Failed to update profile:", error);
-      alert(error.message || "Failed to update profile. Please try again.");
+      notificationService.error(error.message || "Failed to update profile. Please try again.", 4000);
     }
   };
 
@@ -211,40 +294,19 @@ const Settings = () => {
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      alert("Please select an image file");
+      notificationService.warning("Please select an image file", 3000);
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      alert("Image size should be less than 5MB");
+      notificationService.warning("Image size should be less than 5MB", 3000);
       return;
     }
 
-    setIsUploadingAvatar(true);
-
-    try {
-      const formData = new FormData();
-      formData.append("avatar", file);
-
-      const res = await fetchWithAuth(`${API_CONFIG.BASE_URL}/v1/user/avatar`, {
-        method: "POST",
-        body: formData,
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setUserAvatar(data.avatar || data.avatarUrl || "");
-        await fetchUserProfile();
-      } else {
-        const errorData = await res.json();
-        alert(errorData.message || "Failed to upload avatar");
-      }
-    } catch (error) {
-      console.error("Failed to upload avatar:", error);
-      alert("Failed to upload avatar. Please try again.");
-    } finally {
-      setIsUploadingAvatar(false);
-    }
+    // Set preview and state, do not upload yet
+    const previewUrl = URL.createObjectURL(file);
+    setAvatarPreview(previewUrl);
+    setSelectedAvatarFile(file);
   };
 
   const handleLogout = async () => {
@@ -453,7 +515,7 @@ const Settings = () => {
                     <div className="w-24 h-24 rounded-full bg-white/10 animate-pulse border-2 border-transparent" />
                   ) : (
                     <img
-                      src={getAvatarUrl(userAvatar)}
+                      src={avatarPreview || getAvatarUrl(userAvatar)}
                       alt="Avatar"
                       className="w-24 h-24 rounded-full object-cover border-2 border-accent-green/50"
                       onError={(e: any) => {
@@ -508,7 +570,7 @@ const Settings = () => {
                 <div className="flex-1 space-y-4">
                   <div>
                     <label className="block text-light/60 text-sm font-questrial mb-2">
-                      Username
+                      Username <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -518,10 +580,42 @@ const Settings = () => {
                       className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-light font-questrial focus:outline-none focus:border-accent-green disabled:opacity-50 disabled:cursor-not-allowed"
                     />
                   </div>
+                  {isEditing && (
+                    <>
+                      <div>
+                        <label className="block text-light/60 text-sm font-questrial mb-2">
+                          Current Password <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="password"
+                          value={currentPassword}
+                          onChange={(e: any) => setCurrentPassword(e.target.value)}
+                          placeholder="Required to change password"
+                          className={`w-full bg-white/10 border ${errors.currentPassword ? "border-red-500" : "border-white/20"} rounded-lg px-4 py-3 text-light font-questrial focus:outline-none focus:border-accent-green`}
+                        />
+                        {errors.currentPassword && (
+                          <span className="text-red-500 text-xs mt-1 block">{errors.currentPassword}</span>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="block text-light/60 text-sm font-questrial mb-2">
+                          New Password
+                        </label>
+                        <input
+                          type="password"
+                          value={newPassword}
+                          onChange={(e: any) => setNewPassword(e.target.value)}
+                          placeholder="Leave blank to keep current"
+                          className={`w-full bg-white/10 border ${errors.password ? "border-red-500" : "border-white/20"} rounded-lg px-4 py-3 text-light font-questrial focus:outline-none focus:border-accent-green`}
+                        />
+                      </div>
+                    </>
+                  )}
 
                   <div>
                     <label className="block text-light/60 text-sm font-questrial mb-2">
-                      Email
+                      Email <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="email"

@@ -91,9 +91,7 @@ const WelcomeHeaderSection = () => {
     };
     fetchRank();
 
-    if (name && name !== "Guest") {
-      return;
-    }
+    fetchRank();
 
     const fetchProfile = async () => {
       try {
@@ -130,6 +128,22 @@ const WelcomeHeaderSection = () => {
       }
     };
     fetchProfile();
+
+    const handleProfileUpdate = (event: any) => {
+      if (event.detail?.name) {
+        setName(event.detail.name);
+      }
+      if (typeof event.detail?.xp === "number") {
+        setXp(event.detail.xp);
+      }
+      // Re-fetch to be sure
+      fetchProfile();
+    };
+
+    window.addEventListener("profile-updated", handleProfileUpdate);
+    return () => {
+      window.removeEventListener("profile-updated", handleProfileUpdate);
+    };
   }, []);
 
   const handleSearch = useCallback(async () => {

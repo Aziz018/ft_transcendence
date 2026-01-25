@@ -125,7 +125,7 @@ const Dashboard = () => {
     }
     return (
       <img
-        className="w-[150px] object-cover rounded-full"
+        className="w-[150px] h-[150px] object-cover rounded-full"
         alt="User Avatar"
         src={getAvatarUrl(userAvatar)}
         onError={(e: any) => {

@@ -11,6 +11,7 @@
   "devDependencies": {
     "@types/express": "^5.0.3",
     "@types/node": "^20.19.15",
+    "baseline-browser-mapping": "^2.9.18",
     "prisma": "^6.16.2",
     "ts-node": "^10.9.2"
   },
@@ -25,7 +26,6 @@
     "arg": "^5.0.2",
     "autoprefixer": "^10.4.0",
     "balanced-match": "^1.0.2",
-    "baseline-browser-mapping": "^2.8.4",
     "binary-extensions": "^2.3.0",
     "brace-expansion": "^2.0.2",
     "braces": "^3.0.3",

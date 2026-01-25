@@ -120,9 +120,10 @@ export const userProfileUpdateSchema = {
     properties: {
       field: {
         type: "string",
-        enum: ["name", "avatar", "xp", "email"],
+        enum: ["name", "avatar", "xp", "email", "password"],
       },
       value: { type: "string" },
+      oldPassword: { type: "string" },
     },
     required: ["field", "value"],
   },
