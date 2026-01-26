@@ -179,7 +179,7 @@ export default class Server {
       await this.fastify.register(plugin);
     }
     await this.registerOAuthClients();
-    await fastify.register(websocket);
+    await this.fastify.register(websocket);
   }
 
   private registerRoutes(): void {

@@ -53,6 +53,8 @@ const FriendsList = ({ onSelectFriend, selectedFriend }: FriendsListProps) => {
   const [onlineStatuses, setOnlineStatuses] = useState<Record<string, boolean>>(
     {}
   );
+  const [showUnfriendModal, setShowUnfriendModal] = useState(false);
+  const [friendToUnfriend, setFriendToUnfriend] = useState<Friend | null>(null);
 
   /**
    * Load friends list
@@ -168,32 +170,37 @@ const FriendsList = ({ onSelectFriend, selectedFriend }: FriendsListProps) => {
   const handleUnfriend = useCallback(
     async (friend: Friend, e: MouseEvent) => {
       e.stopPropagation();
+      setFriendToUnfriend(friend);
+      setShowUnfriendModal(true);
+    },
+    []
+  );
 
-      if (
-        !confirm(
-          `Are you sure you want to remove ${friend.name} from your friends?`
-        )
-      ) {
-        return;
-      }
+  const confirmUnfriend = useCallback(
+    async () => {
+      if (!friendToUnfriend) return;
+
+      setShowUnfriendModal(false);
 
       try {
         const token = getToken();
         if (!token) return;
 
-        await chatService.unfriend(friend.id, token);
+        await chatService.unfriend(friendToUnfriend.id, token);
 
-        setFriends((prev) => prev.filter((f) => f.id !== friend.id));
+        setFriends((prev) => prev.filter((f) => f.id !== friendToUnfriend.id));
 
-        if (selectedFriend?.id === friend.id) {
+        if (selectedFriend?.id === friendToUnfriend.id) {
           onSelectFriend(null as any);
         }
+
+        setFriendToUnfriend(null);
       } catch (error) {
         console.error("[FriendsList] Failed to unfriend:", error);
         alert("Failed to remove friend. Please try again.");
       }
     },
-    [selectedFriend, onSelectFriend]
+    [friendToUnfriend, selectedFriend, onSelectFriend]
   );
 
   return (
@@ -260,7 +267,7 @@ const FriendsList = ({ onSelectFriend, selectedFriend }: FriendsListProps) => {
                       : "hover:bg-white/5 border-l-4 border-transparent"
                   }`}>
                   <div className="flex items-center gap-3">
-                    {/* Avatar with online indicator */}
+                    {/* Avatar */}
                     <div className="relative flex-shrink-0">
                       <img
                         src={getAvatarUrl(friend.avatar)}
@@ -270,9 +277,6 @@ const FriendsList = ({ onSelectFriend, selectedFriend }: FriendsListProps) => {
                           e.currentTarget.src = defaultAvatar;
                         }}
                       />
-                      {isOnline && (
-                        <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-[#141517] rounded-full"></span>
-                      )}
                     </div>
 
                     {/* Friend Info */}
@@ -281,7 +285,7 @@ const FriendsList = ({ onSelectFriend, selectedFriend }: FriendsListProps) => {
                         {friend.name}
                       </h3>
                       <p className="text-white/50 font-[Questrial] text-xs truncate">
-                        {isOnline ? "Online" : "Offline"}
+                        {friend.email}
                       </p>
                     </div>
 
@@ -330,12 +334,59 @@ const FriendsList = ({ onSelectFriend, selectedFriend }: FriendsListProps) => {
         )}
       </div>
 
-      {/* Online friends counter */}
+      {/* Total friends counter */}
       <div className="px-6 py-3 border-t border-white/10">
         <p className="text-white/50 font-[Questrial] text-xs">
-          {Object.values(onlineStatuses).filter(Boolean).length} friends online
+          {filteredFriends.length} {filteredFriends.length === 1 ? 'friend' : 'friends'}
         </p>
       </div>
+
+      {/* Unfriend Confirmation Modal */}
+      {showUnfriendModal && friendToUnfriend && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#1a1c1e] rounded-2xl shadow-2xl border border-white/10 max-w-md w-full p-6 space-y-4 animate-fadeIn">
+            {/* Header */}
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-white font-[Questrial] text-lg font-semibold">
+                  Unfriend {friendToUnfriend.name}?
+                </h3>
+                <p className="text-white/50 text-sm font-[Questrial]">
+                  This action cannot be undone
+                </p>
+              </div>
+            </div>
+
+            {/* Message */}
+            <p className="text-white/70 font-[Questrial] text-sm leading-relaxed">
+              Are you sure you want to remove <span className="text-white font-semibold">{friendToUnfriend.name}</span> from your friends list? 
+              You'll need to send a new friend request to reconnect.
+            </p>
+
+            {/* Actions */}
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => {
+                  setShowUnfriendModal(false);
+                  setFriendToUnfriend(null);
+                }}
+                className="flex-1 px-4 py-2.5 bg-white/5 hover:bg-white/10 text-white rounded-lg font-[Questrial] font-medium text-sm transition-all border border-white/10 hover:border-white/20">
+                Cancel
+              </button>
+              <button
+                onClick={confirmUnfriend}
+                className="flex-1 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-lg font-[Questrial] font-semibold text-sm transition-all shadow-lg shadow-red-500/20 hover:shadow-red-500/30">
+                Unfriend
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

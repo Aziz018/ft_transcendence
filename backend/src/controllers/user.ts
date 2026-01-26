@@ -228,7 +228,7 @@ export const userLoginController = async (
 ): Promise<void> => {
   const fastify: FastifyInstance = req.server;
   const user: UserModel | null = await fastify.service.user.fetchBy({
-    email: req.body.email,
+    email: req.body.email.toLowerCase(),
   });
 
   if (user === null) {

@@ -54,6 +54,10 @@ const Settings = () => {
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const fileInputRef = Fuego.useRef<HTMLInputElement>(null);
+  const [blockedUsers, setBlockedUsers] = useState<any[]>([]);
+  const [isLoadingBlocked, setIsLoadingBlocked] = useState(false);
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
   // Store original values to revert on cancel
   const [originalUserName, setOriginalUserName] = useState("");
@@ -73,6 +77,7 @@ const Settings = () => {
       wsService.connect();
       fetchUserProfile();
       check2FAStatus();
+      fetchBlockedUsers();
     }
   }, []);
 
@@ -109,6 +114,70 @@ const Settings = () => {
       }
     } catch (error) {
       console.error("Failed to check 2FA status:", error);
+    }
+  };
+
+  const fetchBlockedUsers = async () => {
+    setIsLoadingBlocked(true);
+    try {
+      const res = await fetchWithAuth(`${API_CONFIG.BASE_URL}/v1/friend/blocked`);
+      if (res.ok) {
+        const data = await res.json();
+        console.log("Blocked users data:", data);
+        setBlockedUsers(data);
+      } else {
+        console.error("Failed to fetch blocked users");
+      }
+    } catch (error) {
+      console.error("Error fetching blocked users:", error);
+    } finally {
+      setIsLoadingBlocked(false);
+    }
+  };
+
+  const getAvatarUrl = (avatarPath: string | null | undefined): string => {
+    if (!avatarPath || !avatarPath.trim()) {
+      return `${API_CONFIG.BASE_URL}/images/default-avatar.png`;
+    }
+    if (avatarPath.startsWith("/public/")) {
+      return `${API_CONFIG.BASE_URL}${avatarPath.replace("/public", "")}`;
+    }
+    if (avatarPath.startsWith("/")) {
+      return `${API_CONFIG.BASE_URL}${avatarPath}`;
+    }
+    if (avatarPath.startsWith("http://") || avatarPath.startsWith("https://")) {
+      return avatarPath;
+    }
+    return `${API_CONFIG.BASE_URL}/images/default-avatar.png`;
+  };
+
+  const handleUnblock = async (userId: number | string | undefined, userName: string) => {
+    try {
+      if (!userId) {
+        console.error("User ID is undefined");
+        return;
+      }
+      
+      const blocked_uid = typeof userId === 'string' ? userId : userId.toString();
+      
+      const res = await fetchWithAuth(`${API_CONFIG.BASE_URL}/v1/friend/unblock`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ blocked_uid }),
+      });
+
+      if (res.ok) {
+        setBlockedUsers(blockedUsers.filter((user) => user.id !== userId));
+        setShowSuccessToast(true);
+        setSuccessMessage(`${userName} has been unblocked!`);
+        setTimeout(() => setShowSuccessToast(false), 3000);
+      } else {
+        console.error("Failed to unblock user");
+      }
+    } catch (error) {
+      console.error("Error unblocking user:", error);
     }
   };
 
@@ -404,18 +473,6 @@ const Settings = () => {
     return null;
   }
 
-  const getAvatarUrl = (path: string | null | undefined): string => {
-    const defaultAvatar = "/api/images/default-avatar.png";
-    if (!path || !path.trim()) return defaultAvatar;
-    if (path.startsWith("/public/"))
-      return `/api${path.replace("/public", "")}`;
-    if (path.startsWith("/"))
-      return `/api${path}`;
-    if (path.startsWith("http"))
-      return path;
-    return defaultAvatar;
-  };
-
   return (
     <div className="bg-dark-950 w-full h-screen flex overflow-hidden">
       <TopRightBlurEffect />
@@ -655,6 +712,52 @@ const Settings = () => {
               </div>
             </div>
 
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
+              <h2 className="font-questrial text-light text-2xl mb-4">
+                Blocked Users
+              </h2>
+
+              {isLoadingBlocked ? (
+                <div className="text-center py-8">
+                  <p className="font-questrial text-light/60">Loading...</p>
+                </div>
+              ) : blockedUsers.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="font-questrial text-light/60">No blocked users</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {blockedUsers.map((user) => (
+                    <div
+                      key={user.id}
+                      className="flex items-center justify-between p-4 bg-white/5 rounded-lg hover:bg-white/10 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={getAvatarUrl(user.avatar)}
+                          alt={user.username}
+                          className="w-12 h-12 rounded-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.src = `${API_CONFIG.BASE_URL}/images/default-avatar.png`;
+                          }}
+                        />
+                        <div>
+                          <h3 className="font-questrial text-light text-lg">
+                            {user.username}
+                          </h3>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => handleUnblock(user.id, user.username)}
+                        className="px-4 py-2 rounded-lg font-questrial font-semibold bg-accent-orange text-dark-950 hover:bg-accent-orange/90 transition-colors">
+                        Unblock
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
           </div>
         </div>
       </div>
@@ -706,6 +809,24 @@ const Settings = () => {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {showSuccessToast && (
+        <div className="fixed bottom-8 right-8 bg-green-500 text-white px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 z-50 animate-fade-in">
+          <svg
+            className="w-6 h-6"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M5 13l4 4L19 7"
+            />
+          </svg>
+          <span className="font-questrial font-medium">{successMessage}</span>
         </div>
       )}
     </div>

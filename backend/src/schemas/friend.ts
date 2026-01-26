@@ -117,7 +117,15 @@ export const getBlockedUsersSchema = {
   response: {
     200: {
       type: "array",
-      items: { type: "string" },
+      items: {
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          username: { type: "string" },
+          email: { type: "string" },
+          avatar: { type: ["string", "null"] },
+        },
+      },
     },
   },
 };

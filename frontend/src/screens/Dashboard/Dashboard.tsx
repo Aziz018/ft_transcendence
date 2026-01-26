@@ -208,16 +208,12 @@ const Dashboard = () => {
             <button
               onClick={async () => {
                 try {
-                  const backend =
-                    (import.meta as any).env?.VITE_BACKEND_ORIGIN ||
-                    "/api";
                   const token = getToken();
 
-                  const res = await fetch(`${backend}/v1/auth/logout`, {
+                  const res = await fetch(API_CONFIG.AUTH.LOGOUT, {
                     method: "POST",
                     credentials: "include",
                     headers: {
-                      "Content-Type": "application/json",
                       ...(token && { Authorization: `Bearer ${token}` }),
                     },
                   });

@@ -53,7 +53,7 @@ const Main = () => {
         credentials: "include",
         body: JSON.stringify({
           name,
-          email,
+          email: email.toLowerCase().trim(),
           password,
         }),
       });

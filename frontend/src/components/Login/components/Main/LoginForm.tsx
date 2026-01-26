@@ -48,7 +48,7 @@ const LoginForm = () => {
           Accept: "application/json",
         },
         credentials: "include",
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: email.toLowerCase().trim(), password }),
       });
 
       console.log("[Login] Response status:", res.status, res.statusText);

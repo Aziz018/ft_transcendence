@@ -474,14 +474,29 @@ export default class FriendService extends DataBaseWrapper {
     }
   }
 
-  public async getBlockedUsers(userId: string): Promise<string[]> {
+  public async getBlockedUsers(userId: string): Promise<any[]> {
     try {
       const blocks = await this.prisma.blockedUser.findMany({
         where: {
           blockerId: userId,
         },
+        include: {
+          blocked: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              avatar: true,
+            },
+          },
+        },
       });
-      return blocks.map((block) => block.blockedId);
+      return blocks.map((block) => ({
+        id: block.blocked.id,
+        username: block.blocked.name,
+        email: block.blocked.email,
+        avatar: block.blocked.avatar,
+      }));
     } catch (error: any) {
       let err = this.errorHandler.handleError(
         this.fastify,

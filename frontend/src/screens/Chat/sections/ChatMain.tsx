@@ -48,6 +48,9 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [showUnfriendModal, setShowUnfriendModal] = useState(false);
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
   // Track locally disabled invites (clicked accept/reject)
   const [disabledInvites, setDisabledInvites] = useState<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -216,10 +219,15 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
         throw new Error("Failed to block user");
       }
 
-      alert(`Blocked ${selectedFriend.name}`);
+      setSuccessMessage(`Successfully blocked ${selectedFriend.name}`);
+      setShowSuccessToast(true);
+      setTimeout(() => setShowSuccessToast(false), 3000);
+
       setShowMenu(false);
 
-      window.location.reload();
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     } catch (error) {
       console.error("[ChatMain] Failed to block user:", error);
       alert("Failed to block user. Please try again.");
@@ -229,10 +237,13 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
   const handleUnfriend = useCallback(async () => {
     if (!selectedFriend) return;
 
-    const confirmed = confirm(
-      `Are you sure you want to unfriend ${selectedFriend.name}?`
-    );
-    if (!confirmed) return;
+    setShowUnfriendModal(true);
+  }, [selectedFriend]);
+
+  const confirmUnfriend = useCallback(async () => {
+    if (!selectedFriend) return;
+
+    setShowUnfriendModal(false);
 
     try {
       const backend =
@@ -260,10 +271,15 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
         throw new Error("Failed to unfriend");
       }
 
-      alert(`Unfriended ${selectedFriend.name}`);
+      setSuccessMessage(`Successfully removed ${selectedFriend.name} from your friends`);
+      setShowSuccessToast(true);
+      setTimeout(() => setShowSuccessToast(false), 3000);
+      
       setShowMenu(false);
 
-      window.location.reload();
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     } catch (error) {
       console.error("[ChatMain] Failed to unfriend:", error);
       alert("Failed to unfriend. Please try again.");
@@ -421,14 +437,7 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
             {selectedFriend.name}
           </h2>
           <p className="text-white/50 text-sm font-[Questrial]">
-            {selectedFriend.status === "ONLINE" ? (
-              <span className="flex items-center gap-2">
-                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                Online
-              </span>
-            ) : (
-              "Offline"
-            )}
+            {selectedFriend.email}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -617,6 +626,67 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
           animation: fadeIn 0.3s ease-out;
         }
       `}</style>
+
+      {/* Unfriend Confirmation Modal */}
+      {showUnfriendModal && selectedFriend && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-[#1a1c1e] rounded-2xl shadow-2xl border border-white/10 max-w-md w-full p-6 space-y-4 animate-fadeIn">
+            {/* Header */}
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-white font-[Questrial] text-lg font-semibold">
+                  Unfriend {selectedFriend.name}?
+                </h3>
+                <p className="text-white/50 text-sm font-[Questrial]">
+                  This action cannot be undone
+                </p>
+              </div>
+            </div>
+
+            {/* Message */}
+            <p className="text-white/70 font-[Questrial] text-sm leading-relaxed">
+              Are you sure you want to remove <span className="text-white font-semibold">{selectedFriend.name}</span> from your friends list? 
+              You'll need to send a new friend request to reconnect.
+            </p>
+
+            {/* Actions */}
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => setShowUnfriendModal(false)}
+                className="flex-1 px-4 py-2.5 bg-white/5 hover:bg-white/10 text-white rounded-lg font-[Questrial] font-medium text-sm transition-all border border-white/10 hover:border-white/20">
+                Cancel
+              </button>
+              <button
+                onClick={confirmUnfriend}
+                className="flex-1 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-lg font-[Questrial] font-semibold text-sm transition-all shadow-lg shadow-red-500/20 hover:shadow-red-500/30">
+                Unfriend
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Toast */}
+      {showSuccessToast && (
+        <div className="fixed top-4 right-4 z-50 animate-fadeIn">
+          <div className="bg-green-500 text-white px-6 py-4 rounded-xl shadow-2xl border border-green-400/20 flex items-center gap-3 min-w-[300px]">
+            <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <p className="font-[Questrial] font-semibold text-sm">Success!</p>
+              <p className="font-[Questrial] text-sm text-white/90">{successMessage}</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div >
   );
 };
