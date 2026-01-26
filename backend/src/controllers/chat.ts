@@ -3115,9 +3115,15 @@ export const websocketHandler = async (
     // For now, removing the call as 'handleDisconnect' doesn't exist on GameService in the same way.
 
     // Ensure we clear any pending invite status
-    if (userId) {
-      request.server.service.game.markAsAvailable(userId);
-    }
+    // FIX: Do NOT clear inviting status on disconnect. 
+    // This wipes the state if the user redirects to /game immediately after inviting.
+    // The state will be cleared by:
+    // 1. Invite timeout (handled by inviteTimeouts map)
+    // 2. Invite acceptance/rejection
+    // 3. Explicit cancel (if implemented)
+    // if (userId) {
+    //   request.server.service.game.markAsAvailable(userId);
+    // }
   });
 
   connection.on("error", (error) => {
@@ -3303,8 +3309,15 @@ const handleGameInvite = async (
   const { targetId } = payload;
   if (!targetId) return;
 
+  // Mark sender as inviting IMMEDIATELY to prevent race condition
+  // This prevents them from being matched in public queue while invite is processing
+  request.server.service.game.markAsInviting(authUser.uid);
+
   // Prevent self-invite
-  if (targetId === authUser.uid) return;
+  if (targetId === authUser.uid) {
+    request.server.service.game.markAsAvailable(authUser.uid);
+    return;
+  }
 
   // Check if sender already has a pending invite (prevent spam/race)
   // iterate keys of inviteTimeouts to see if senderId is start of any key
@@ -3314,6 +3327,7 @@ const handleGameInvite = async (
         type: 'error',
         message: 'You already have a pending invite sent.'
       }));
+      // Do NOT unmark here, as they have a valid pending invite from before (theoretically)
       return;
     }
   }
@@ -3325,8 +3339,24 @@ const handleGameInvite = async (
       type: 'error',
       message: 'User is offline'
     }));
+    request.server.service.game.markAsAvailable(authUser.uid);
     return;
   }
+
+  // Register Timeout to clear "inviting" status if ignored
+  const timeoutKey = `${authUser.uid}:${targetId}`;
+  if (inviteTimeouts.has(timeoutKey)) {
+    clearTimeout(inviteTimeouts.get(timeoutKey)!.timeout);
+  }
+  const timeout = setTimeout(() => {
+    inviteTimeouts.delete(timeoutKey);
+    request.server.service.game.markAsAvailable(authUser.uid);
+    // request.log.info(`⏳ Ephemeral game invite from ${authUser.uid} expired.`);
+  }, 30000); // 30 Seconds expiry for ephemeral invites
+
+  // Use a placeholder messageId since this is ephemeral
+  inviteTimeouts.set(timeoutKey, { timeout, messageId: 'ephemeral' });
+
 
   // Notify target
   targetConns.forEach(ws => {
@@ -3335,8 +3365,8 @@ const handleGameInvite = async (
         type: 'game_invite_received',
         payload: {
           senderId: authUser.uid,
-          senderName: authUser.name,
-          senderAvatar: authUser.avatar, // Ensure type User has avatar or cast it
+          senderName: authUser.name, // Ensure authUser properties exist
+          senderAvatar: authUser.avatar,
           timestamp: new Date().toISOString()
         }
       }));
@@ -3348,9 +3378,6 @@ const handleGameInvite = async (
     type: 'game_invite_sent',
     payload: { targetId }
   }));
-
-  // Mark sender as inviting
-  request.server.service.game.markAsInviting(authUser.uid);
 };
 
 const handleAcceptGame = async (
@@ -3360,6 +3387,15 @@ const handleAcceptGame = async (
   request: FastifyRequest
 ) => {
   const { senderId } = payload;
+
+  // Clear invite timeout and status
+  const timeoutKey = `${senderId}:${authUser.uid}`;
+  if (inviteTimeouts.has(timeoutKey)) {
+    clearTimeout(inviteTimeouts.get(timeoutKey)!.timeout);
+    inviteTimeouts.delete(timeoutKey);
+  }
+  request.server.service.game.markAsAvailable(senderId);
+
   // Create private game
   try {
     const gameId = await request.server.service.game.createPrivateGame(senderId, authUser.uid);
@@ -3401,6 +3437,15 @@ const handleRejectGame = async (
   request: FastifyRequest
 ) => {
   const { senderId } = payload;
+
+  // Clear invite timeout and status
+  const timeoutKey = `${senderId}:${authUser.uid}`;
+  if (inviteTimeouts.has(timeoutKey)) {
+    clearTimeout(inviteTimeouts.get(timeoutKey)!.timeout);
+    inviteTimeouts.delete(timeoutKey);
+  }
+  request.server.service.game.markAsAvailable(senderId);
+
   const senderConns = userConnections.get(senderId);
   if (senderConns) {
     senderConns.forEach(ws => {
