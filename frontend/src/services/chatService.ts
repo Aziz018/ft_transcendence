@@ -4,6 +4,7 @@
  */
 
 import API_CONFIG from "../config/api";
+import { wsService } from "./wsService";
 
 interface Message {
   id: string;
@@ -134,7 +135,73 @@ class ChatService {
         break;
 
       case "game_start_instruction":
+        console.log("[ChatService] game_start_instruction received:", data);
+        const startData = data.payload || data;
+        if (startData.gameId) {
+          console.log("[ChatService] Storing gameId (instruction) and redirecting:", startData.gameId);
+          localStorage.setItem("pendingGameId", startData.gameId);
+          // For game_start_instruction, we might not have opponent info in payload
+          // relying on Game component to fetch or existing checks
+          window.location.href = '/game';
+        }
         this.notifyGameStartListeners(data.payload);
+        break;
+
+      case "game_matched":
+        // Handle game_matched event - store gameId and redirect to game
+        console.log("[ChatService] game_matched received:", data);
+        const matchData = data.payload || data;
+        // Forward to wsService so GameInviteProvider can handle it
+        wsService.emit("game_matched", matchData);
+        if (matchData.gameId) {
+          console.log("[ChatService] Storing gameId and redirecting:", matchData.gameId);
+          localStorage.setItem("pendingGameId", matchData.gameId);
+          localStorage.setItem("pendingGameInvite", JSON.stringify({
+            opponentId: matchData.opponentId,
+            opponentName: matchData.opponentName,
+            opponentAvatar: matchData.opponentAvatar,
+            side: matchData.side,
+            isBotGame: matchData.isBotGame
+          }));
+          // Don't auto-redirect here - let GameInviteProvider handle it
+          // window.location.href = '/game';
+        }
+        break;
+
+      case "game_invite_expired":
+        // Handle invite expiration - notify sender
+        console.log("[ChatService] game_invite_expired received:", data);
+        const expiredMsg = data.payload?.message || data.message || "Your game invite expired. The player did not respond.";
+        localStorage.removeItem("pendingGameInvite");
+        localStorage.removeItem("pendingGameId");
+        alert(expiredMsg);
+        break;
+
+      case "game_invite_declined":
+        // Handle invite declined (busy player)
+        console.log("[ChatService] game_invite_declined received:", data);
+        const declinedData = data.payload || data;
+        if (declinedData.reason === 'busy') {
+          alert(declinedData.message || 'Player is currently busy');
+        }
+        localStorage.removeItem("pendingGameInvite");
+        break;
+
+      case "game_invite_received":
+        // Handle incoming game invite notification
+        console.log("[ChatService] 🎮🎮🎮 GAME INVITE RECEIVED! 🎮🎮🎮", data);
+        const inviteData = data.payload || data;
+        // Show alert for debugging - this should pop up immediately
+        if (inviteData.senderName) {
+          console.log(`🎮 Game invite from ${inviteData.senderName}!`);
+          // TEMPORARY: Show alert to confirm receipt
+          alert(`🎮 ${inviteData.senderName} wants to play Pong with you! (DEBUG: chatService received it)`);
+        }
+        // Forward to wsService so GameInviteProvider can show the modal
+        // This bridges the two WebSocket services
+        console.log("[ChatService] Forwarding to wsService.emit now...");
+        wsService.emit("game_invite_received", inviteData);
+        console.log("[ChatService] wsService.emit called successfully");
         break;
 
       default:
@@ -487,10 +554,12 @@ class ChatService {
    * Send a generic WebSocket message
    */
   sendWebSocketMessage(type: string, payload: any): void {
+    console.log(`[ChatService] sendWebSocketMessage called: type=${type}`, payload);
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      console.log(`[ChatService] Sending WebSocket message: ${type}`);
       this.ws.send(JSON.stringify({ type, payload }));
     } else {
-      console.warn("[ChatService] WebSocket not connected, cannot send message");
+      console.warn(`[ChatService] WebSocket not connected (state=${this.ws?.readyState}), cannot send: ${type}`);
     }
   }
 }

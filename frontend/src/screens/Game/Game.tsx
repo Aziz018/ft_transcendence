@@ -1,47 +1,22 @@
 
 import Fuego, { useState, useEffect, useRef } from "../../index";
-
-import Avatar from "../../assets/Ellipse 46.svg";
 import { getToken, decodeTokenPayload } from "../../lib/auth";
 import { gameWsService } from "../../services/gameWsService";
+import { wsService } from "../../services/wsService";
 import { redirect } from "../../library/Router/Router";
-import { chatService } from "../../services/chatService"; // Import chatService
-
-const navigationItems = [
-  { label: "Dashboard", active: false },
-  { label: "Game", active: true },
-  { label: "Chat", active: false },
-  { label: "Tournament", active: false },
-  { label: "Leaderboard", active: false },
-];
-
-const footerLinks = [
-  { label: "Terms", width: "w-[50px]" },
-  { label: "Help", width: "w-[38px]" },
-  { label: "Privacy", width: "w-[61px]" },
-];
+import { chatService } from "../../services/chatService";
 
 const GAME_WIDTH = 1150;
 const GAME_HEIGHT = 534;
 const PADDLE_HEIGHT = 144;
 const PADDLE_WIDTH = 20;
 const BALL_SIZE = 20;
-const PADDLE_SPEED = 8;
-const BALL_SPEED = 5;
-const GAME_DURATION = 60;
-
-function normalizeVel(vx: number, vy: number) {
-  const speed = Math.sqrt(vx * vx + vy * vy);
-  if (speed === 0) return { vx: BALL_SPEED, vy: 0 };
-  const scale = BALL_SPEED / speed;
-  return { vx: vx * scale, vy: vy * scale };
-}
 
 export const Game = () => {
   const [isAuthenticated, setIsAuthenticated] = Fuego.useState(true);
   const [userAvatar, setUserAvatar] = Fuego.useState("");
   const [userName, setUserName] = Fuego.useState("You");
-  const [opponent, setOpponent] = Fuego.useState<{
+  const [opponent, setOpponent] = useState<{
     name: string;
     avatar: string;
   } | null>(null);
@@ -58,26 +33,8 @@ export const Game = () => {
         return;
       }
       fetchUserProfile();
-      loadGameInvitation();
     }
   }, []);
-
-  const loadGameInvitation = () => {
-    try {
-      const inviteData = localStorage.getItem("pendingGameInvite");
-      if (inviteData) {
-        const invite = JSON.parse(inviteData);
-        setOpponent({
-          name: invite.opponentName || "Opponent",
-          avatar: invite.opponentAvatar || "",
-        });
-
-        localStorage.removeItem("pendingGameInvite");
-      }
-    } catch (error) {
-      console.error("Failed to load game invitation:", error);
-    }
-  };
 
   const fetchUserProfile = async () => {
     try {
@@ -117,17 +74,17 @@ export const Game = () => {
     return null;
   }
 
-  // Multiplayer State
+  // === MULTIPLAYER STATE ===
   const [gameState, setGameState] = useState<any>(null);
   const [status, setStatus] = useState<"connecting" | "waiting" | "playing" | "paused" | "finished">("connecting");
   const [winner, setWinner] = useState<string | null>(null);
   const [isLeftPlayer, setIsLeftPlayer] = useState(false);
 
-  // Restored State for UI compatibility
+  // Game state for rendering
   const [leftScore, setLeftScore] = useState(0);
   const [rightScore, setRightScore] = useState(0);
   const [displayedXP, setDisplayedXP] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(60); // Default or from server
+  const [timeLeft, setTimeLeft] = useState(60);
 
   const [ballX, setBallX] = useState(GAME_WIDTH / 2);
   const [ballY, setBallY] = useState(GAME_HEIGHT / 2);
@@ -137,91 +94,141 @@ export const Game = () => {
   const keysPressed = useRef<Set<string>>(new Set());
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Derived state for backward compatibility
   const gameStarted = status === "playing";
   const gameEnded = status === "finished";
 
   const [rejectionMessage, setRejectionMessage] = useState<string | null>(null);
 
-  // Connect and Join
+  // === LOAD OPPONENT FROM GAME INVITE ===
+  useEffect(() => {
+    const storedInvite = localStorage.getItem("pendingGameInvite");
+    if (storedInvite && storedInvite !== "true") {
+      try {
+        const inviteData = JSON.parse(storedInvite);
+        console.log("[Game] Loading opponent from localStorage:", inviteData);
+        if (inviteData.opponentName && inviteData.opponentName !== "Opponent") {
+          setOpponent({
+            name: inviteData.opponentName,
+            avatar: inviteData.opponentAvatar || "",
+          });
+        }
+        if (inviteData.side) {
+          setIsLeftPlayer(inviteData.side === 'left');
+        }
+      } catch (e) {
+        console.warn("[Game] Failed to parse pendingGameInvite:", e);
+      }
+    }
+  }, []);
+
+  // === LISTEN FOR GAME_MATCHED FROM CHAT WS ===
+  useEffect(() => {
+    const cleanupChatMatch = wsService.on("game_matched", (data) => {
+      console.log("[Chat WS] Game Matched:", data);
+      
+      const matchData = data.payload || data;
+      
+      if (matchData.gameId) {
+        console.log("[Chat WS] Joining game:", matchData.gameId);
+        localStorage.setItem("pendingGameId", matchData.gameId);
+        localStorage.removeItem("pendingGameInvite");
+        gameWsService.joinGame({ gameId: matchData.gameId });
+      }
+      
+      const opponentName = matchData.opponentName || "Opponent";
+      const isBotGame = matchData.isBotGame || matchData.opponentId?.startsWith('bot-');
+      const botAvatar = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Ccircle cx="50" cy="50" r="50" fill="%23000000"/%3E%3C/svg%3E';
+      
+      setOpponent({
+        name: isBotGame ? "🤖 Bot" : opponentName,
+        avatar: isBotGame ? botAvatar : (matchData.opponentAvatar || ""),
+      });
+      
+      setIsLeftPlayer(matchData.side === 'left');
+    });
+
+    return () => {
+      cleanupChatMatch();
+    };
+  }, []);
+
+  // === GAME WEBSOCKET CONNECTION & LISTENERS ===
   useEffect(() => {
     if (!isAuthenticated) return;
 
+    // Extract roomId from URL if present (/game/:roomId)
+    const pathParts = window.location.pathname.split('/');
+    const urlRoomId = pathParts.length >= 3 && pathParts[1] === 'game' ? pathParts[2] : null;
+
     gameWsService.connect().then(() => {
-      console.log("Connected to Game WS, joining game queue...");
-      const pendingGameId = localStorage.getItem("pendingGameId");
+      console.log("[Game] Connected to Game WS");
+      
+      // Priority: URL roomId > localStorage pendingGameId > matchmaking
+      const pendingGameId = urlRoomId || localStorage.getItem("pendingGameId");
+      
       if (pendingGameId) {
-        console.log("Joining private game:", pendingGameId);
+        console.log("[Game] Joining private game:", pendingGameId);
         gameWsService.joinGame({ gameId: pendingGameId });
         localStorage.removeItem("pendingGameId");
       } else {
-        // Safety check: if we have a pending invite but no game ID yet, 
-        // it means we are waiting for the game to start (Sender or Receiver timing issue).
-        // DO NOT join standard queue.
         const pendingInvite = localStorage.getItem("pendingGameInvite");
         if (pendingInvite) {
-          console.log("Waiting for private game start instruction...");
+          console.log("[Game] Waiting for private game...");
           setStatus("waiting");
         } else {
+          console.log("[Game] Joining matchmaking queue");
           gameWsService.joinGame({ mode: "standard" });
         }
       }
-      setStatus("waiting"); // Set waiting initially
+      setStatus("waiting");
     });
 
-    // Listeners
+    // Game Start Event
     const cleanupStart = gameWsService.on("game_start", (data) => {
-      console.log("Game Started:", data);
+      console.log("[Game] Game Started:", data);
       setStatus("playing");
 
-      // Determine opponent name from payload
-      // Payload has players: string[] and playerNames: Record<string, string>
-      // We also know our own ID from token or context, but easier to just find the one that isn't "You" if we set that up, 
-      // or better: use the `yourPlayerId` if available, or deduce it.
-      // Actually, game_matched payload had `yourPlayerId`. game_start might not.
-      // Let's carry over opponent info if possible, or try to parse it.
+      const startData = data.payload || data;
 
       let opName = "Opponent";
       let opAvatar = "";
 
-      if (data.players && data.playerNames) {
-        // We need to know who WE are to pick the OTHER one.
-        // We can use the decoded token again or stored state.
+      if (startData.players && startData.playerNames) {
         const token = getToken();
         if (token) {
           const payload = decodeTokenPayload(token);
           const myId = payload?.id || payload?.uid;
-          const otherId = data.players.find((id: string) => id !== myId);
-          if (otherId && data.playerNames[otherId]) {
-            opName = data.playerNames[otherId];
+          const otherId = startData.players.find((id: string) => id !== myId);
+          if (otherId && startData.playerNames[otherId]) {
+            opName = startData.playerNames[otherId];
+            if (startData.playerAvatars && startData.playerAvatars[otherId]) {
+              opAvatar = startData.playerAvatars[otherId];
+            }
           }
         }
       }
 
-      setOpponent({
-        name: data.opponentName || opName,
-        avatar: data.opponentAvatar || opAvatar,
-      });
+      const finalOpName = startData.opponentName || opName;
+      const finalOpAvatar = startData.opponentAvatar || opAvatar;
 
-      // Backend assigns 'left' or 'right' side
-      const side = data.side || 'left';
+      if (finalOpName !== "Opponent" || finalOpAvatar !== "") {
+        setOpponent({
+          name: finalOpName,
+          avatar: finalOpAvatar,
+        });
+      }
+
+      const side = startData.side || 'left';
       setIsLeftPlayer(side === 'left');
     });
 
-    // Also listen for 'game_matched' to catch the ID early if needed
-    const cleanupMatch = gameWsService.on("game_matched", (data) => {
-      console.log("Game Matched:", data);
-      gameWsService.setGameId(data.id);
-      gameWsService.sendGameAction("game_ready", { gameId: data.id });
-    });
-
+    // Game State Updates
     const cleanupState = gameWsService.on("game_state", (state) => {
       setGameState(state);
       setLeftScore(state.leftScore);
       setRightScore(state.rightScore);
       setBallX(state.ballX);
       setBallY(state.ballY);
-      setLeftPaddleY(state.leftPaddleY);
       setLeftPaddleY(state.leftPaddleY);
       setRightPaddleY(state.rightPaddleY);
       if (typeof state.timeLeft === 'number') setTimeLeft(state.timeLeft);
@@ -232,32 +239,18 @@ export const Game = () => {
       }
     });
 
+    // Game Over Event
     const cleanupOver = gameWsService.on("match_ended", (data) => {
-      console.log("Game Over:", data);
+      console.log("[Game] Game Over:", data);
       setStatus("finished");
       setWinner(data.winnerId);
-
-      // Update final scores from payload to ensure accuracy (especially on disconnects)
-      if (data.finalScores) {
-        // We need to map player IDs to left/right
-        // This is tricky if we don't have the map handy.
-        // But we can infer: if we are left, our ID is left.
-        // For now, let's rely on the fact that finalScores is keyed by ID.
-        // We might not know which ID is left/right here easily without more state.
-        // However, usually P1 is Left and P2 is Right.
-        // If we want to be safe, we just rely on the GameState, BUT data.finalScores is the truth.
-        // Let's TRY to rely on GameState for now, but if it was a disconnect, GameState might be old.
-        // Actually, let's trust the server sent the last state.
-
-        // BETTER APPROACH: The server should send 'leftScore' and 'rightScore' in match_ended too?
-        // Or we just update displayedXP.
-      }
 
       if (data.xpEarned) {
         setDisplayedXP(data.xpEarned);
       }
     });
 
+    // Rejection Handler
     const cleanupRejection = chatService.onMessage((msg) => {
       if (msg.content && msg.content.includes("(Rejected)")) {
         setRejectionMessage("Game invitation was rejected.");
@@ -266,32 +259,50 @@ export const Game = () => {
         }, 2000);
       }
     });
+    
+    // Expired Invite Handlers
+    const cleanupExpired = gameWsService.on("game_invite_expired", (data) => {
+      console.log("[Game] Invite expired (Game WS)");
+      localStorage.removeItem("pendingGameInvite");
+      localStorage.removeItem("pendingGameId");
+      alert(data.message || data.payload?.message || "Your game invite expired.");
+      redirect('/chat');
+    });
+    
+    const cleanupExpiredChat = wsService.on("game_invite_expired", (data) => {
+      console.log("[Game] Invite expired (Chat WS)");
+      localStorage.removeItem("pendingGameInvite");
+      localStorage.removeItem("pendingGameId");
+      const message = data.payload?.message || data.message || "Your game invite expired.";
+      alert(message);
+      redirect('/chat');
+    });
 
     return () => {
       cleanupStart();
-      cleanupMatch();
       cleanupState();
       cleanupOver();
       cleanupRejection();
+      cleanupExpired();
+      cleanupExpiredChat();
       gameWsService.leaveGame();
-      // Delay disconnect to ensure 'leave_game' message is sent
       setTimeout(() => {
         gameWsService.disconnect();
       }, 500);
     };
   }, [isAuthenticated]);
 
-  // Input Handling
+  // === INPUT HANDLING ===
   useEffect(() => {
     if (status !== "playing") return;
 
     const interval = setInterval(() => {
       if (keysPressed.current.has("w") || keysPressed.current.has("arrowup")) {
-        gameWsService.movePaddle(-1); // Up
+        gameWsService.movePaddle(-1);
       } else if (keysPressed.current.has("s") || keysPressed.current.has("arrowdown")) {
-        gameWsService.movePaddle(1); // Down
+        gameWsService.movePaddle(1);
       } else {
-        gameWsService.movePaddle(0); // Stop
+        gameWsService.movePaddle(0);
       }
     }, 1000 / 60);
 
@@ -315,6 +326,7 @@ export const Game = () => {
     };
   }, []);
 
+  // === UTILITY FUNCTIONS ===
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -325,23 +337,12 @@ export const Game = () => {
     return xp.toLocaleString();
   };
 
-
-  // UI Handlers (Multiplayer doesn't really pause locally like offline)
-  const resumeGame = () => {
-    // No-op for multiplayer
-  };
-
   const resetGame = () => {
-    window.location.reload(); // Simplest way to re-queue
+    window.location.reload();
   };
 
-  const showPauseMenu = false; // Disable pause menu for multiplayer
-  const isPaused = false;
-
-  // Perspective logic
+  // === PERSPECTIVE LOGIC ===
   const displayBallX = isLeftPlayer ? ballX : GAME_WIDTH - ballX - BALL_SIZE;
-  // If I am left player: My paddle is leftPaddleY (displayed left). Opponent is rightPaddleY (displayed right).
-  // If I am right player: My paddle is rightPaddleY (displayed left). Opponent is leftPaddleY (displayed right).
   const displayMyPaddleY = isLeftPlayer ? leftPaddleY : rightPaddleY;
   const displayOpPaddleY = isLeftPlayer ? rightPaddleY : leftPaddleY;
 
@@ -420,25 +421,11 @@ export const Game = () => {
           </div>
         </section>
 
+        {/* Game Canvas Area */}
         <div className="relative w-[1150px] h-[534px] bg-dark-900/50 backdrop-blur-sm rounded-2xl border-2 border-accent-green/30 shadow-[0_0_40px_rgba(183,242,114,0.15)] overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-transparent via-accent-green/5 to-transparent pointer-events-none" />
 
-          {/* Canvas Layer */}
-          <canvas
-            ref={canvasRef}
-            width={800}
-            height={600}
-            className="absolute inset-0 w-full h-full object-contain pointer-events-none z-10 opacity-0"
-            style={{ display: 'none' }} // We are using custom divs for rendering below, but the canvas ref is needed for logic? 
-          // Wait, previous code used the canvas for rendering? 
-          // Checking line 468 of previous file: "game-canvas ..."
-          // But lines 399-423 were manually rendering divs for ball/paddle.
-          // I should KEEP the manual rendering divs if that's how it worked before!
-          // The canvas ref might be used by a hook or something implicitly, or maybe strictly for the ball logic?
-          // Actually, `gameWsService` doesn't seem to draw to canvas directly.
-          // I will keep the manual divs from lines 399-423 as they are the visual representation.
-          />
-
+          {/* Center decoration */}
           <div className="absolute w-[200px] h-[200px] rounded-full border-2 border-light/10 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
           <div className="absolute w-px h-full left-1/2 -translate-x-1/2 bg-gradient-to-b from-transparent via-light/20 to-transparent" />
 
@@ -511,7 +498,7 @@ export const Game = () => {
                   Game Paused
                 </h2>
                 <span className="font-questrial font-normal text-light/60 text-lg">
-                  {gameState?.pausedBy === gameState?.leftPlayer?.id || gameState?.pausedBy === gameState?.rightPlayer?.id ? "Player Paused" : "Paused"}
+                  {gameState?.pausedBy ? "Player Paused" : "Paused"}
                 </span>
                 <div className="flex flex-col gap-4 w-[300px]">
                   <button
@@ -523,11 +510,10 @@ export const Game = () => {
               </div>
             </div>
           )}
-
-
         </div>
       </div>
 
+      {/* Footer */}
       <footer className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-4">
         <div className="flex items-center gap-6">
           <button
@@ -556,7 +542,7 @@ export const Game = () => {
         </p>
       </footer>
 
-      {/* FINISHED OVERLAY - MOVED TO ROOT */}
+      {/* FINISHED OVERLAY */}
       {status === "finished" && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-dark-950/80 backdrop-blur-md animate-fadeIn">
           <div className="relative w-[500px] p-8 bg-dark-900 border border-accent-green/20 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] flex flex-col items-center">
@@ -567,7 +553,7 @@ export const Game = () => {
 
             <div className="w-full h-px bg-gradient-to-r from-transparent via-accent-green/30 to-transparent mb-8" />
 
-            {/* Score Display (Final) */}
+            {/* Score Display */}
             <div className="flex items-center justify-center gap-8 mb-6 w-full">
               <div className="flex flex-col items-center gap-2">
                 <div className="w-[80px] h-[80px] rounded-full border-2 border-accent-green/50 overflow-hidden shadow-[0_0_15px_rgba(183,242,114,0.2)]">

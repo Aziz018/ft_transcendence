@@ -65,9 +65,11 @@ export interface GameSession {
   matchDurationMs?: number;
   MATCH_DURATION_MS: number;
   readyPlayers?: Set<string>;
+  connectedPlayers?: Set<string>; // Track players who have connected via WebSocket
   botInterval?: any;
   gameLoopInterval?: any;
   playerConnectionIds?: Record<string, string>;
+  isPrivate?: boolean; 
 
   // Physics State
   ballX?: number;

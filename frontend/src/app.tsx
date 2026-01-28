@@ -13,25 +13,29 @@ import Tournament from "./screens/Tournament/Tournament";
 import SecondaryLogin from "./screens/SecondaryLogin/SecondaryLogin";
 import Career from "./screens/Career/Career";
 import ToastContainer from "./components/Toast/ToastContainer";
+import GameInviteProvider from "./components/GameInvite/GameInviteProvider";
 
 const App: FunctionComponent = () => {
   return (
-    <div className="h-screen w-full overflow-hidden">
-      <main className="h-full w-full">
-        <Router path="/" Component={Home} />
-        <Router path="/login" Component={Login} />
-        <Router path="/signup" Component={SignUp} />
-        <Router path="/dashboard" Component={Dashboard} protectedRoute={true} />
-        <Router path="/game" Component={Game} protectedRoute={true} />
-        <Router path="/chat" Component={Chat} protectedRoute={true} />
-        <Router path="/settings" Component={Settings} protectedRoute={true} />
-        <Router path="/leaderboard" Component={Leaderboard} protectedRoute={true} />
-        <Router path="/career" Component={Career} protectedRoute={true} />
-        <Router path="/tournament" Component={Tournament} protectedRoute={true} />
-        <Router path="/secondary-login" Component={SecondaryLogin} />
-      </main>
-      <ToastContainer />
-    </div>
+    <GameInviteProvider>
+      <div className="h-screen w-full overflow-hidden">
+        <main className="h-full w-full">
+          <Router path="/" Component={Home} />
+          <Router path="/login" Component={Login} />
+          <Router path="/signup" Component={SignUp} />
+          <Router path="/dashboard" Component={Dashboard} protectedRoute={true} />
+          <Router path="/game" Component={Game} protectedRoute={true} />
+          <Router path="/game/:roomId" Component={Game} protectedRoute={true} />
+          <Router path="/chat" Component={Chat} protectedRoute={true} />
+          <Router path="/settings" Component={Settings} protectedRoute={true} />
+          <Router path="/leaderboard" Component={Leaderboard} protectedRoute={true} />
+          <Router path="/career" Component={Career} protectedRoute={true} />
+          <Router path="/tournament" Component={Tournament} protectedRoute={true} />
+          <Router path="/secondary-login" Component={SecondaryLogin} />
+        </main>
+        <ToastContainer />
+      </div>
+    </GameInviteProvider>
   );
 };
 

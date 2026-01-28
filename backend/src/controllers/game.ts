@@ -1,5 +1,6 @@
 import type { FastifyRequest, FastifyReply } from "fastify";
 import { WebSocket } from "ws";
+import crypto from "node:crypto";
 
 type ExtendedWS = WebSocket & {
   id: string;

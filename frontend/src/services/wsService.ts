@@ -14,6 +14,7 @@ class WebSocketService {
   private maxReconnectAttempts: number = 5;
   private reconnectDelay: number = 3000;
   private messageListeners: Map<string, (payload: any) => void> = new Map();
+  private messageQueue: WebSocketMessage[] = [];
 
   constructor() {
     this.url = API_CONFIG.WS_URL;
@@ -34,6 +35,7 @@ class WebSocketService {
         this.ws.onopen = () => {
           console.log("[WebSocket] Connected");
           this.reconnectAttempts = 0;
+          this.flushMessageQueue();
           resolve();
         };
 
@@ -98,6 +100,16 @@ class WebSocketService {
       case "player_joined":
         const playerJoinedListener = this.messageListeners.get("player_joined");
         if (playerJoinedListener) playerJoinedListener(message.payload);
+        break;
+      case "game_invite_received":
+        this.handleGameInviteNotification(message.payload);
+        const inviteListener = this.messageListeners.get("game_invite_received");
+        if (inviteListener) inviteListener(message.payload);
+        break;
+      case "game_matched":
+        console.log("[WebSocket] Game matched event received");
+        const matchedListener = this.messageListeners.get("game_matched");
+        if (matchedListener) matchedListener(message.payload);
         break;
       case "notification":
         this.handleNotification(message.payload);
@@ -170,6 +182,24 @@ class WebSocketService {
     }
   }
 
+  private handleGameInviteNotification(payload: any) {
+    console.log("[WebSocket] Game invite received:", payload);
+    
+    // Show prominent notification
+    notificationService.info(
+      `🎮 ${payload.senderName || 'A player'} invited you to play Pong!`,
+      8000
+    );
+    
+    // Play notification sound if available
+    try {
+      const audio = new Audio('/notification.mp3');
+      audio.play().catch(e => console.log('Could not play notification sound'));
+    } catch (e) {
+      console.log('Audio notification not available');
+    }
+  }
+
   private attemptReconnect() {
 
     const token = getToken();
@@ -195,9 +225,40 @@ class WebSocketService {
 
   send(message: WebSocketMessage) {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify(message));
+      try {
+        this.ws.send(JSON.stringify(message));
+        console.log(`[WebSocket] Sent: ${message.type}`);
+      } catch (error) {
+        console.error("[WebSocket] Send error:", error);
+      }
+    } else if (this.ws && this.ws.readyState === WebSocket.CONNECTING) {
+      // Queue message and send when connection opens
+      console.log(`[WebSocket] Queuing message (connecting): ${message.type}`);
+      this.messageQueue.push(message);
+      
+      // Set up timeout to flush queue
+      setTimeout(() => {
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+          this.flushMessageQueue();
+        }
+      }, 1000);
     } else {
-      console.warn("[WebSocket] Not connected, cannot send message");
+      console.warn(`[WebSocket] Not connected, cannot send message: ${message.type}`);
+    }
+  }
+
+  private flushMessageQueue() {
+    console.log(`[WebSocket] Flushing ${this.messageQueue.length} queued messages`);
+    while (this.messageQueue.length > 0) {
+      const msg = this.messageQueue.shift();
+      if (msg && this.ws && this.ws.readyState === WebSocket.OPEN) {
+        try {
+          this.ws.send(JSON.stringify(msg));
+          console.log(`[WebSocket] Sent queued: ${msg.type}`);
+        } catch (error) {
+          console.error("[WebSocket] Error sending queued message:", error);
+        }
+      }
     }
   }
 
@@ -246,6 +307,22 @@ class WebSocketService {
 
   sendGameAction(action: string, payload?: any) {
     this.send({ type: action, payload });
+  }
+
+  /**
+   * Emit an event to trigger registered listeners
+   * Used to bridge events from other services (like chatService)
+   */
+  emit(messageType: string, payload: any) {
+    console.log(`[WebSocket] Emitting event: ${messageType}`, payload);
+    console.log(`[WebSocket] Registered listeners:`, Array.from(this.messageListeners.keys()));
+    const listener = this.messageListeners.get(messageType);
+    if (listener) {
+      console.log(`[WebSocket] Found listener for ${messageType}, calling it...`);
+      listener(payload);
+    } else {
+      console.warn(`[WebSocket] No listener registered for: ${messageType}`);
+    }
   }
 }
 

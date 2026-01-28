@@ -12,6 +12,9 @@ import { decodeTokenPayload, getToken } from "../../../lib/auth";
 import { wsService } from "../../../services/wsService";
 import { Link, redirect } from "../../../library/Router/Router";
 
+// Invite status type
+type InviteStatus = 'idle' | 'sending' | 'sent' | 'error';
+
 const defaultAvatar = `${(import.meta as any).env?.VITE_BACKEND_ORIGIN || "/api"
   }/images/default-avatar.png`;
 
@@ -53,6 +56,9 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
   const [successMessage, setSuccessMessage] = useState("");
   // Track locally disabled invites (clicked accept/reject)
   const [disabledInvites, setDisabledInvites] = useState<Set<string>>(new Set());
+  // Game invite sent status
+  const [inviteStatus, setInviteStatus] = useState<InviteStatus>('idle');
+  const [invitedFriendName, setInvitedFriendName] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const messageContainerRef = useRef<HTMLDivElement>(null);
@@ -167,12 +173,25 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
         return;
       }
 
-      // Use WS to send invite for better notification handling
-      wsService.sendGameAction("game_invite", { targetId: selectedFriend.id });
+      // Check WebSocket is connected BEFORE sending
+      if (!wsService.isConnected()) {
+        console.warn("[ChatMain] wsService not connected, trying to connect...");
+        try {
+          await wsService.connect();
+        } catch (e) {
+          console.error("[ChatMain] Failed to connect wsService:", e);
+        }
+      }
 
-      // Check if we need to manually persist invite to localStorage or if we rely on WS echo
-      // The backend echo will handle the chat message display
+      setInviteStatus('sending');
+      setInvitedFriendName(selectedFriend.name);
+      
+      console.log(`[ChatMain] Sending game invite to ${selectedFriend.name} (id: ${selectedFriend.id})`);
 
+      // Send game invite via chatService (the primary chat WebSocket)
+      chatService.sendWebSocketMessage("game_invite", { targetId: selectedFriend.id });
+
+      // Store pending invite info for when we get game_matched
       localStorage.setItem(
         "pendingGameInvite",
         JSON.stringify({
@@ -183,10 +202,21 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
         })
       );
 
-      redirect("/game");
+      // Show pretty notification instead of alert
+      setInviteStatus('sent');
+      
+      // Auto-hide after 30 seconds (invite timeout)
+      setTimeout(() => {
+        setInviteStatus('idle');
+      }, 30000);
+      
+      // DON'T redirect immediately - wait for game_matched event
+      // The redirect will happen when the other player accepts
+      // and we receive game_matched from the backend
     } catch (error) {
       console.error("[ChatMain] Failed to send game invitation:", error);
-      alert("Failed to send game invitation. Please try again.");
+      setInviteStatus('error');
+      setTimeout(() => setInviteStatus('idle'), 5000);
     }
   }, [selectedFriend]);
 
@@ -348,16 +378,49 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
 
     // Listen for game start instruction (for Inviter and Acceptor)
     const unsubscribeGame = chatService.onGameStart((payload) => {
+      console.log("[ChatMain] Game start instruction received:", payload);
       if (payload.gameId) {
         localStorage.setItem("pendingGameId", payload.gameId);
-        // Also save opponent info if available to show correctly in Game
-        if (payload.opponentId) {
-          // We might not have name/avatar here, but Game.tsx tries to load 'pendingGameInvite' for that.
-          // Let's rely on Game.tsx fetching/receiving opponent info from 'game_start' event or 'game_matched'.
-        }
       }
       redirect('/game');
     });
+    
+    // Listen for game_matched event (triggered when invite is accepted)
+    // This ensures we have the gameId before navigating to /game
+    const handleGameMatched = (data: any) => {
+      console.log("[ChatMain] 🎮 GAME MATCHED received:", data);
+      const matchData = data.payload || data;
+      if (matchData.gameId) {
+        console.log("[ChatMain] Storing gameId:", matchData.gameId);
+        localStorage.setItem("pendingGameId", matchData.gameId);
+        // Store opponent info as well
+        localStorage.setItem("pendingGameInvite", JSON.stringify({
+          opponentId: matchData.opponentId,
+          opponentName: matchData.opponentName,
+          opponentAvatar: matchData.opponentAvatar,
+          side: matchData.side,
+          isBotGame: matchData.isBotGame
+        }));
+        // Navigate to game with room ID
+        const gameUrl = `/game/${matchData.gameId}`;
+        console.log("[ChatMain] Redirecting to:", gameUrl);
+        redirect(gameUrl);
+      }
+    };
+    
+    // Listen on both wsService and via emit from chatService
+    wsService.on('game_matched', handleGameMatched);
+    
+    // Listen for game invite declined (e.g., player is busy)
+    const handleGameInviteDeclined = (data: any) => {
+      console.log("[ChatMain] Game invite declined:", data);
+      if (data.reason === 'busy') {
+        alert(`Unable to send invite: ${data.message || 'Player is currently busy'}`);
+        localStorage.removeItem("pendingGameInvite");
+      }
+    };
+    
+    wsService.on('game_invite_declined', handleGameInviteDeclined);
 
     const token = getToken();
     if (token) {
@@ -423,6 +486,48 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
 
   return (
     <div className="flex-1 flex flex-col h-full max-h-full overflow-hidden bg-[#141517]">
+      {/* Game Invite Sent Notification */}
+      {inviteStatus !== 'idle' && (
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50 animate-fadeIn">
+          <div className={`px-6 py-4 rounded-xl shadow-2xl border backdrop-blur-sm flex items-center gap-4 ${
+            inviteStatus === 'sent' 
+              ? 'bg-accent-green/20 border-accent-green/50 text-accent-green' 
+              : inviteStatus === 'sending'
+              ? 'bg-blue-500/20 border-blue-500/50 text-blue-400'
+              : 'bg-red-500/20 border-red-500/50 text-red-400'
+          }`}>
+            {inviteStatus === 'sending' && (
+              <>
+                <div className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+                <span className="font-[Questrial] font-medium">Sending invite...</span>
+              </>
+            )}
+            {inviteStatus === 'sent' && (
+              <>
+                <span className="text-2xl">🎮</span>
+                <div>
+                  <p className="font-[Questrial] font-semibold">Game invite sent to {invitedFriendName}!</p>
+                  <p className="text-sm opacity-80">Waiting for them to accept...</p>
+                </div>
+                <div className="w-6 h-6 border-2 border-accent-green border-t-transparent rounded-full animate-spin ml-2"></div>
+              </>
+            )}
+            {inviteStatus === 'error' && (
+              <>
+                <span className="text-2xl">❌</span>
+                <span className="font-[Questrial] font-medium">Failed to send invite. Please try again.</span>
+              </>
+            )}
+            <button 
+              onClick={() => setInviteStatus('idle')}
+              className="ml-2 p-1 hover:bg-white/10 rounded transition-colors"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="bg-white/5 border-b border-white/10 px-6 py-4 flex items-center gap-4 flex-shrink-0">
         <img
           src={getAvatarUrl(selectedFriend.avatar)}
@@ -443,9 +548,28 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
         <div className="flex items-center gap-3">
           <button
             onClick={handlePlayInvite}
-            className="px-6 py-2.5 bg-accent-green hover:bg-accent-green/90 text-dark-950 rounded-lg font-[Questrial] font-semibold text-sm transition-all shadow-[0_0_20px_rgba(183,242,114,0.3)] hover:shadow-[0_0_30px_rgba(183,242,114,0.5)] flex items-center gap-2">
-            <span className="text-lg">🎮</span>
-            Let's Play
+            disabled={inviteStatus === 'sending' || inviteStatus === 'sent'}
+            className={`px-6 py-2.5 rounded-lg font-[Questrial] font-semibold text-sm transition-all flex items-center gap-2 ${
+              inviteStatus === 'sending' || inviteStatus === 'sent'
+                ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                : 'bg-accent-green hover:bg-accent-green/90 text-dark-950 shadow-[0_0_20px_rgba(183,242,114,0.3)] hover:shadow-[0_0_30px_rgba(183,242,114,0.5)]'
+            }`}>
+            {inviteStatus === 'sending' ? (
+              <>
+                <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                Sending...
+              </>
+            ) : inviteStatus === 'sent' ? (
+              <>
+                <span className="text-lg">⏳</span>
+                Waiting...
+              </>
+            ) : (
+              <>
+                <span className="text-lg">🎮</span>
+                Let's Play
+              </>
+            )}
           </button>
 
           <div className="relative" ref={menuRef}>
@@ -538,7 +662,9 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
                                   // Set pending flag for RECEIVER as well to prevent auto-join public queue
                                   localStorage.setItem("pendingGameInvite", "true");
                                   // Send 'accept_game' with 'senderId' (the person who sent the invite)
+                                  // The game_matched listener will handle storing gameId and navigating
                                   chatService.sendWebSocketMessage("accept_game", { senderId: message.senderId });
+                                  // Note: Navigation happens via game_matched listener, not here
                                 }}
                                 disabled={disabledInvites.has(message.id)}
                                 className="bg-accent-green text-dark-950 px-4 py-2 rounded-lg font-bold hover:bg-accent-green/90 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed">

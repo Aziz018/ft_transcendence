@@ -137,7 +137,7 @@ const Settings = () => {
 
   const getAvatarUrl = (avatarPath: string | null | undefined): string => {
     if (!avatarPath || !avatarPath.trim()) {
-      return `${API_CONFIG.BASE_URL}/images/default-avatar.png`;
+      return "https://ui-avatars.com/api/?name=User&background=FF6B35&color=fff&size=128";
     }
     if (avatarPath.startsWith("/public/")) {
       return `${API_CONFIG.BASE_URL}${avatarPath.replace("/public", "")}`;
@@ -148,7 +148,7 @@ const Settings = () => {
     if (avatarPath.startsWith("http://") || avatarPath.startsWith("https://")) {
       return avatarPath;
     }
-    return `${API_CONFIG.BASE_URL}/images/default-avatar.png`;
+    return "https://ui-avatars.com/api/?name=User&background=FF6B35&color=fff&size=128";
   };
 
   const handleUnblock = async (userId: number | string | undefined, userName: string) => {
@@ -576,7 +576,7 @@ const Settings = () => {
                       alt="Avatar"
                       className="w-24 h-24 rounded-full object-cover border-2 border-accent-green/50"
                       onError={(e: any) => {
-                        e.currentTarget.src = "/api/images/default-avatar.png";
+                        e.currentTarget.src = "https://ui-avatars.com/api/?name=User&background=FF6B35&color=fff&size=128";
                       }}
                     />
                   )}
@@ -737,7 +737,7 @@ const Settings = () => {
                           alt={user.username}
                           className="w-12 h-12 rounded-full object-cover"
                           onError={(e) => {
-                            e.currentTarget.src = `${API_CONFIG.BASE_URL}/images/default-avatar.png`;
+                            e.currentTarget.src = "https://ui-avatars.com/api/?name=User&background=FF6B35&color=fff&size=128";
                           }}
                         />
                         <div>

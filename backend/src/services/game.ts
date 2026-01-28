@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import type { FastifyInstance } from "fastify";
 import DataBaseWrapper from "../utils/prisma.js";
 import type {
@@ -522,8 +523,33 @@ export default class GameService extends DataBaseWrapper {
       throw new Error('Game not found');
     }
 
+    // Track when players actually connect to the game via WebSocket
+    if (!gameSession.connectedPlayers) {
+      gameSession.connectedPlayers = new Set();
+    }
+    gameSession.connectedPlayers.add(userId);
+
+    // FIX: Register current connection ID to prevent stale disconnects destroying the game
+    const conn = this.activeConnections.get(userId);
+    if (conn && conn.id) {
+      if (!gameSession.playerConnectionIds) {
+        gameSession.playerConnectionIds = {};
+      }
+      gameSession.playerConnectionIds[userId] = conn.id;
+      this.fastify.log.debug(`Registered connection ${conn.id} for player ${userId} in game ${gameId}`);
+    }
+
     if (gameSession.players.includes(userId)) {
-      return { success: true, gameId, message: 'Already in game' };
+      this.fastify.log.info(`Player ${userId} reconnected to game ${gameId}`);
+      
+      // Check if all players have connected and game is still in 'starting' status
+      // If so, auto-start the game
+      if (gameSession.status === 'starting' && gameSession.connectedPlayers.size === gameSession.players.length) {
+        this.fastify.log.info(`All players connected to game ${gameId}, auto-starting...`);
+        await this.startGame(gameId);
+      }
+      
+      return { success: true, gameId, message: 'Joined game' };
     }
 
     if (gameSession.players.length >= 2) {
@@ -618,6 +644,14 @@ export default class GameService extends DataBaseWrapper {
     this.fastify.log.info(`🤖 Creating bot game for ${userId} vs ${botId}`);
 
     const gameSession = await this.createGameSession(userId, botId, gameType);
+    
+    // Mark as bot game explicitly
+    if (gameSession) {
+      const session = this.gameSessions.get(gameSession);
+      if (session) {
+        session.isBotGame = true;
+      }
+    }
 
     // Auto-start the game logic since it's a bot game
     // createGameSession already handles notification and bot auto-ready
@@ -641,6 +675,7 @@ export default class GameService extends DataBaseWrapper {
       status: 'starting',
       createdAt: new Date(),
       isBotGame: false,
+      isPrivate: true,
       expScores: { [player1Id]: 0, [player2Id]: 0 },
       MATCH_DURATION_MS: 180000,
       matchTimer: null,
@@ -664,26 +699,27 @@ export default class GameService extends DataBaseWrapper {
     if (p1Stats) playerAvatars[player1Id] = p1Stats.avatar;
     if (p2Stats) playerAvatars[player2Id] = p2Stats.avatar;
 
-    // Notify Players
-    // We reuse 'game_matched' so frontend behaves correctly
+    // Notify Players with gameId so they can join the specific game
     const payloadP1 = {
       type: 'game_matched',
-      id: gameId,
+      gameId: gameId,
       opponentId: player2Id,
       opponentName: p2Stats?.name || 'Opponent',
       opponentAvatar: p2Stats?.avatar || '',
       yourPlayerId: player1Id,
-      side: 'left'
+      side: 'left',
+      isBotGame: false
     };
 
     const payloadP2 = {
       type: 'game_matched',
-      id: gameId,
+      gameId: gameId,
       opponentId: player1Id,
       opponentName: p1Stats?.name || 'Opponent',
       opponentAvatar: p1Stats?.avatar || '',
       yourPlayerId: player2Id,
-      side: 'right'
+      side: 'right',
+      isBotGame: false
     };
 
     // We need to notify via GameSocket if they are connected
@@ -738,15 +774,8 @@ export default class GameService extends DataBaseWrapper {
         return;
       }
 
-      const waitTime = Date.now() - joinTime;
-
-      if (waitTime > 10000) {
-        const player = this.matchmakingQueue.shift()!;
-        const botId = `bot-${Date.now()}`;
-        this.fastify.log.info(`🤖 Matching ${player} with bot ${botId}`);
-        await this.createGameSession(player, botId, gameType);
-        this.matchmakingJoinTimes.delete(playerId);
-      }
+      // Players will wait for another real player - no bot fallback
+      // You can add a notification here if desired
     }
   }
 
@@ -762,6 +791,29 @@ export default class GameService extends DataBaseWrapper {
    */
   markAsAvailable(userId: string): void {
     this.invitingPlayers.delete(userId);
+  }
+
+  /**
+   * Checks if a player is busy (in game, in queue, or has pending invite).
+   */
+  isPlayerBusy(userId: string): boolean {
+    // Check if in active game
+    if (this.activeGames.has(userId)) {
+      console.log(`[GameService] Player ${userId} is BUSY: in active game`);
+      return true;
+    }
+    // Check if in matchmaking queue
+    if (this.matchmakingQueue.includes(userId)) {
+      console.log(`[GameService] Player ${userId} is BUSY: in matchmaking queue`);
+      return true;
+    }
+    // Check if has pending invite
+    if (this.invitingPlayers.has(userId)) {
+      console.log(`[GameService] Player ${userId} is BUSY: has pending invite`);
+      return true;
+    }
+    console.log(`[GameService] Player ${userId} is AVAILABLE`);
+    return false;
   }
 
   /**
@@ -810,10 +862,39 @@ export default class GameService extends DataBaseWrapper {
 
     this.fastify.log.info(`🎮 Created game session ${gameSession.id}: ${player1Id} vs ${player2Id}${isPlayer2Bot ? ' (bot)' : ''}`);
 
-    // Notify player 1
+    // Fetch player stats for real players
+    let p1Stats = null;
+    let p2Stats = null;
+    
+    if (!player1Id.startsWith('bot-')) {
+      p1Stats = await this.prisma.user.findUnique({
+        where: { id: player1Id },
+        select: { name: true, avatar: true }
+      });
+    }
+    
+    if (!isPlayer2Bot) {
+      p2Stats = await this.prisma.user.findUnique({
+        where: { id: player2Id },
+        select: { name: true, avatar: true }
+      });
+    }
+
+    // Black circle SVG as data URI for bot avatar
+    const botAvatar = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Ccircle cx="50" cy="50" r="50" fill="%23000000"/%3E%3C/svg%3E';
+    
+    // Notify player 1 with opponent details
     this.notifyPlayer(player1Id, {
       type: 'game_matched',
-      payload: { ...gameSession, yourPlayerId: player1Id, opponentIsBot: isPlayer2Bot }
+      payload: {
+        gameId: gameSession.id,
+        yourPlayerId: player1Id,
+        opponentId: player2Id,
+        opponentName: isPlayer2Bot ? '🤖 Bot' : (p2Stats?.name || 'Opponent'),
+        opponentAvatar: isPlayer2Bot ? botAvatar : (p2Stats?.avatar || ''),
+        side: 'left',
+        isBotGame: isPlayer2Bot
+      }
     });
 
     if (isPlayer2Bot) {
@@ -824,10 +905,18 @@ export default class GameService extends DataBaseWrapper {
 
       // Bot behavior will start when game actually begins (in startGame)
     } else {
-      // Notify player 2
+      // Notify player 2 with opponent details
       this.notifyPlayer(player2Id, {
         type: 'game_matched',
-        payload: { ...gameSession, yourPlayerId: player2Id, opponentIsBot: false }
+        payload: {
+          gameId: gameSession.id,
+          yourPlayerId: player2Id,
+          opponentId: player1Id,
+          opponentName: p1Stats?.name || 'Opponent',
+          opponentAvatar: p1Stats?.avatar || '',
+          side: 'right',
+          isBotGame: false
+        }
       });
     }
 
@@ -986,6 +1075,14 @@ export default class GameService extends DataBaseWrapper {
         }
       }
 
+      // Build playerNames and playerAvatars maps for frontend compatibility
+      const playerNames: Record<string, string> = {};
+      const playerAvatars: Record<string, string> = {};
+      playerDetails.forEach((details, uid) => {
+        playerNames[uid] = details.name;
+        playerAvatars[uid] = details.avatar;
+      });
+
       this.notifyPlayer(playerId, {
         type: 'game_start',
         payload: {
@@ -995,7 +1092,9 @@ export default class GameService extends DataBaseWrapper {
           side: index === 0 ? 'left' : 'right',
           players: gameSession.players,
           opponentName,
-          opponentAvatar
+          opponentAvatar,
+          playerNames,
+          playerAvatars
         }
       });
     });
@@ -1235,6 +1334,18 @@ export default class GameService extends DataBaseWrapper {
    */
   private handlePlayerDisconnectDuringReady(userId: string, gameId: string, gameSession: GameSession): void {
     this.fastify.log.warn(`🚪 Player ${userId} disconnected during ready phase for game ${gameId}`);
+
+    // If private game, keep session alive to allow reconnect
+    if (gameSession.isPrivate === true) {
+        if (gameSession.connectedPlayers) {
+            gameSession.connectedPlayers.delete(userId);
+        }
+        if (gameSession.readyPlayers) {
+            gameSession.readyPlayers.delete(userId);
+        }
+        this.fastify.log.info(`⏳ Private game: Player ${userId} disconnected. Keeping session ${gameId} alive for reconnect.`);
+        return;
+    }
 
     // Clear ready timeout
     const timeout = this.readyTimeouts.get(gameId);

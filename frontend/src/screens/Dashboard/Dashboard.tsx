@@ -95,7 +95,7 @@ const Dashboard = () => {
   }
 
   const getAvatarUrl = (path: string | null | undefined): string => {
-    const defaultAvatar = "/api/images/default-avatar.png";
+    const defaultAvatar = "https://ui-avatars.com/api/?name=User&background=FF6B35&color=fff&size=128";
     if (!path || !path.trim()) return defaultAvatar;
     if (path.startsWith("/public/"))
       return `/api${path.replace("/public", "")}`;
