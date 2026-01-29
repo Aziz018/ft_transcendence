@@ -114,14 +114,15 @@ const SignUpFormContainer = ({
               <input
                 type="checkbox"
                 className="w-4 h-4 mt-1 rounded border-[#444] bg-[#2a2c2e] text-[#dda15e] focus:ring-[#dda15e] focus:ring-2"
+                required
               />
               <span className="[font-family:'Questrial',Helvetica] font-normal text-[#ffffff80] text-sm">
                 I agree to the{" "}
-                <a href="#" className="text-[#dda15e] hover:underline">
+                <a href="/terms" className="text-[#dda15e] hover:underline">
                   Terms of Service
                 </a>{" "}
                 and{" "}
-                <a href="#" className="text-[#dda15e] hover:underline">
+                <a href="/privacy" className="text-[#dda15e] hover:underline">
                   Privacy Policy
                 </a>
               </span>

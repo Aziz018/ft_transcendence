@@ -10,6 +10,8 @@ import Settings from "./screens/Settings/Settings";
 import Leaderboard from "./screens/Leaderboard/Leaderboard";
 import SecondaryLogin from "./screens/SecondaryLogin/SecondaryLogin";
 import ToastContainer from "./components/Toast/ToastContainer";
+import Terms from "./screens/Legal/Terms";
+import Privacy from "./screens/Legal/Privacy";
 
 const App: React.FC = () => {
   return (
@@ -25,6 +27,9 @@ const App: React.FC = () => {
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
             <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
             <Route path="/secondary-login" element={<SecondaryLogin />} />
+
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/privacy" element={<Privacy />} />
           </Routes>
         </main>
         <ToastContainer />
