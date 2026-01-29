@@ -2854,6 +2854,10 @@ export const websocketHandler = async (
 
     request.log.info("Client disconnected");
 
+    if (userId) {
+      gameManager.leaveQueue(userId);
+    }
+
     // Step 1: Clean up rateLimits for this connection
     if (userId) {
       // Remove user-specific global rate limits

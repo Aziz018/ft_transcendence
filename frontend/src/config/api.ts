@@ -270,12 +270,27 @@
  * In monolithic architecture, backend and frontend are served from same origin.
  */
 
-const API_URL = (import.meta as any).env?.VITE_API_URL || "http://localhost:3000";
+const getBaseUrls = () => {
+  if (typeof window === 'undefined') {
+    return {
+      API_URL: "http://localhost:3000",
+      WS_URL: "ws://localhost:3000/v1/chat/ws"
+    };
+  }
 
-// Derive WS Base URL from API URL (http -> ws, https -> wss)
-const WS_BASE = API_URL.replace(/^http/, "ws");
+  const hostname = window.location.hostname;
+  // Use http/ws for local/IP, https/wss if serving securely
+  const protocol = window.location.protocol;
+  const wsProtocol = protocol === 'https:' ? 'wss:' : 'ws:';
 
-const WS_URL = (import.meta as any).env?.VITE_WS_URL || `${WS_BASE}/v1/chat/ws`;
+  // Backend is always on port 3000 based on current setup
+  const API_URL = `${protocol}//${hostname}:3000`;
+  const WS_URL = `${wsProtocol}//${hostname}:3000/v1/chat/ws`;
+
+  return { API_URL, WS_URL };
+};
+
+const { API_URL, WS_URL } = getBaseUrls();
 
 export const API_CONFIG = {
   BASE_URL: API_URL,
