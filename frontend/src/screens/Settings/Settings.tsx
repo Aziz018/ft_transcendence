@@ -11,6 +11,7 @@ import QRCode from "qrcode";
 import DashboardIcon from "../../assets/dd.svg";
 import LeaderboardIcon from "../../assets/Leaderboard.svg";
 import ChatIcon from "../../assets/chat-icon.svg";
+import GameIcon from "../../assets/game-icon.svg";
 import SettingsIcon from "../../assets/Settings.svg";
 import LogOutIcon from "../../assets/Logout.svg";
 import Logo from "../../assets/secondLogo.svg";
@@ -18,6 +19,7 @@ import Logo from "../../assets/secondLogo.svg";
 const navigationItems = [
   { label: "Dashboard", active: false, icon: DashboardIcon, path: "dashboard" },
   { label: "Chat", active: false, icon: ChatIcon, path: "chat" },
+  { label: "Game", active: false, icon: GameIcon, path: "game" },
   {
     label: "Leaderboard",
     active: false,

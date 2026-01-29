@@ -8,6 +8,7 @@ import Dashboard from "./screens/Dashboard/Dashboard";
 import Chat from "./screens/Chat/Chat";
 import Settings from "./screens/Settings/Settings";
 import Leaderboard from "./screens/Leaderboard/Leaderboard";
+import Game from "./screens/Game/Game";
 import SecondaryLogin from "./screens/SecondaryLogin/SecondaryLogin";
 import ToastContainer from "./components/Toast/ToastContainer";
 import Terms from "./screens/Legal/Terms";
@@ -26,6 +27,7 @@ const App: React.FC = () => {
             <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
             <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
+            <Route path="/game" element={<ProtectedRoute><Game /></ProtectedRoute>} />
             <Route path="/secondary-login" element={<SecondaryLogin />} />
 
             <Route path="/terms" element={<Terms />} />
