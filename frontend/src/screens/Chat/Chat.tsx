@@ -4,6 +4,7 @@ import { getToken, clearToken, decodeTokenPayload } from "../../lib/auth";
 import { wsService } from "../../services/wsService";
 import { chatService, type Friend } from "../../services/chatService";
 import TopRightBlurEffect from "../../components/ui/BlurEffect/TopRightBlurEffect";
+import MobileNavigation from "../../components/Navigation/MobileNavigation";
 import FriendsList from "./sections/FriendsList";
 import ChatMain from "./sections/ChatMain";
 import DashboardIcon from "../../assets/dd.svg";
@@ -32,6 +33,7 @@ const navigationItems = [
 const Chat = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(true);
   const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
+  const [showMobileChat, setShowMobileChat] = useState(false);
 
   useEffect(() => {
     const token = getToken();
@@ -48,6 +50,16 @@ const Chat = () => {
       chatService.connectWebSocket(token);
     }
   }, []);
+
+  const handleSelectFriend = (friend: Friend) => {
+    setSelectedFriend(friend);
+    // On mobile, switch to chat view when friend is selected
+    setShowMobileChat(true);
+  };
+
+  const handleBackToFriends = () => {
+    setShowMobileChat(false);
+  };
 
   const handleLogout = async () => {
     try {
@@ -78,40 +90,60 @@ const Chat = () => {
   }
 
   return (
-    <div className="bg-theme-bg-primary w-full h-screen flex overflow-hidden">
-      <TopRightBlurEffect />
-      <div className="absolute top-[991px] left-[-285px] w-[900px] h-[900px] bg-[#f9f9f980] rounded-[450px] blur-[153px] pointer-events-none" />
-      <img
-        className="absolute top-[-338px] left-[1235px] max-w-full w-[900px] pointer-events-none"
-        alt="Ellipse"
-        src="/ellipse-2.svg"
-      />
-      <div className="absolute top-[721px] left-[-512px] w-[700px] h-[700px] bg-[#dda15e80] rounded-[350px] blur-[153px] pointer-events-none" />
+    <div className="bg-theme-bg-primary w-full h-screen flex overflow-hidden relative">
+      {/* Fixed Background Elements */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <TopRightBlurEffect />
+        <div className="absolute top-[991px] left-[-285px] w-[900px] h-[900px] bg-[#f9f9f980] rounded-[450px] blur-[153px]" />
+        <img
+          className="absolute top-[-338px] left-[1235px] max-w-full w-[900px]"
+          alt="Ellipse"
+          src="/ellipse-2.svg"
+        />
+        <div className="absolute top-[721px] left-[-512px] w-[700px] h-[700px] bg-[#dda15e80] rounded-[350px] blur-[153px]" />
+      </div>
 
-      <aside className="w-full md:w-[250px] lg:w-[300px] border-r-[1px] border-[#F9F9F9] border-opacity-[0.05] min-h-screen flex flex-col relative z-10 flex-shrink-0">
+      {/* Mobile Navigation - Hamburger Menu */}
+      <MobileNavigation
+        navigationItems={navigationItems}
+        userAvatar={null}
+        onLogout={handleLogout}
+      />
+
+      {/* Desktop Navigation Sidebar - Hidden on mobile/tablet */}
+      <aside className="hidden lg:flex lg:w-[300px] border-r-[1px] border-[#F9F9F9] border-opacity-[0.05] min-h-screen flex-col relative z-10 flex-shrink-0">
         <Link to="/">
-          <div className="pt-6 md:pt-[47px] pl-4 md:pl-8 lg:pl-[43px] pb-6 md:pb-[50px] flex items-center gap-3">
-            <img className="w-[150px] md:w-[180px] lg:w-[200px]" alt="Logo" src={Logo} />
+          <div className="pt-[47px] pl-[43px] pb-[50px] flex items-center gap-3">
+            <img className="w-[200px]" alt="Logo" src={Logo} />
           </div>
         </Link>
 
-        <nav className="flex flex-col gap-3 md:gap-[18px] px-4 md:px-8 lg:px-[60px] relative flex-1">
+        <nav className="flex flex-col gap-[18px] px-[60px] relative flex-1">
           {navigationItems.map((item, index) => (
             <Link key={index} to={"/" + item.path}>
-              <div className="cursor-pointer flex items-center gap-2 md:gap-3 px-2 md:px-3 py-2 w-full transition-all duration-150 hover:bg-white/5 rounded-lg">
+              <div className="cursor-pointer flex items-center gap-3 px-3 py-2 w-full transition-all duration-150 hover:bg-white/5 rounded-lg">
                 <div
-                  className={(item.active
-                    ? "bg-blue-600/20 border border-blue-600/50"
-                    : "bg-transparent border border-white/10"
-                    ) + " rounded-full p-2 md:p-3 transition-all duration-150"}>
+                  className={
+                    item.active
+                      ? "bg-blue-600/20 border border-blue-600/50 rounded-full p-3 transition-all duration-150"
+                      : "bg-transparent border border-white/10 rounded-full p-3 transition-all duration-150"
+                  }>
                   <img
                     src={item.icon}
                     alt={item.label + " icon"}
-                    className={"w-3 md:w-[15px] " + (item.active ? "opacity-100" : "opacity-30") + " transition-opacity duration-150"}
+                    className={
+                      "w-[15px] " +
+                      (item.active ? "opacity-100" : "opacity-30") +
+                      " transition-opacity duration-150"
+                    }
                   />
                 </div>
                 <span
-                  className={"[font-family:'Questrial',Helvetica] font-normal text-sm md:text-base tracking-[0] leading-[15px] whitespace-nowrap " + (item.active ? "text-white" : "text-white/30") + " transition-colors duration-150"}>
+                  className={
+                    "[font-family:'Questrial',Helvetica] font-normal text-base tracking-[0] leading-[15px] whitespace-nowrap " +
+                    (item.active ? "text-white" : "text-white/30") +
+                    " transition-colors duration-150"
+                  }>
                   {item.label}
                 </span>
               </div>
@@ -119,23 +151,43 @@ const Chat = () => {
           ))}
         </nav>
 
-        <div className="mt-auto mb-6 md:mb-[50px] px-4 md:px-8 lg:px-[60px]">
+        <div className="mt-auto mb-[50px] px-[60px]">
           <button
             onClick={handleLogout}
-            className="w-full p-2 md:p-3 bg-transparent border border-solid border-[#f9f9f94c] rounded-[14px] flex items-center justify-center gap-2 cursor-pointer hover:bg-white/10 transition-all duration-150">
+            className="w-full p-3 bg-transparent border border-solid border-[#f9f9f94c] rounded-[14px] flex items-center justify-center gap-2 cursor-pointer hover:bg-white/10 transition-all duration-150">
             <img src={LogOutIcon} alt="logout icon" className="w-4 h-4" />
             <span className="text-white font-[Questrial]">Logout</span>
           </button>
         </div>
       </aside>
 
+      {/* Main Chat Area - Three Panel Layout */}
       <div className="flex-1 flex h-full relative z-10">
-        <FriendsList
-          selectedFriend={selectedFriend}
-          onSelectFriend={setSelectedFriend}
-        />
+        {/* Friends List Panel - Responsive behavior */}
+        <div
+          className={`
+            ${showMobileChat ? 'hidden md:flex' : 'flex'} 
+            w-full md:w-[35%] lg:w-80 
+            transition-all duration-300 ease-in-out
+          `}>
+          <FriendsList
+            selectedFriend={selectedFriend}
+            onSelectFriend={handleSelectFriend}
+          />
+        </div>
 
-        <ChatMain selectedFriend={selectedFriend} />
+        {/* Chat Main Panel - Responsive behavior */}
+        <div
+          className={`
+            ${showMobileChat ? 'flex' : 'hidden md:flex'} 
+            flex-1 
+            transition-all duration-300 ease-in-out
+          `}>
+          <ChatMain 
+            selectedFriend={selectedFriend}
+            onBack={handleBackToFriends}
+          />
+        </div>
       </div>
     </div>
   );

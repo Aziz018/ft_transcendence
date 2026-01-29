@@ -39,9 +39,10 @@ const getAvatarUrl = (avatarPath: string | null | undefined): string => {
 
 interface ChatMainProps {
   selectedFriend: Friend | null;
+  onBack?: () => void;
 }
 
-const ChatMain = ({ selectedFriend }: ChatMainProps) => {
+const ChatMain = ({ selectedFriend, onBack }: ChatMainProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -524,28 +525,40 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
         </div>
       )}
 
-      <div className="bg-white/5 border-b border-white/10 px-6 py-4 flex items-center gap-4 flex-shrink-0">
+      <div className="bg-white/5 border-b border-white/10 px-4 sm:px-6 py-3 sm:py-4 flex items-center gap-3 sm:gap-4 flex-shrink-0">
+        {/* Back button for mobile */}
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="md:hidden min-w-[44px] min-h-[44px] p-2 hover:bg-white/10 active:bg-white/20 rounded-full transition-colors touch-manipulation flex-shrink-0"
+            aria-label="Back to friends list">
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+        )}
+        
         <img
           src={getAvatarUrl(selectedFriend.avatar)}
           alt={selectedFriend.name}
-          className="w-12 h-12 rounded-full object-cover border-2 border-white/20 bg-gray-700"
+          className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-white/20 bg-gray-700 flex-shrink-0"
           onError={(e) => {
             e.currentTarget.src = defaultAvatar;
           }}
         />
-        <div className="flex-1">
-          <h2 className="text-white font-[Questrial] text-lg font-semibold">
+        <div className="flex-1 min-w-0">
+          <h2 className="text-white font-[Questrial] text-base sm:text-lg font-semibold truncate">
             {selectedFriend.name}
           </h2>
-          <p className="text-white/50 text-sm font-[Questrial]">
+          <p className="text-white/50 text-xs sm:text-sm font-[Questrial] truncate">
             {selectedFriend.email}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
           <button
             onClick={handlePlayInvite}
             disabled={inviteStatus === 'sending' || inviteStatus === 'sent'}
-            className={`px-6 py-2.5 rounded-lg font-[Questrial] font-semibold text-sm transition-all flex items-center gap-2 ${
+            className={`hidden sm:flex px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg font-[Questrial] font-semibold text-xs sm:text-sm transition-all items-center gap-2 min-h-[44px] touch-manipulation ${
               inviteStatus === 'sending' || inviteStatus === 'sent'
                 ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
                 : 'bg-accent-green hover:bg-accent-green/90 text-dark-950 shadow-[0_0_20px_rgba(183,242,114,0.3)] hover:shadow-[0_0_30px_rgba(183,242,114,0.5)]'
@@ -571,7 +584,7 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setShowMenu(!showMenu)}
-              className="p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-all border border-white/10 hover:border-white/20 flex items-center justify-center">
+              className="min-w-[44px] min-h-[44px] p-2.5 bg-white/10 hover:bg-white/20 active:bg-white/30 text-white rounded-lg transition-all border border-white/10 hover:border-white/20 flex items-center justify-center touch-manipulation">
               <div className="flex flex-col gap-1">
                 <span className="w-1 h-1 bg-white rounded-full"></span>
                 <span className="w-1 h-1 bg-white rounded-full"></span>
@@ -583,7 +596,7 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
               <div className="absolute right-0 top-full mt-2 w-48 bg-dark-900 border border-white/10 rounded-lg shadow-[0_0_30px_rgba(0,0,0,0.5)] overflow-hidden z-50 animate-fadeIn">
                 <button
                   onClick={handleBlockUser}
-                  className="w-full px-4 py-3 text-left text-white hover:bg-white/10 transition-colors font-[Questrial] text-sm flex items-center gap-3 border-b border-white/5">
+                  className="w-full min-h-[44px] px-4 py-3 text-left text-white hover:bg-white/10 active:bg-white/20 transition-colors font-[Questrial] text-sm flex items-center gap-3 border-b border-white/5 touch-manipulation">
                   <span className="text-lg">🚫</span>
                   Block User
                 </button>
@@ -601,7 +614,7 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
 
       <div
         ref={messageContainerRef}
-        className="flex-1 overflow-y-auto p-6 space-y-4 scroll-smooth min-h-0"
+        className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-3 sm:space-y-4 scroll-smooth min-h-0"
         style={{ scrollBehavior: "smooth" }}>
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
@@ -625,13 +638,13 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
                 className={`flex ${isMe ? "justify-end" : "justify-start"
                   } animate-fadeIn`}>
                 <div
-                  className={`flex gap-3 max-w-[70%] ${isMe ? "flex-row-reverse" : "flex-row"
+                  className={`flex gap-2 sm:gap-3 max-w-[85%] sm:max-w-[70%] ${isMe ? "flex-row-reverse" : "flex-row"
                     }`}>
                   {!isMe && (
                     <img
                       src={getAvatarUrl(selectedFriend.avatar)}
                       alt={selectedFriend.name}
-                      className="w-8 h-8 rounded-full object-cover flex-shrink-0 bg-gray-700"
+                      className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover flex-shrink-0 bg-gray-700"
                       onError={(e) => {
                         e.currentTarget.src = defaultAvatar;
                       }}
@@ -708,8 +721,8 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="bg-white/5 border-t border-white/10 px-6 py-4 flex-shrink-0">
-        <div className="flex items-center gap-3">
+      <div className="bg-white/5 border-t border-white/10 px-3 sm:px-6 py-3 sm:py-4 flex-shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3">
           <input
             ref={inputRef}
             type="text"
@@ -718,16 +731,21 @@ const ChatMain = ({ selectedFriend }: ChatMainProps) => {
             onKeyDown={handleKeyPress as any}
             placeholder="Type a message..."
             disabled={isSending}
-            className="flex-1 bg-white/10 text-white placeholder-white/40 rounded-full px-6 py-3 font-[Questrial] text-sm border border-white/10 focus:outline-none focus:border-blue-500/50 transition-colors disabled:opacity-50"
+            className="flex-1 min-h-[44px] bg-white/10 text-white placeholder-white/40 rounded-full px-4 sm:px-6 py-2.5 sm:py-3 font-[Questrial] text-sm border border-white/10 focus:outline-none focus:border-blue-500/50 transition-colors disabled:opacity-50 touch-manipulation"
           />
           <button
             onClick={handleSendMessage}
             disabled={!newMessage.trim() || isSending}
-            className="bg-blue-600 hover:bg-blue-700 disabled:bg-white/10 disabled:cursor-not-allowed text-white rounded-full px-6 py-3 font-[Questrial] text-sm font-semibold transition-all duration-200 disabled:opacity-50">
+            className="min-w-[44px] min-h-[44px] bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:bg-white/10 disabled:cursor-not-allowed text-white rounded-full px-4 sm:px-6 py-2.5 sm:py-3 font-[Questrial] text-sm font-semibold transition-all duration-200 disabled:opacity-50 touch-manipulation flex items-center justify-center">
             {isSending ? (
               <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
             ) : (
-              "Send"
+              <span className="hidden sm:inline">Send</span>
+            )}
+            {!isSending && (
+              <svg className="w-5 h-5 sm:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              </svg>
             )}
           </button>
         </div>

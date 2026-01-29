@@ -201,24 +201,24 @@ const FriendsList = ({ onSelectFriend, selectedFriend }: FriendsListProps) => {
   );
 
   return (
-    <div className="w-80 bg-white/5 border-r border-white/10 flex flex-col h-full">
-      {/* Header */}
-      <div className="px-6 py-4 border-b border-white/10">
-        <h2 className="text-white font-[Questrial] text-xl font-semibold mb-4">
+    <div className="w-full bg-white/5 border-r border-white/10 flex flex-col h-full">
+      {/* Header - Always visible */}
+      <div className="px-4 sm:px-6 py-4 border-b border-white/10 flex-shrink-0">
+        <h2 className="text-white font-[Questrial] text-lg sm:text-xl font-semibold mb-3 sm:mb-4">
           Messages
         </h2>
 
-        {/* Search */}
+        {/* Search - Always visible, touch-friendly */}
         <div className="relative">
           <input
             type="text"
             value={searchQuery}
             onChange={(e: any) => setSearchQuery(e.target.value)}
             placeholder="Search friends..."
-            className="w-full bg-white/10 text-white placeholder-white/40 rounded-full px-4 py-2 pl-10 font-[Questrial] text-sm border border-white/10 focus:outline-none focus:border-blue-500/50 transition-colors"
+            className="w-full min-h-[44px] bg-white/10 text-white placeholder-white/40 rounded-full px-4 py-2 pl-10 font-[Questrial] text-sm border border-white/10 focus:outline-none focus:border-blue-500/50 transition-colors touch-manipulation"
           />
           <svg
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40"
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 pointer-events-none"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24">
@@ -232,8 +232,8 @@ const FriendsList = ({ onSelectFriend, selectedFriend }: FriendsListProps) => {
         </div>
       </div>
 
-      {/* Friends List */}
-      <div className="flex-1 overflow-y-auto">
+      {/* Friends List - Scrollable */}
+      <div className="flex-1 overflow-y-auto overscroll-contain">
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white/60"></div>
@@ -258,18 +258,18 @@ const FriendsList = ({ onSelectFriend, selectedFriend }: FriendsListProps) => {
                 <div
                   key={friend.id}
                   onClick={() => onSelectFriend(friend)}
-                  className={`px-6 py-3 cursor-pointer transition-all duration-200 group relative ${
+                  className={`px-4 sm:px-6 py-3 min-h-[72px] cursor-pointer transition-all duration-200 group relative touch-manipulation active:bg-white/10 ${
                     isSelected
                       ? "bg-blue-600/20 border-l-4 border-blue-600"
                       : "hover:bg-white/5 border-l-4 border-transparent"
                   }`}>
                   <div className="flex items-center gap-3">
-                    {/* Avatar */}
+                    {/* Avatar - Touch-friendly size */}
                     <div className="relative flex-shrink-0">
                       <img
                         src={getAvatarUrl(friend.avatar)}
                         alt={friend.name}
-                        className="w-12 h-12 rounded-full object-cover border-2 border-white/20 bg-gray-700"
+                        className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover border-2 border-white/20 bg-gray-700"
                         onError={(e) => {
                           e.currentTarget.src = defaultAvatar;
                         }}
@@ -278,22 +278,22 @@ const FriendsList = ({ onSelectFriend, selectedFriend }: FriendsListProps) => {
 
                     {/* Friend Info */}
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-white font-[Questrial] text-sm font-semibold truncate">
+                      <h3 className="text-white font-[Questrial] text-sm sm:text-base font-semibold truncate">
                         {friend.name}
                       </h3>
-                      <p className="text-white/50 font-[Questrial] text-xs truncate">
+                      <p className="text-white/50 font-[Questrial] text-xs sm:text-sm truncate">
                         {friend.email}
                       </p>
                     </div>
 
-                    {/* Actions (show on hover) */}
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {/* Actions (show on hover/touch) - Touch-friendly buttons */}
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                       <button
                         onClick={(e: any) => handleUnfriend(friend, e)}
-                        className="p-1.5 hover:bg-red-500/20 rounded-full transition-colors"
+                        className="min-w-[44px] min-h-[44px] p-2 hover:bg-red-500/20 active:bg-red-500/30 rounded-full transition-colors touch-manipulation"
                         title="Unfriend">
                         <svg
-                          className="w-4 h-4 text-red-500"
+                          className="w-5 h-5 text-red-500"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24">
@@ -307,10 +307,10 @@ const FriendsList = ({ onSelectFriend, selectedFriend }: FriendsListProps) => {
                       </button>
                       <button
                         onClick={(e: any) => handleBlockFriend(friend, e)}
-                        className="p-1.5 hover:bg-red-500/20 rounded-full transition-colors"
+                        className="min-w-[44px] min-h-[44px] p-2 hover:bg-red-500/20 active:bg-red-500/30 rounded-full transition-colors touch-manipulation"
                         title="Block">
                         <svg
-                          className="w-4 h-4 text-red-500"
+                          className="w-5 h-5 text-red-500"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24">
@@ -331,9 +331,9 @@ const FriendsList = ({ onSelectFriend, selectedFriend }: FriendsListProps) => {
         )}
       </div>
 
-      {/* Total friends counter */}
-      <div className="px-6 py-3 border-t border-white/10">
-        <p className="text-white/50 font-[Questrial] text-xs">
+      {/* Total friends counter - Always visible */}
+      <div className="px-4 sm:px-6 py-3 border-t border-white/10 flex-shrink-0">
+        <p className="text-white/50 font-[Questrial] text-xs sm:text-sm">
           {filteredFriends.length} {filteredFriends.length === 1 ? 'friend' : 'friends'}
         </p>
       </div>

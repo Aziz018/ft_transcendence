@@ -115,39 +115,36 @@ const PongrushGameShowcaseSection = () => {
   };
   return (
     <div>
-      <section className="w-full relative pt-[100px]">
-        <div className="flex items-center  gap-[188px]">
+      <section className="w-full relative pt-8 sm:pt-12 md:pt-16 lg:pt-[100px]">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center gap-6 sm:gap-8 md:gap-12 lg:gap-[188px]">
+          {/* Game Evolution Title */}
           <div className="flex flex-col gap-2">
             <div>
-              <img alt="Stars filled" src={StarsFilled} />
+              <img alt="Stars filled" src={StarsFilled} className="w-8 h-8 sm:w-10 sm:h-10" />
             </div>
             <div className="pt-2">
-              <h2 className="[font-family:'Questrial',Helvetica] font-normal text-theme-text-primary text-4xl tracking-[0] leading-[50px] whitespace-nowrap">
+              <h2 className="[font-family:'Questrial',Helvetica] font-normal text-theme-text-primary text-2xl sm:text-3xl md:text-4xl tracking-[0] leading-tight sm:leading-[40px] md:leading-[50px]">
                 My Pongrush Game <br /> Evolution
               </h2>
             </div>
           </div>
 
-          {/* <Separator orientation="vertical" className="h-[58px] bg-white/20" /> */}
-
-          <div className="flex flex-col gap-[22px]">
-            <p className="[font-family:'Questrial',Helvetica] font-normal text-[#f9f9f980] text-base tracking-[0] leading-[15px] whitespace-nowrap">
+          {/* XP Display */}
+          <div className="flex flex-col gap-3 sm:gap-4 md:gap-[22px]">
+            <p className="[font-family:'Questrial',Helvetica] font-normal text-[#f9f9f980] text-sm sm:text-base tracking-[0] leading-[15px]">
               You&apos;ve earned – keep going!
             </p>
-            <p className="pt-3 font-family:'Questrial',Helvetica] font-normal text-theme-text-primary text-5xl tracking-[0] leading-[15px] whitespace-nowrap">
+            <p className="pt-2 sm:pt-3 font-family:'Questrial',Helvetica] font-normal text-theme-text-primary text-3xl sm:text-4xl md:text-5xl tracking-[0] leading-tight md:leading-[15px]">
               {formatXP(displayedXP)}xp
             </p>
-
           </div>
 
-          {/* <Separator orientation="vertical" className="h-[58px] bg-white/20" /> */}
-
+          {/* Leaderboard Link */}
           <Link
             to="/leaderboard"
-            className="flex items-center gap-2 [font-family:'Questrial',Helvetica] font-normal text-theme-text-primary text-[18px] tracking-[0] leading-[15px] underline whitespace-nowrap">
+            className="flex items-center gap-2 [font-family:'Questrial',Helvetica] font-normal text-theme-text-primary text-base sm:text-lg tracking-[0] leading-[15px] underline hover:text-accent-green transition-colors touch-manipulation min-h-[44px]">
             View Full Leaderboard
             <img src={ArrowSvg} alt="arrow right icon" className="w-4 h-4" />
-            {/* <ArrowRightIcon className="w-4 h-4" /> */}
           </Link>
         </div>
       </section>

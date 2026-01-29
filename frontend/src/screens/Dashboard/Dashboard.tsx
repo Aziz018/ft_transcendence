@@ -14,6 +14,7 @@ import PongrushGameShowcaseSection from "./sections/PongrushGameShowcaseSection"
 import StatsSection from "./sections/StatsSection";
 import DashboardSection from "./sections/DashboardSection";
 import TopRightBlurEffect from "../../components/ui/BlurEffect/TopRightBlurEffect";
+import MobileNavigation from "../../components/Navigation/MobileNavigation";
 import { getToken, decodeTokenPayload, clearToken } from "../../lib/auth";
 import { Link, redirect } from "../../router";
 // import { Button } from "../../components/ui/button";
@@ -117,12 +118,12 @@ const Dashboard = () => {
   const TokenAvatar = () => {
     if (isLoadingProfile) {
       return (
-        <div className="w-[150px] h-[150px] rounded-full bg-white/10 animate-pulse" />
+        <div className="w-[120px] h-[120px] md:w-[150px] md:h-[150px] rounded-full bg-white/10 animate-pulse" />
       );
     }
     return (
       <img
-        className="w-[150px] h-[150px] object-cover rounded-full"
+        className="w-[120px] h-[120px] md:w-[150px] md:h-[150px] object-cover rounded-full"
         alt="User Avatar"
         src={getAvatarUrl(userAvatar)}
         onError={(e: any) => {
@@ -133,62 +134,87 @@ const Dashboard = () => {
     );
   };
 
+  const handleLogout = async () => {
+    try {
+      const token = getToken();
+
+      const res = await fetch(API_CONFIG.AUTH.LOGOUT, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      });
+
+      if (!res.ok) {
+        console.error("[Logout] Request failed:", res.status);
+      }
+    } catch (e) {
+      console.error("[Logout] Network error:", e);
+    } finally {
+      clearToken();
+      redirect("/login");
+    }
+  };
+
   return (
     <div className="bg-theme-bg-primary overflow-hidden w-full min-h-screen relative flex flex-col lg:flex-row">
-      {/* Background decorative elements */}
-      <TopRightBlurEffect />
-      <div className="absolute top-[991px] left-[-285px] w-[900px] h-[900px] bg-[#f9f9f980] rounded-[450px] blur-[153px] pointer-events-none" />
+      {/* Background decorative elements - Fixed positioning */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <TopRightBlurEffect />
+        <div className="absolute top-[991px] left-[-285px] w-[900px] h-[900px] bg-[#f9f9f980] rounded-[450px] blur-[153px]" />
+        <img
+          className="absolute top-[-338px] left-[1235px] max-w-full w-[900px]"
+          alt="Ellipse"
+          src="/ellipse-2.svg"
+        />
+        <div className="absolute top-[721px] left-[-512px] w-[700px] h-[700px] bg-[#dda15e80] rounded-[350px] blur-[153px]" />
+      </div>
 
-      <img
-        className="absolute top-[-338px] left-[1235px] max-w-full w-[900px] pointer-events-none"
-        alt="Ellipse"
-        src="/ellipse-2.svg"
+      {/* Mobile Navigation */}
+      <MobileNavigation
+        navigationItems={navigationItems}
+        userAvatar={<TokenAvatar />}
+        onLogout={handleLogout}
       />
 
-      <div className="absolute top-[721px] left-[-512px] w-[700px] h-[700px] bg-[#dda15e80] rounded-[350px] blur-[153px] pointer-events-none" />
-
-      {/* Left Sidebar */}
-      <aside className="w-full lg:w-[450px] border-r-[1px] border-[#F9F9F9] border-opacity-[0.05] min-h-screen flex flex-col relative z-10">
+      {/* Desktop Left Sidebar - Hidden on mobile/tablet */}
+      <aside className="hidden lg:flex lg:w-[450px] border-r-[1px] border-[#F9F9F9] border-opacity-[0.05] min-h-screen flex-col relative z-10">
         {/* Logo */}
-        <div className="pt-6 md:pt-[47px] pl-4 md:pl-[43px] pb-8 md:pb-[80px] flex items-center gap-3">
-          <img className="w-[150px] md:w-[200px] lg:w-[250px]" alt="Group" src={Logo} />
+        <div className="pt-[47px] pl-[43px] pb-[80px] flex items-center gap-3">
+          <img className="w-[250px]" alt="Group" src={Logo} />
         </div>
 
         {/* User Profile Section */}
-        <div className="flex flex-col items-center px-4 md:px-[43px] mb-8 md:mb-[57px]">
+        <div className="flex flex-col items-center px-[43px] mb-[57px]">
           <TokenAvatar />
-          {/* <div className="mt-[32px] [font-family:'Questrial',Helvetica] font-normal text-white text-[32px] tracking-[0] leading-[15px] whitespace-nowrap">
-            <UserName />
-          </div> */}
-          {/* <div className="mt-[17px] [font-family:'Questrial',Helvetica] font-normal text-[#f9f9f980] text-base tracking-[0] leading-[15px] whitespace-nowrap cursor-pointer">
-            View Profile
-          </div> */}
         </div>
 
         {/* Navigation Menu */}
-        <nav className="flex flex-col gap-3 md:gap-[18px] px-4 md:px-12 lg:px-[88px] relative">
+        <nav className="flex flex-col gap-[18px] px-[88px] relative">
           {navigationItems.map((item, index) => (
             <div
               key={index}
-              className="cursor-pointer flex items-center gap-2 md:gap-3 px-2 md:px-3 py-2 w-full max-w-full transition-colors duration-150">
+              className="cursor-pointer flex items-center gap-3 px-3 py-2 w-full max-w-full transition-colors duration-150">
               <div
-                className={`${item.active
-                  ? "bg-transparent border border-white/10 border-solid rounded-full p-2 md:p-3"
-                  : "bg-transparent border border-white/10 border-solid rounded-full p-2 md:p-3"
-                  }`}>
+                className={`${
+                  item.active
+                    ? "bg-transparent border border-white/10 border-solid rounded-full p-3"
+                    : "bg-transparent border border-white/10 border-solid rounded-full p-3"
+                }`}>
                 <img
                   src={item.icon}
                   alt={`${item.label} icon`}
-                  className={`${item.active
-                    ? "w-3 md:w-[15px] opacity-100"
-                    : "w-3 md:w-[15px] text-red-500 opacity-30"
-                    }`}
+                  className={`${
+                    item.active ? "w-[15px] opacity-100" : "w-[15px] text-red-500 opacity-30"
+                  }`}
                 />
               </div>
               <Link to={item.path}>
                 <span
-                  className={`[font-family:'Questrial',Helvetica] font-normal text-sm md:text-base tracking-[0] leading-[15px] whitespace-nowrap ${item.active ? "text-white" : "text-white/30"
-                    }`}>
+                  className={`[font-family:'Questrial',Helvetica] font-normal text-base tracking-[0] leading-[15px] whitespace-nowrap ${
+                    item.active ? "text-white" : "text-white/30"
+                  }`}>
                   {item.label}
                 </span>
               </Link>
@@ -197,65 +223,24 @@ const Dashboard = () => {
         </nav>
 
         {/* logout btn */}
-        <div className="mt-8 md:mt-[60px] p-2 w-full md:w-[150px] mx-4 md:mx-12 lg:ml-[88px] bg-transparent border border-solid border-[#f9f9f94c] rounded-[14px] flex items-center justify-center gap-2 cursor-pointer hover:bg-white/10 transition-colors duration-150">
+        <div className="mt-[60px] p-2 w-[150px] ml-[88px] bg-transparent border border-solid border-[#f9f9f94c] rounded-[14px] flex items-center justify-center gap-2 cursor-pointer hover:bg-white/10 transition-colors duration-150">
           <div>
             <img src={LogOutIcon} alt="logout icon" className="w-4 h-4" />
           </div>
           <div>
-            <button
-              onClick={async () => {
-                try {
-                  const token = getToken();
-
-                  const res = await fetch(API_CONFIG.AUTH.LOGOUT, {
-                    method: "POST",
-                    credentials: "include",
-                    headers: {
-                      ...(token && { Authorization: `Bearer ${token}` }),
-                    },
-                  });
-
-                  if (!res.ok) {
-                    console.error("[Logout] Request failed:", res.status);
-                  }
-                } catch (e) {
-                  console.error("[Logout] Network error:", e);
-                } finally {
-                  clearToken();
-                  redirect("/login");
-                }
-              }}
-              className="text-light ">
+            <button onClick={handleLogout} className="text-light">
               LogOut
             </button>
           </div>
         </div>
 
-        {/* LogOutIcon Button */}
-        <div className="mt-auto mb-[85px] px-[65px]">
-          {/* <Button
-            variant="outline"
-            className="w-40 h-[43px] rounded-[14px] border border-solid border-[#f9f9f94c] bg-transparent hover:bg-transparent flex items-center justify-center gap-2">
-            <LogOutIcon className="w-3 h-4" />
-            <span className="[font-family:'Questrial',Helvetica] font-normal text-[#f9f9f9] text-base tracking-[0] leading-[15px]">
-              LogOutIcon
-            </span>
-          </Button> */}
-        </div>
-
-        {/* Sidebar separator line */}
-        {/* <img
-          className="absolute top-0 right-0 w-px h-full object-cover"
-          alt="Line"
-          src="/line-13.svg"
-        /> */}
+        <div className="mt-auto mb-[85px] px-[65px]"></div>
       </aside>
 
-      {/* Main Content Area */}
-      <main className="flex-1 relative px-4 md:px-12 lg:px-[100px] py-6 md:py-12 lg:py-[50px]">
+      {/* Main Content Area - Responsive padding for mobile header space */}
+      <main className="flex-1 relative z-10 px-4 sm:px-6 md:px-8 lg:px-[100px] py-4 sm:py-6 md:py-8 lg:py-[50px] mt-16 lg:mt-0">
         <WelcomeHeaderSection />
         <PongrushGameShowcaseSection />
-        {/* <StatsSection /> */}
         <DashboardSection />
       </main>
     </div>

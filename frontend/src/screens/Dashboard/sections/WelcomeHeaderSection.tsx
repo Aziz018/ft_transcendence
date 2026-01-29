@@ -304,31 +304,34 @@ const WelcomeHeaderSection = () => {
   }, []);
 
   return (
-    <header className="w-full flex items-start justify-between gap-4 bg-transparent">
-      <div className="flex flex-col gap-6">
-        <p className="[font-family:'Questrial',Helvetica] font-normal text-[#f9f9f980] text-base tracking-[0] leading-[15px]">
+    <header className="w-full flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 lg:gap-4 bg-transparent mb-6">
+      {/* Welcome Message - Hidden on mobile, visible on tablet+ */}
+      <div className="hidden md:flex flex-col gap-3 lg:gap-6">
+        <p className="[font-family:'Questrial',Helvetica] font-normal text-[#f9f9f980] text-sm md:text-base tracking-[0] leading-[15px]">
           Here&apos;s what&apos;s waiting for you today.
         </p>
 
-        <h1 className="[font-family:'Questrial',Helvetica] font-normal text-theme-text-primary text-4xl tracking-[0] leading-[15px] whitespace-nowrap">
+        <h1 className="[font-family:'Questrial',Helvetica] font-normal text-theme-text-primary text-2xl md:text-3xl lg:text-4xl tracking-[0] leading-tight lg:leading-[15px]">
           Welcome Back, {name}!
         </h1>
       </div>
 
-      <div className="flex items-center gap-[10px]">
-        <div className="relative w-[300px]">
+      {/* Top Bar: Search, Notifications, and Rank - Always visible */}
+      <div className="flex items-center gap-2 sm:gap-3 w-full lg:w-auto justify-end">
+        {/* Search Bar - Responsive width */}
+        <div className="relative flex-1 sm:flex-initial sm:w-[200px] md:w-[250px] lg:w-[300px]">
           <input
             type="text"
-            placeholder="Search users (e.g., 'aziz')..."
+            placeholder="Search users..."
             value={searchQuery}
             onInput={(e: any) => setSearchQuery(e.target.value)}
             onFocus={() => searchQuery && setShowResults(true)}
             onBlur={() => setTimeout(() => setShowResults(false), 200)}
-            className="flex h-10 w-full rounded-md border border-[#f9f9f933] bg-[#1a1a1a] px-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-blue-600"
+            className="flex h-10 sm:h-10 md:h-11 w-full rounded-md border border-[#f9f9f933] bg-[#1a1a1a] px-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-blue-600 touch-manipulation"
           />
 
           {showResults && searchResults.length > 0 && (
-            <div className="absolute top-full mt-2 w-full bg-[#1f1f1f] border border-[#f9f9f933] rounded-md shadow-lg max-h-[300px] overflow-y-auto z-50">
+            <div className="absolute top-full mt-2 w-full min-w-[280px] bg-[#1f1f1f] border border-[#f9f9f933] rounded-md shadow-lg max-h-[300px] overflow-y-auto z-50">
               {searchResults.map((user) => (
                 <div
                   key={user.uid}
@@ -359,7 +362,7 @@ const WelcomeHeaderSection = () => {
                   </div>
                   <button
                     onClick={() => handleAddFriend(user.uid)}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-md transition-colors">
+                    className="min-w-[44px] min-h-[44px] px-4 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-sm rounded-md transition-colors touch-manipulation">
                     Add Friend
                   </button>
                 </div>
@@ -371,29 +374,30 @@ const WelcomeHeaderSection = () => {
             !isSearching &&
             searchQuery &&
             searchResults.length === 0 && (
-              <div className="absolute top-full mt-2 w-full bg-[#1f1f1f] border border-[#f9f9f933] rounded-md shadow-lg p-4 z-50">
+              <div className="absolute top-full mt-2 w-full min-w-[280px] bg-[#1f1f1f] border border-[#f9f9f933] rounded-md shadow-lg p-4 z-50">
                 <p className="text-white/50 text-center">No users found</p>
               </div>
             )}
 
           {isSearching && (
-            <div className="absolute top-full mt-2 w-full bg-[#1f1f1f] border border-[#f9f9f933] rounded-md shadow-lg p-4 z-50">
+            <div className="absolute top-full mt-2 w-full min-w-[280px] bg-[#1f1f1f] border border-[#f9f9f933] rounded-md shadow-lg p-4 z-50">
               <p className="text-white/50 text-center">Searching...</p>
             </div>
           )}
         </div>
 
-        <div className="relative">
+        {/* Notification Bell - Touch-friendly */}
+        <div className="relative flex-shrink-0">
           <button
             onClick={() => setShowNotifications(!showNotifications)}
-            className="relative flex items-center justify-center h-10 w-[43px] rounded-[14px] border border-solid border-[#f9f9f933] bg-transparent hover:bg-white/5 transition-colors">
+            className="relative flex items-center justify-center min-w-[44px] min-h-[44px] h-10 sm:h-11 w-10 sm:w-11 rounded-[14px] border border-solid border-[#f9f9f933] bg-transparent hover:bg-white/5 active:bg-white/10 transition-colors touch-manipulation">
             <img
               src={NotificationBell}
               alt="bell icon"
-              className="w-[22px] h-[22px]"
+              className="w-5 h-5 sm:w-[22px] sm:h-[22px]"
             />
             {notificationCount > 0 && (
-              <span className="absolute top-[6px] right-[9px] z-[1] min-w-[16px] h-[16px] bg-[#ef4444] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+              <span className="absolute top-1 right-1 sm:top-[6px] sm:right-[6px] z-[1] min-w-[16px] h-[16px] bg-[#ef4444] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
                 {notificationCount > 9 ? "9+" : notificationCount}
               </span>
             )}
@@ -406,21 +410,20 @@ const WelcomeHeaderSection = () => {
           />
         </div>
 
-        <div className="h-10 px-[18px] bg-white/5 rounded-[14px] border border-solid border-[#f9f9f933] flex items-center gap-3 backdrop-blur-sm">
+        {/* Rank Badge - Hidden on small mobile, visible on sm+ */}
+        <div className="hidden sm:flex h-10 md:h-11 px-3 md:px-[18px] bg-white/5 rounded-[14px] border border-solid border-[#f9f9f933] items-center gap-2 md:gap-3 backdrop-blur-sm flex-shrink-0">
           <div className="flex flex-col items-end justify-center -space-y-0.5">
-            <span className="font-questrial text-[9px] text-accent-green uppercase tracking-wider font-bold">
+            <span className="font-questrial text-[8px] md:text-[9px] text-accent-green uppercase tracking-wider font-bold">
               Current Rank
             </span>
-            <span className="font-questrial text-light text-sm font-bold leading-none">
+            <span className="font-questrial text-light text-xs md:text-sm font-bold leading-none">
               {userRank > 0 ? `Rank #${userRank}` : "Unranked"}
             </span>
           </div>
-          <div className="w-8 h-8 rounded-full bg-accent-green/20 flex items-center justify-center border border-accent-green/50">
-            <span className="text-accent-green text-[10px] font-bold">XP</span>
+          <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-accent-green/20 flex items-center justify-center border border-accent-green/50">
+            <span className="text-accent-green text-[9px] md:text-[10px] font-bold">XP</span>
           </div>
         </div>
-
-
       </div>
     </header>
   );
