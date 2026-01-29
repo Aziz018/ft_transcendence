@@ -6,6 +6,7 @@ import DashboardIcon from "../../assets/dd.svg";
 import LeaderboardIcon from "../../assets/Leaderboard.svg";
 import ChatIcon from "../../assets/chat-icon.svg";
 import GameIcon from "../../assets/game-icon.svg";
+import TicTacToeIcon from "../../assets/tictactoe-icon.svg";
 import SettingsIcon from "../../assets/Settings.svg";
 import LogOutIcon from "../../assets/Logout.svg";
 import WelcomeHeaderSection from "./sections/WelcomeHeaderSection";
@@ -22,7 +23,7 @@ const navigationItems = [
   { label: "Dashboard", active: true, icon: DashboardIcon, path: "/dashboard" },
   { label: "Chat", active: false, icon: ChatIcon, path: "/chat" },
   { label: "PingPong", active: false, icon: GameIcon, path: "/game" },
-  { label: "TicTacToe", active: false, icon: GameIcon, path: "/tictactoe" },
+  { label: "TicTacToe", active: false, icon: TicTacToeIcon, path: "/tictactoe" },
   { label: "Leaderboard", active: false, icon: LeaderboardIcon, path: "/leaderboard" },
   { label: "Settings", active: false, icon: SettingsIcon, path: "/settings" },
 ];
