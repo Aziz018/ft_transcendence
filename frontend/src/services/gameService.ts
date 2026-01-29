@@ -27,7 +27,7 @@ class GameService {
   private stateListeners: Set<GameStateListener> = new Set();
   private endListeners: Set<GameEndListener> = new Set();
   private timeoutListeners: Set<GameTimeoutListener> = new Set();
-  
+
   private activeGameId: string | null = null;
   private pendingInvites: Map<string, GameInvite> = new Map();
 
@@ -37,11 +37,11 @@ class GameService {
 
   private setupListeners() {
     console.log("[GameService] Setting up game event listeners");
-    
+
     // Listen for game invitations
     wsService.on("game:invite:received", (payload: GameInvitePayload) => {
       console.log("[GameService] ✅ Invitation received:", payload);
-      
+
       // Store pending invite
       const invite: GameInvite = {
         inviteId: payload.inviteId,
@@ -54,11 +54,11 @@ class GameService {
         expiresAt: payload.expiresAt,
         status: 'pending',
       };
-      
+
       this.pendingInvites.set(invite.inviteId, invite);
-      
+
       console.log("[GameService] Notifying", this.inviteListeners.size, "invite listeners");
-      
+
       // Notify all listeners
       this.inviteListeners.forEach(listener => {
         try {
@@ -67,7 +67,7 @@ class GameService {
           console.error("[GameService] Error calling invite listener:", e);
         }
       });
-      
+
       // Show notification
       notificationService.info(
         `${payload.inviterName} invited you to play Ping-Pong!`,
@@ -103,7 +103,7 @@ class GameService {
       }
       this.timeoutListeners.forEach(listener => listener(payload.inviteId));
     });
-    
+
     console.log("[GameService] ✅ All game listeners registered");
   }
 
@@ -112,25 +112,25 @@ class GameService {
    */
   sendInvite(friendId: string, friendName: string): string {
     console.log("[GameService] 📤 Sending game invite to:", friendName, "(" + friendId + ")");
-    
+
     // Check WebSocket connection
     if (!wsService.isConnected()) {
       console.error("[GameService] ❌ WebSocket not connected! Cannot send invite.");
       notificationService.error("Connection lost. Please refresh and try again.", 4000);
       throw new Error("WebSocket not connected");
     }
-    
+
     const inviteId = `invite_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
+
     const invitePayload = {
       inviteId,
       invitedId: friendId,
       invitedName: friendName,
       expiresAt: Date.now() + 60000, // 1 minute timeout
     };
-    
+
     console.log("[GameService] Sending invite payload:", invitePayload);
-    
+
     wsService.send({
       type: "game:invite",
       payload: invitePayload
@@ -138,6 +138,34 @@ class GameService {
 
     console.log("[GameService] ✅ Invitation sent:", inviteId);
     return inviteId;
+  }
+
+  /**
+   * Join public matchmaking queue
+   */
+  joinQueue() {
+    if (wsService.isConnected()) {
+      console.log("[GameService] Joining queue");
+      wsService.send({
+        type: "join_queue",
+        payload: {}
+      });
+    } else {
+      console.log("[GameService] WebSocket not ready, attempting connect and retrying in 500ms...");
+      wsService.connect().catch(err => console.error("[GameService] Connect attempt failed:", err));
+      setTimeout(() => this.joinQueue(), 500);
+    }
+  }
+
+  /**
+   * Leave matching queue
+   */
+  leaveQueue() {
+    console.log("[GameService] Leaving queue");
+    wsService.send({
+      type: "leave_queue",
+      payload: {}
+    });
   }
 
   /**
@@ -174,12 +202,14 @@ class GameService {
   /**
    * Send paddle movement
    */
-  movePaddle(gameId: string, paddleY: number) {
+  /**
+   * Send paddle movement
+   */
+  movePaddle(paddleY: number) {
     wsService.send({
-      type: "game:paddle:move",
+      type: "move_paddle",
       payload: {
-        gameId,
-        paddleY,
+        position: paddleY,
       }
     });
   }

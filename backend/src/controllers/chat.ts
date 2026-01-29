@@ -1,4 +1,5 @@
 import { authenticateWebSocketToken } from "../middleware/chat.js";
+import { gameManager } from "./game.js";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import * as chatModel from "../models/chat.js";
 import { chatSchema } from "../schemas/chat.js";
@@ -48,6 +49,9 @@ type WSMessageType =
   | "send_direct_message"
   | "get_messages"
   | "get_more_messages"
+  | "join_queue"
+  | "leave_queue"
+  | "move_paddle"
   | "get_room_members"
   | "promote_member"
   | "update_status"
@@ -56,7 +60,7 @@ type WSMessageType =
   | "friend_request_received"
   | "friend_request_accepted"
   | "friend_request_declined";
-  // Removed game types: join_queue, leave_queue, move_paddle, pause_game, game_invite, reject_game, accept_game
+// Removed game types: join_queue, leave_queue, move_paddle, pause_game, game_invite, reject_game, accept_game
 
 interface WSMessage<T = any> {
   type: WSMessageType;
@@ -2610,9 +2614,9 @@ export const websocketHandler = async (
     }
 
     const { type, payload } = msg;
-    
+
     // DEBUG: Log all incoming WebSocket messages
-    console.log(`[WS DEBUG] Received message type="${type}" from ${connection.authenticatedUser?.name || 'unknown'} (${connection.authenticatedUser?.uid || 'no-uid'})`, 
+    console.log(`[WS DEBUG] Received message type="${type}" from ${connection.authenticatedUser?.name || 'unknown'} (${connection.authenticatedUser?.uid || 'no-uid'})`,
       type === 'game_invite' || type === 'accept_game' || type === 'reject_game' ? payload : '(payload hidden)');
 
     console.log(`[WS DEBUG] About to check gameTypes. gameTypes.includes("${type}") = ${["join_queue", "leave_queue", "move_paddle", "pause_game"].includes(type)}`);
@@ -2626,227 +2630,218 @@ export const websocketHandler = async (
 
     const gameTypes = ["join_queue", "leave_queue", "move_paddle", "pause_game"];
 
-    // Game types handler disabled - game functionality removed
-    /*
     if (gameTypes.includes(type)) {
       console.log(`[WS DEBUG] inside gameTypes block for: ${type}`);
       if (type === "join_queue") {
-        request.server.service.game.handleMatchmaking(connection.authenticatedUser.uid, { action: 'join', gameType: 'classic' });
+        if (!connection.authenticatedUser) return;
+        gameManager.joinQueue(connection, {
+          uid: connection.authenticatedUser.uid,
+          name: connection.authenticatedUser.name
+        });
       } else if (type === "leave_queue") {
-        request.server.service.game.handleMatchmaking(connection.authenticatedUser.uid, { action: 'leave', gameType: 'classic' });
+        if (!connection.authenticatedUser) return;
+        gameManager.leaveQueue(connection.authenticatedUser.uid);
       }
       else if (type === "move_paddle" && payload && typeof payload.position === 'number') {
-        const userId = connection.authenticatedUser.uid;
-        let gameId = payload.gameId;
-        if (!gameId) {
-          gameId = request.server.service.game.getGameIdByPlayerId(userId);
-        }
-
-        if (gameId) {
-          request.server.service.game.handlePlayerMove(userId, {
-            gameId,
-            position: payload.position,
-            timestamp: Date.now()
-          });
-        }
+        if (!connection.authenticatedUser) return;
+        gameManager.movePaddle(connection.authenticatedUser.uid, payload.position);
       }
       return;
     }
-    */
-    
+
     console.log(`[WS DEBUG] Past gameTypes block. Type=${type}`);
-    
+
     // Server-to-client notifications skip validation
     if (notificationTypes.includes(type)) {
-       console.log(`[WS DEBUG] Skipping validation for notification type: ${type}`);
-       // ... existing code ...
+      console.log(`[WS DEBUG] Skipping validation for notification type: ${type}`);
+      // ... existing code ...
     }
 
-      const schema = chatSchema[type as keyof typeof chatSchema];
-      console.log(`[WS DEBUG] Schema lookup for type="${type}": ${schema ? 'FOUND' : 'NOT FOUND'}`);
-      if (!type || !payload) {
+    const schema = chatSchema[type as keyof typeof chatSchema];
+    console.log(`[WS DEBUG] Schema lookup for type="${type}": ${schema ? 'FOUND' : 'NOT FOUND'}`);
+    if (!type || !payload) {
+      connection.send(
+        JSON.stringify({
+          type: "error",
+          message: "Type and payload are required",
+        })
+      );
+      return;
+    }
+
+    // Skip validation for server-to-client notifications
+    if (notificationTypes.includes(type)) {
+      connection.send(
+        JSON.stringify({
+          type: "error",
+          message: `${type} is a server-to-client message type`,
+        })
+      );
+      return;
+    }
+
+    if (!schema) {
+      connection.send(
+        JSON.stringify({
+          type: "error",
+          message: `Unknown message type: ${type}`,
+        })
+      );
+      return;
+    }
+
+    // Validate payload
+    try {
+      const validate = wsValidators[type];
+      console.log(`[WS DEBUG] Validator lookup for type="${type}": ${validate ? 'FOUND' : 'NOT FOUND'}`);
+      if (!validate) {
         connection.send(
           JSON.stringify({
             type: "error",
-            message: "Type and payload are required",
+            message: `No validator found for type ${type}`,
+          })
+        );
+        return;
+      }
+      if (!validate(payload)) {
+        const errors = validate.errors?.map((e) => ({
+          path: e.instancePath, // JSON path where error occurred (e.g., "/roomId")
+          message: e.message, // Human-readable error message (includes custom errorMessage if set)
+          keyword: e.keyword, // AJV validation keyword that failed (e.g., "type", "format", "required")
+          params: e.params, // Additional parameters specific to the validation keyword
+        }));
+        connection.send(
+          JSON.stringify({
+            type: "error",
+            message: "Payload validation failed",
+            details: errors,
+          })
+        );
+        return;
+      }
+    } catch (error) {
+      request.log.error({ error, type }, "Schema validation error");
+      connection.send(
+        JSON.stringify({ type: "error", message: "Invalid payload schema" })
+      );
+      return;
+    }
+
+    try {
+      const authUser = connection.authenticatedUser;
+      if (!authUser || !authUser.uid) {
+        connection.send(
+          JSON.stringify({
+            type: "error",
+            message: "User not authenticated",
           })
         );
         return;
       }
 
-      // Skip validation for server-to-client notifications
-      if (notificationTypes.includes(type)) {
-        connection.send(
-          JSON.stringify({
-            type: "error",
-            message: `${type} is a server-to-client message type`,
-          })
-        );
-        return;
-      }
+      // DEBUG: Log before switch
+      console.log(`[WS DEBUG] Processing switch for type="${type}"`);
 
-      if (!schema) {
-        connection.send(
-          JSON.stringify({
-            type: "error",
-            message: `Unknown message type: ${type}`,
-          })
-        );
-        return;
-      }
+      switch (type) {
+        case "create_room": {
+          createRoom(connection, authUser, payload, request);
+          break;
+        }
 
-      // Validate payload
-      try {
-        const validate = wsValidators[type];
-        console.log(`[WS DEBUG] Validator lookup for type="${type}": ${validate ? 'FOUND' : 'NOT FOUND'}`);
-        if (!validate) {
+        case "join_room": {
+          joinRoom(connection, authUser, payload, request);
+          break;
+        }
+
+        case "leave_room": {
+          leaveRoom(connection, authUser, payload, request);
+          break;
+        }
+
+        case "delete_room": {
+          deleteRoom(connection, type, authUser, payload, request);
+          break;
+        }
+
+        case "get_room_members": {
+          getRoomMembers(connection, type, authUser, payload, request);
+          break;
+        }
+
+        case "kick_member": {
+          kickMember(connection, type, authUser, payload, request);
+          break;
+        }
+
+        case "promote_member": {
+          promoteMember(connection, type, authUser, payload, request);
+          break;
+        }
+
+        case "send_message": {
+          sendMessage(connection, type, authUser, payload, request);
+          break;
+        }
+
+        case "get_messages": {
+          getMessages(connection, type, authUser, payload, request);
+          break;
+        }
+
+        case "get_more_messages": {
+          getMoreMessages(connection, type, authUser, payload, request);
+          break;
+        }
+
+        case "send_direct_message": {
+          sendDirectMessage(connection, type, authUser, payload, request);
+          break;
+        }
+
+        case "edit_message": {
+          editMessage(connection, type, authUser, payload, request);
+          break;
+        }
+
+        case "delete_message": {
+          deleteMessage(connection, type, authUser, payload, request);
+          break;
+        }
+
+        case "update_status": {
+          updateStatus(connection, type, authUser, payload, request);
+          break;
+        }
+
+        case "typing": {
+          typing(connection, type, authUser, payload, request);
+          break;
+        }
+
+        // Game-related cases removed
+        // case "game_invite"
+        // case "accept_game"
+        // case "reject_game"
+
+        default:
+          console.log(`[WebSocket] Unknown message type: ${type} from ${authUser.name}`);
           connection.send(
             JSON.stringify({
               type: "error",
-              message: `No validator found for type ${type}`,
+              message: `Unknown message type: ${type}`,
             })
           );
-          return;
-        }
-        if (!validate(payload)) {
-          const errors = validate.errors?.map((e) => ({
-            path: e.instancePath, // JSON path where error occurred (e.g., "/roomId")
-            message: e.message, // Human-readable error message (includes custom errorMessage if set)
-            keyword: e.keyword, // AJV validation keyword that failed (e.g., "type", "format", "required")
-            params: e.params, // Additional parameters specific to the validation keyword
-          }));
-          connection.send(
-            JSON.stringify({
-              type: "error",
-              message: "Payload validation failed",
-              details: errors,
-            })
-          );
-          return;
-        }
-      } catch (error) {
-        request.log.error({ error, type }, "Schema validation error");
-        connection.send(
-          JSON.stringify({ type: "error", message: "Invalid payload schema" })
-        );
-        return;
+          break;
       }
-
-      try {
-        const authUser = connection.authenticatedUser;
-        if (!authUser || !authUser.uid) {
-          connection.send(
-            JSON.stringify({
-              type: "error",
-              message: "User not authenticated",
-            })
-          );
-          return;
-        }
-
-        // DEBUG: Log before switch
-        console.log(`[WS DEBUG] Processing switch for type="${type}"`);
-
-        switch (type) {
-          case "create_room": {
-            createRoom(connection, authUser, payload, request);
-            break;
-          }
-
-          case "join_room": {
-            joinRoom(connection, authUser, payload, request);
-            break;
-          }
-
-          case "leave_room": {
-            leaveRoom(connection, authUser, payload, request);
-            break;
-          }
-
-          case "delete_room": {
-            deleteRoom(connection, type, authUser, payload, request);
-            break;
-          }
-
-          case "get_room_members": {
-            getRoomMembers(connection, type, authUser, payload, request);
-            break;
-          }
-
-          case "kick_member": {
-            kickMember(connection, type, authUser, payload, request);
-            break;
-          }
-
-          case "promote_member": {
-            promoteMember(connection, type, authUser, payload, request);
-            break;
-          }
-
-          case "send_message": {
-            sendMessage(connection, type, authUser, payload, request);
-            break;
-          }
-
-          case "get_messages": {
-            getMessages(connection, type, authUser, payload, request);
-            break;
-          }
-
-          case "get_more_messages": {
-            getMoreMessages(connection, type, authUser, payload, request);
-            break;
-          }
-
-          case "send_direct_message": {
-            sendDirectMessage(connection, type, authUser, payload, request);
-            break;
-          }
-
-          case "edit_message": {
-            editMessage(connection, type, authUser, payload, request);
-            break;
-          }
-
-          case "delete_message": {
-            deleteMessage(connection, type, authUser, payload, request);
-            break;
-          }
-
-          case "update_status": {
-            updateStatus(connection, type, authUser, payload, request);
-            break;
-          }
-
-          case "typing": {
-            typing(connection, type, authUser, payload, request);
-            break;
-          }
-
-          // Game-related cases removed
-          // case "game_invite"
-          // case "accept_game"
-          // case "reject_game"
-
-          default:
-            console.log(`[WebSocket] Unknown message type: ${type} from ${authUser.name}`);
-            connection.send(
-              JSON.stringify({
-                type: "error",
-                message: `Unknown message type: ${type}`,
-              })
-            );
-            break;
-        }
-      } catch (error) {
-        request.log.error(
-          { error, type, userId, payload },
-          "WebSocket handler error"
-        );
-        connection.send(
-          JSON.stringify({ type: "error", message: "Server error" })
-        );
-      }
+    } catch (error) {
+      request.log.error(
+        { error, type, userId, payload },
+        "WebSocket handler error"
+      );
+      connection.send(
+        JSON.stringify({ type: "error", message: "Server error" })
+      );
+    }
   });
 
   connection.on("close", () => {

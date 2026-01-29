@@ -58,11 +58,73 @@ const PongGame = ({ onBackToMenu, gameMode = "remote" }: PongGameProps) => {
       // Initialize bot game
       initBotGame(payload?.uid || "", payload?.name || "Player");
       localStorage.removeItem("gameWithBot");
+    } else {
+      // Remote Game - Join Queue
+      gameService.joinQueue();
     }
 
     // Listen for game state updates
     const unsubscribeState = gameService.onGameState((data) => {
+      // Backend uses vx/vy, Frontend uses velocityX/velocityY. Map it?
+      // Actually backend 'state' payload already sends 'ball' object.
+      // If backend sends vx/vy, we might need to map it here too if we rely on it for prediction?
+      // But usually just setting state is enough.
       setGameState(data.state);
+    });
+
+    // Listen for game start
+    const unsubscribeStart = gameService.onGameStart((data) => {
+      console.log("[PongGame] Game started:", data);
+      // data.ball has vx, vy from backend. Map to velocityX, velocityY.
+      const token = getToken();
+      const payload = decodeTokenPayload(token);
+      const currentUid = payload?.uid || "";
+      const backendBall = (data as any).ball;
+
+      const initialState: GameState = {
+        id: data.gameId,
+        status: 'playing',
+        player1: {
+          id: data.player1.id,
+          name: data.player1.name,
+          score: 0,
+          type: 'player',
+          ready: true
+        },
+        player2: {
+          id: data.player2.id,
+          name: data.player2.name,
+          score: 0,
+          type: 'player',
+          ready: true
+        },
+        ball: {
+          x: backendBall.x,
+          y: backendBall.y,
+          velocityX: backendBall.vx,
+          velocityY: backendBall.vy,
+          speed: 5,
+        },
+        paddle1: {
+          y: CANVAS_HEIGHT / 2 - PADDLE_HEIGHT / 2,
+          height: PADDLE_HEIGHT,
+          velocity: 0
+        },
+        paddle2: {
+          y: CANVAS_HEIGHT / 2 - PADDLE_HEIGHT / 2,
+          height: PADDLE_HEIGHT,
+          velocity: 0
+        },
+        maxScore: 5
+      };
+      setGameState(initialState);
+
+      // Determine my paddle side
+      if (data.player1.id === currentUid) {
+        setIsMyPaddle({ left: true, right: false });
+      } else if (data.player2.id === currentUid) {
+        setIsMyPaddle({ left: false, right: true });
+      }
     });
 
     // Listen for game end
@@ -79,8 +141,12 @@ const PongGame = ({ onBackToMenu, gameMode = "remote" }: PongGameProps) => {
 
     return () => {
       unsubscribeState();
+      unsubscribeStart();
       unsubscribeEnd();
-      if (animationFrameId.current !== undefined) {
+      if (gameMode === "remote") {
+        gameService.leaveQueue();
+      }
+      if (typeof animationFrameId.current === 'number') {
         cancelAnimationFrame(animationFrameId.current);
       }
     };
@@ -236,14 +302,14 @@ const PongGame = ({ onBackToMenu, gameMode = "remote" }: PongGameProps) => {
 
         if (keysPressed.current.has(upKey)) {
           newState.paddle1.y = Math.max(0, newState.paddle1.y - PADDLE_SPEED);
-          if (gameMode !== 'local') gameService.movePaddle(gameState.id, newState.paddle1.y);
+          if (gameMode !== 'local') gameService.movePaddle(newState.paddle1.y);
         }
         if (keysPressed.current.has(downKey)) {
           newState.paddle1.y = Math.min(
             CANVAS_HEIGHT - PADDLE_HEIGHT,
             newState.paddle1.y + PADDLE_SPEED
           );
-          if (gameMode !== 'local') gameService.movePaddle(gameState.id, newState.paddle1.y);
+          if (gameMode !== 'local') gameService.movePaddle(newState.paddle1.y);
         }
       }
 
@@ -261,63 +327,70 @@ const PongGame = ({ onBackToMenu, gameMode = "remote" }: PongGameProps) => {
             newState.paddle2.y + PADDLE_SPEED * 0.7
           );
         }
-      } else if (gameMode === "local" && isMyPaddle.right) {
-        // Local Player 2 input (Right Paddle - Arrows)
+      } else if (isMyPaddle.right) {
+        // Player 2 input (Right Paddle) - Always Arrows for P2 (Local or Remote)
+        // If Local: P2 uses Arrows (P1 uses W/S)
+        // If Remote: I am P2, I use Arrows (Standard controls)
         if (keysPressed.current.has("ArrowUp")) {
           newState.paddle2.y = Math.max(0, newState.paddle2.y - PADDLE_SPEED);
+          if (gameMode === 'remote') gameService.movePaddle(newState.paddle2.y);
         }
         if (keysPressed.current.has("ArrowDown")) {
           newState.paddle2.y = Math.min(
             CANVAS_HEIGHT - PADDLE_HEIGHT,
             newState.paddle2.y + PADDLE_SPEED
           );
+          if (gameMode === 'remote') gameService.movePaddle(newState.paddle2.y);
         }
       }
 
-      // Move ball
-      newState.ball.x += newState.ball.velocityX;
-      newState.ball.y += newState.ball.velocityY;
+      // Server handles physics for remote games
+      if (gameMode !== 'remote') {
+        // Move ball
+        newState.ball.x += newState.ball.velocityX;
+        newState.ball.y += newState.ball.velocityY;
 
-      // Ball collision with top/bottom walls
-      if (newState.ball.y <= 0 || newState.ball.y >= CANVAS_HEIGHT - BALL_SIZE) {
-        newState.ball.velocityY *= -1;
-      }
+        // Ball collision with top/bottom walls
+        if (newState.ball.y <= 0 || newState.ball.y >= CANVAS_HEIGHT - BALL_SIZE) {
+          newState.ball.velocityY *= -1;
+        }
 
-      // Ball collision with paddles
-      if (
-        newState.ball.x <= PADDLE_WIDTH &&
-        newState.ball.y + BALL_SIZE >= newState.paddle1.y &&
-        newState.ball.y <= newState.paddle1.y + PADDLE_HEIGHT
-      ) {
-        newState.ball.velocityX *= -1.1;
-        newState.ball.x = PADDLE_WIDTH;
-      }
+        // Ball collision with paddles
+        if (
+          newState.ball.x <= PADDLE_WIDTH &&
+          newState.ball.y + BALL_SIZE >= newState.paddle1.y &&
+          newState.ball.y <= newState.paddle1.y + PADDLE_HEIGHT
+        ) {
+          newState.ball.velocityX *= -1.1;
+          newState.ball.x = PADDLE_WIDTH;
+        }
 
-      if (
-        newState.ball.x >= CANVAS_WIDTH - PADDLE_WIDTH - BALL_SIZE &&
-        newState.ball.y + BALL_SIZE >= newState.paddle2.y &&
-        newState.ball.y <= newState.paddle2.y + PADDLE_HEIGHT
-      ) {
-        newState.ball.velocityX *= -1.1;
-        newState.ball.x = CANVAS_WIDTH - PADDLE_WIDTH - BALL_SIZE;
-      }
+        if (
+          newState.ball.x >= CANVAS_WIDTH - PADDLE_WIDTH - BALL_SIZE &&
+          newState.ball.y + BALL_SIZE >= newState.paddle2.y &&
+          newState.ball.y <= newState.paddle2.y + PADDLE_HEIGHT
+        ) {
+          newState.ball.velocityX *= -1.1;
+          newState.ball.x = CANVAS_WIDTH - PADDLE_WIDTH - BALL_SIZE;
+        }
 
-      // Scoring
-      if (newState.ball.x <= 0) {
-        newState.player2.score++;
-        resetBall(newState);
-      } else if (newState.ball.x >= CANVAS_WIDTH) {
-        newState.player1.score++;
-        resetBall(newState);
-      }
+        // Scoring
+        if (newState.ball.x <= 0) {
+          newState.player2.score++;
+          resetBall(newState);
+        } else if (newState.ball.x >= CANVAS_WIDTH) {
+          newState.player1.score++;
+          resetBall(newState);
+        }
 
-      // Check for game end
-      if (
-        newState.player1.score >= newState.maxScore ||
-        newState.player2.score >= newState.maxScore
-      ) {
-        endGame(newState);
-        return;
+        // Check for game end
+        if (
+          newState.player1.score >= newState.maxScore ||
+          newState.player2.score >= newState.maxScore
+        ) {
+          endGame(newState);
+          return;
+        }
       }
 
       setGameState(newState);
@@ -463,7 +536,9 @@ const PongGame = ({ onBackToMenu, gameMode = "remote" }: PongGameProps) => {
   if (!gameState) {
     return (
       <div className="bg-theme-bg-primary min-h-screen flex items-center justify-center">
-        <div className="text-white text-2xl font-[Questrial]">Loading game...</div>
+        <div className="text-white text-2xl font-[Questrial]">
+          {gameMode === 'remote' ? "Waiting for opponent..." : "Loading game..."}
+        </div>
       </div>
     );
   }

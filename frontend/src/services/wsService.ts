@@ -11,7 +11,7 @@ class WebSocketService {
   private ws: WebSocket | null = null;
   private url: string;
   private reconnectAttempts: number = 0;
-  private maxReconnectAttempts: number = 5;
+  private maxReconnectAttempts: number = 20;
   private reconnectDelay: number = 3000;
   private messageListeners: Map<string, (payload: any) => void> = new Map();
   private messageQueue: WebSocketMessage[] = [];
@@ -21,10 +21,16 @@ class WebSocketService {
   }
 
   connect(): Promise<void> {
+    if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
+      console.log("[WebSocket] Already connected or connecting");
+      return Promise.resolve();
+    }
+
     return new Promise((resolve, reject) => {
       try {
         const token = getToken();
         if (!token) {
+          console.error("No auth token available for WebSocket");
           reject(new Error("No auth token available"));
           return;
         }
@@ -45,7 +51,8 @@ class WebSocketService {
 
         this.ws.onerror = (error) => {
           console.error("[WebSocket] Error:", error);
-          reject(error);
+          // Don't reject here immediately as onclose follows? 
+          // Actually usually onerror is followed by onclose.
         };
 
         this.ws.onclose = () => {
@@ -59,7 +66,10 @@ class WebSocketService {
   }
 
   private handleMessage(message: WebSocketMessage) {
-    console.log("[WebSocket] Received:", message.type, message.payload);
+    // Filter out spammy game state updates from logs
+    if (message.type !== "game:state:update" && message.type !== "game_state") {
+      console.log("[WebSocket] Received:", message.type, message.payload);
+    }
 
     switch (message.type) {
       case "friend_request_received":
@@ -184,13 +194,13 @@ class WebSocketService {
 
   private handleGameInviteNotification(payload: any) {
     console.log("[WebSocket] Game invite received:", payload);
-    
+
     // Show prominent notification
     notificationService.info(
       `🎮 ${payload.senderName || 'A player'} invited you to play Pong!`,
       8000
     );
-    
+
     // Play notification sound if available
     try {
       const audio = new Audio('/notification.mp3');
@@ -235,7 +245,7 @@ class WebSocketService {
       // Queue message and send when connection opens
       console.log(`[WebSocket] Queuing message (connecting): ${message.type}`);
       this.messageQueue.push(message);
-      
+
       // Set up timeout to flush queue
       setTimeout(() => {
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
