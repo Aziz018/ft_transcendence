@@ -178,13 +178,27 @@ export default class Server {
         // Allow requests with no origin (like mobile apps or curl requests)
         if (!origin) return cb(null, true);
 
+        // Allow explicitly defined origins
         if (allowedOrigins.includes(origin)) {
-          cb(null, true);
-        } else {
-          // Log the blocked origin for debugging
-          console.warn(`Blocked CORS origin: ${origin}`);
-          cb(new Error("Not allowed by CORS"), false);
+          return cb(null, true);
         }
+
+        // Allow local network requests (10.x.x.x, 192.168.x.x, 172.x.x.x) for development
+        const isLocalNetwork =
+          origin.startsWith("http://10.") ||
+          origin.startsWith("http://192.168.") ||
+          origin.startsWith("http://172.") ||
+          origin.startsWith("https://10.") ||
+          origin.startsWith("https://192.168.") ||
+          origin.startsWith("https://172.");
+
+        if (isLocalNetwork) {
+          return cb(null, true);
+        }
+
+        // Log the blocked origin for debugging
+        console.warn(`Blocked CORS origin: ${origin}`);
+        cb(new Error("Not allowed by CORS"), false);
       },
       credentials: true,
       methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],

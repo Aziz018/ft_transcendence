@@ -2544,11 +2544,11 @@ export const websocketHandler = async (
 
           // 2. Notify Target via WS (Notification + Chat Message)
           // We need to find the specific connection(s) for the target user.
-          // We can use the 'clients' set which we have access to in this scope.
-          for (const client of clients) {
-            if (client.authenticatedUser && client.authenticatedUser.uid === payload.targetId) {
+          const targetConnections = userConnections.get(payload.targetId);
+          if (targetConnections) {
+            targetConnections.forEach((client) => {
               // Send Notification
-              if (client.readyState === WebSocket.OPEN) {
+              if (client.readyState === WS.OPEN) {
                 client.send(JSON.stringify({
                   type: "notification",
                   payload: {
@@ -2573,7 +2573,7 @@ export const websocketHandler = async (
                   }
                 }));
               }
-            }
+            });
           }
           // Also echo back to sender so it appears in their chat
           connection.send(JSON.stringify({
@@ -2593,9 +2593,10 @@ export const websocketHandler = async (
         }
       }
       else if (type === "reject_game" && payload && payload.targetId) {
-        for (const client of clients) {
-          if (client.authenticatedUser && client.authenticatedUser.uid === payload.targetId) {
-            if (client.readyState === WebSocket.OPEN) {
+        const targetConnections = userConnections.get(payload.targetId);
+        if (targetConnections) {
+          targetConnections.forEach((client) => {
+            if (client.readyState === WS.OPEN) {
               client.send(JSON.stringify({
                 type: "notification",
                 payload: {
@@ -2616,7 +2617,7 @@ export const websocketHandler = async (
                 }
               }));
             }
-          }
+          });
         }
       }
       return;
