@@ -30,11 +30,11 @@ const PongGame = ({ onBackToMenu, gameMode = "remote" }: PongGameProps) => {
   const [showEndModal, setShowEndModal] = useState(false);
   const [gameResult, setGameResult] = useState<GameEndPayload | null>(null);
   const [myPlayerId, setMyPlayerId] = useState<string>("");
-  const [isMyPaddle, setIsMyPaddle] = useState<{ left: boolean; right: boolean }>({ 
-    left: false, 
-    right: false 
+  const [isMyPaddle, setIsMyPaddle] = useState<{ left: boolean; right: boolean }>({
+    left: false,
+    right: false
   });
-  
+
   const keysPressed = useRef<Set<string>>(new Set<string>());
   const animationFrameId = useRef<number | undefined>(undefined);
 
@@ -51,10 +51,10 @@ const PongGame = ({ onBackToMenu, gameMode = "remote" }: PongGameProps) => {
       setMyPlayerId(payload.uid);
     }
 
-    // Check if playing with bot
-    const playWithBot = localStorage.getItem("gameWithBot") === "true";
-    
-    if (playWithBot) {
+    // Check game mode
+    if (gameMode === "local") {
+      initLocalGame(payload?.uid || "", payload?.name || "Player 1");
+    } else if (gameMode === "bot" || localStorage.getItem("gameWithBot") === "true") {
       // Initialize bot game
       initBotGame(payload?.uid || "", payload?.name || "Player");
       localStorage.removeItem("gameWithBot");
@@ -70,7 +70,7 @@ const PongGame = ({ onBackToMenu, gameMode = "remote" }: PongGameProps) => {
       console.log("[PongGame] Game ended:", data);
       setGameResult(data);
       setShowEndModal(true);
-      
+
       // Update XP on backend
       if (data.winnerId === myPlayerId) {
         updatePlayerXP(data.xpGained);
@@ -124,9 +124,54 @@ const PongGame = ({ onBackToMenu, gameMode = "remote" }: PongGameProps) => {
       maxScore: 3,
       startTime: Date.now(),
     };
-    
+
+    setGameState(initialState);
     setGameState(initialState);
     setIsMyPaddle({ left: true, right: false });
+  };
+
+  const initLocalGame = (playerId: string, playerName: string) => {
+    const initialState: GameState = {
+      id: `game_local_${Date.now()}`,
+      status: 'playing',
+      player1: {
+        id: playerId,
+        name: playerName, // Right Paddle
+        score: 0,
+        type: 'player',
+        ready: true,
+      },
+      player2: {
+        id: 'local_p2',
+        name: 'Player 2', // Left Paddle
+        score: 0,
+        type: 'player',
+        ready: true,
+      },
+      ball: {
+        x: CANVAS_WIDTH / 2,
+        y: CANVAS_HEIGHT / 2,
+        velocityX: 5,
+        velocityY: 5,
+        speed: 5,
+      },
+      paddle1: {
+        y: CANVAS_HEIGHT / 2 - PADDLE_HEIGHT / 2,
+        height: PADDLE_HEIGHT,
+        velocity: 0,
+      },
+      paddle2: {
+        y: CANVAS_HEIGHT / 2 - PADDLE_HEIGHT / 2,
+        height: PADDLE_HEIGHT,
+        velocity: 0,
+      },
+      maxScore: 5,
+      startTime: Date.now(),
+    };
+
+    setGameState(initialState);
+    // In local mode, we control both paddles locally
+    setIsMyPaddle({ left: true, right: true });
   };
 
   // Update XP on backend
@@ -137,7 +182,7 @@ const PongGame = ({ onBackToMenu, gameMode = "remote" }: PongGameProps) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ field: "xp", value: xpGained }),
       });
-      
+
       // Dispatch event to update UI
       window.dispatchEvent(new CustomEvent("profile-updated", {
         detail: { xpGained }
@@ -185,30 +230,46 @@ const PongGame = ({ onBackToMenu, gameMode = "remote" }: PongGameProps) => {
 
       // Move paddles based on keyboard input
       if (isMyPaddle.left) {
-        if (keysPressed.current.has("ArrowUp")) {
+        // P1 (Left) uses W/S in Local Mode, Arrows in Online Mode
+        const upKey = gameMode === 'local' ? "KeyW" : "ArrowUp";
+        const downKey = gameMode === 'local' ? "KeyS" : "ArrowDown";
+
+        if (keysPressed.current.has(upKey)) {
           newState.paddle1.y = Math.max(0, newState.paddle1.y - PADDLE_SPEED);
-          gameService.movePaddle(gameState.id, newState.paddle1.y);
+          if (gameMode !== 'local') gameService.movePaddle(gameState.id, newState.paddle1.y);
         }
-        if (keysPressed.current.has("ArrowDown")) {
+        if (keysPressed.current.has(downKey)) {
           newState.paddle1.y = Math.min(
             CANVAS_HEIGHT - PADDLE_HEIGHT,
             newState.paddle1.y + PADDLE_SPEED
           );
-          gameService.movePaddle(gameState.id, newState.paddle1.y);
+          if (gameMode !== 'local') gameService.movePaddle(gameState.id, newState.paddle1.y);
         }
       }
 
       // Bot AI for player2 (if playing with bot)
+      // Bot AI for player2 (if playing with bot)
       if (gameState.player2.type === 'bot') {
         const paddle2Center = newState.paddle2.y + PADDLE_HEIGHT / 2;
         const ballY = newState.ball.y;
-        
+
         if (ballY < paddle2Center - 10) {
           newState.paddle2.y = Math.max(0, newState.paddle2.y - PADDLE_SPEED * 0.7);
         } else if (ballY > paddle2Center + 10) {
           newState.paddle2.y = Math.min(
             CANVAS_HEIGHT - PADDLE_HEIGHT,
             newState.paddle2.y + PADDLE_SPEED * 0.7
+          );
+        }
+      } else if (gameMode === "local" && isMyPaddle.right) {
+        // Local Player 2 input (Right Paddle - Arrows)
+        if (keysPressed.current.has("ArrowUp")) {
+          newState.paddle2.y = Math.max(0, newState.paddle2.y - PADDLE_SPEED);
+        }
+        if (keysPressed.current.has("ArrowDown")) {
+          newState.paddle2.y = Math.min(
+            CANVAS_HEIGHT - PADDLE_HEIGHT,
+            newState.paddle2.y + PADDLE_SPEED
           );
         }
       }
@@ -377,19 +438,26 @@ const PongGame = ({ onBackToMenu, gameMode = "remote" }: PongGameProps) => {
   };
 
   const handleExit = () => {
-    if (gameState) {
+    if (gameState && gameMode !== 'local') {
       gameService.exitGame(gameState.id);
-      // Automatic loss handled by backend
     }
-    window.location.href = "/dashboard";
+    if (onBackToMenu) onBackToMenu();
+    else window.location.href = "/dashboard";
   };
 
   const handlePlayAgain = () => {
-    window.location.href = "/chat";
+    if (gameMode === "local" && gameState) {
+      initLocalGame(gameState.player1.id, gameState.player1.name);
+      setShowEndModal(false);
+      setGameResult(null);
+    } else {
+      window.location.href = "/chat";
+    }
   };
 
   const handleBackToDashboard = () => {
-    window.location.href = "/dashboard";
+    if (onBackToMenu) onBackToMenu();
+    else window.location.href = "/dashboard";
   };
 
   if (!gameState) {
@@ -408,6 +476,13 @@ const PongGame = ({ onBackToMenu, gameMode = "remote" }: PongGameProps) => {
       <div className="mb-4 text-center">
         <p className="text-white/50 text-sm font-[Questrial]">
           Press <kbd className="px-2 py-1 bg-white/10 rounded text-white/70">SPACE</kbd> to pause
+          {gameMode === "local" && (
+            <span className="ml-4">
+              P1: <kbd className="px-2 py-1 bg-white/10 rounded text-white/70">↑</kbd> <kbd className="px-2 py-1 bg-white/10 rounded text-white/70">↓</kbd>
+              &nbsp;|&nbsp;
+              P2: <kbd className="px-2 py-1 bg-white/10 rounded text-white/70">W</kbd> <kbd className="px-2 py-1 bg-white/10 rounded text-white/70">S</kbd>
+            </span>
+          )}
         </p>
       </div>
 
