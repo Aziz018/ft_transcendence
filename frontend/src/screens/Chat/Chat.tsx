@@ -17,7 +17,8 @@ import Logo from "../../assets/secondLogo.svg";
 const navigationItems = [
   { label: "Dashboard", active: false, icon: DashboardIcon, path: "dashboard" },
   { label: "Chat", active: true, icon: ChatIcon, path: "chat" },
-  { label: "Game", active: false, icon: GameIcon, path: "game" },
+  { label: "PingPong", active: false, icon: GameIcon, path: "game" },
+  { label: "TicTacToe", active: false, icon: GameIcon, path: "tictactoe" },
   {
     label: "Leaderboard",
     active: false,

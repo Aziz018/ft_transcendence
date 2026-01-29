@@ -21,7 +21,8 @@ import { API_CONFIG } from "../../config/api";
 const navigationItems = [
   { label: "Dashboard", active: true, icon: DashboardIcon, path: "/dashboard" },
   { label: "Chat", active: false, icon: ChatIcon, path: "/chat" },
-  { label: "Game", active: false, icon: GameIcon, path: "/game" },
+  { label: "PingPong", active: false, icon: GameIcon, path: "/game" },
+  { label: "TicTacToe", active: false, icon: GameIcon, path: "/tictactoe" },
   { label: "Leaderboard", active: false, icon: LeaderboardIcon, path: "/leaderboard" },
   { label: "Settings", active: false, icon: SettingsIcon, path: "/settings" },
 ];
