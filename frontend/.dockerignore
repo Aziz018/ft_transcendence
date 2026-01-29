@@ -1,8 +1,0 @@
-node_modules
-dist
-.vscode
-.env
-.DS_Store
-npm-debug.log
-/build
-/.git
