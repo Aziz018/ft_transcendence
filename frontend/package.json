@@ -11,6 +11,8 @@
   "devDependencies": {
     "@types/express": "^5.0.3",
     "@types/node": "^20.19.15",
+    "@types/react": "^19.2.10",
+    "@types/react-dom": "^19.2.3",
     "baseline-browser-mapping": "^2.9.18",
     "prisma": "^6.16.2",
     "ts-node": "^10.9.2"
@@ -101,6 +103,9 @@
     "postcss-value-parser": "^4.2.0",
     "qrcode": "^1.5.4",
     "queue-microtask": "^1.2.3",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-router-dom": "^7.13.0",
     "read-cache": "^1.0.0",
     "readdirp": "^3.6.0",
     "resolve": "^1.22.10",

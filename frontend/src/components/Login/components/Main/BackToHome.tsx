@@ -1,5 +1,5 @@
-import { Link } from "../../../../library/Router/Router";
-import Fuego from "../../../../index";
+import React from "react";
+import { Link } from "../../../../router";
 
 const BackToHome = () => {
   return (

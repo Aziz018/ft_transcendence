@@ -1,5 +1,5 @@
-import Fuego from "../../index";
-import { redirect } from "../../library/Router/Router";
+import React from "react";
+import { redirect } from "../../router";
 
 interface LoginButtonProps {
   disabled?: boolean;

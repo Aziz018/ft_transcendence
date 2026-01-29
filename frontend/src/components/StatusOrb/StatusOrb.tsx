@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from "react";
 import gsap from 'gsap';
 
 type GameStatus = 'online' | 'idle' | 'offline' | 'playing' | 'spectating';

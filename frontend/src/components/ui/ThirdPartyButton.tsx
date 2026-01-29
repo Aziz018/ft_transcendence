@@ -1,4 +1,4 @@
-import Fuego from "../../index";
+import React from "react";
 const ThirdPartyButton = () => {
   return <div>ThirdPartyButton</div>;
 };

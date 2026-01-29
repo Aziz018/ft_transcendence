@@ -3,10 +3,7 @@
  * Shows list of friends with online status and search
  */
 
-import Fuego from "../../../index";
-import { useState } from "../../../library/hooks/useState";
-import { useEffect } from "../../../library/hooks/useEffect";
-import { useCallback } from "../../../library/hooks/useCallback";
+import React, { useState, useEffect, useCallback } from "react";
 import { chatService, type Friend } from "../../../services/chatService";
 import { getToken } from "../../../lib/auth";
 import { wsService } from "../../../services/wsService";

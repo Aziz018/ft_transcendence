@@ -1,6 +1,6 @@
-import Fuego from "../../../index";
+import React from "react";
 import { saveToken } from "../../../lib/auth";
-import { redirect } from "../../../library/Router/Router";
+import { redirect } from "../../../router";
 import API_CONFIG from "../../../config/api";
 
 function openGooglePopup() {

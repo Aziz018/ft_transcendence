@@ -1,4 +1,4 @@
-import Fuego from "../../index";
+import React from "react";
 import Toast from "./Toast";
 import { useNotifications } from "../../lib/useNotifications";
 

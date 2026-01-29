@@ -1,5 +1,5 @@
-import Fuego from "../../../index";
 
+import React from "react";
 const TopRightBlurEffect = () => {
   return (
     <div className="absolute top-0 right-[-920px] w-[1275px] h-[1198px]">

@@ -3,7 +3,7 @@
  * Reference implementations for the design system
  */
 
-import Fuego from "../../index";
+import React from "react";
 import { AnimatedBackground } from "../AnimatedBackground/AnimatedBackground";
 import { PremiumCard, PremiumCardHeader, PremiumCardBody, PremiumCardFooter } from "../PremiumCard/PremiumCard";
 import { GlowButton } from "../GlowButton/GlowButton";
@@ -142,7 +142,7 @@ export const PlayerStatsCard = ({ playerName = "Pro Player" }) => {
  * EXAMPLE 4: Status Indicator with Header
  */
 export const HeaderWithStatus = () => {
-  const [status, setStatus] = Fuego.useState<"online" | "idle" | "offline" | "playing" | "spectating">("online");
+  const [status, setStatus] = React.useState<"online" | "idle" | "offline" | "playing" | "spectating">("online");
 
   return (
     <header className="bg-dark-900 backdrop-blur-lg border-b border-border-subtle p-6">

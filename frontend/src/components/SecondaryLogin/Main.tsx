@@ -1,11 +1,10 @@
-import Fuego from "../../index";
+import React, { useState } from "react";
 import Button from "../ui/PrimaryButton";
 
-import { Link, redirect } from "../../library/Router/Router";
+import { Link, redirect } from "../../router";
 import PrimaryButton from "../ui/PrimaryButton";
 import SecondaryButton from "../ui/SecondaryButton";
 import { saveToken } from "../../lib/auth";
-import { useState } from "../../library/hooks/useState";
 import { getToken } from "../../lib/auth";
 import API_CONFIG from "../../config/api";
 
@@ -15,7 +14,7 @@ const Main = () => {
   const [loading, setLoading] = useState(false);
 
   // Redirect if MFA is not required
-  Fuego.useEffect(() => {
+  React.useEffect(() => {
     const token = getToken();
     if (token) {
       // Need to import decodeTokenPayload or move it to a shared lib if not available here

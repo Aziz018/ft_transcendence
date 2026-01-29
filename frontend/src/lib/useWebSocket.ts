@@ -1,10 +1,10 @@
-import Fuego from "../index";
+import React from "react";
 import { wsService } from "../services/wsService";
 
 export function useWebSocket() {
-  const [isConnected, setIsConnected] = Fuego.useState(false);
+  const [isConnected, setIsConnected] = React.useState(false);
 
-  Fuego.useEffect(() => {
+  React.useEffect(() => {
 
     wsService
       .connect()

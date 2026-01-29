@@ -1,6 +1,6 @@
 
-import Fuego from "../../index";
 
+import React from "react";
 const WelcomeHeaderSection = () => {
   return (
     <header className="w-full flex justify-between items-start gap-[193px] bg-transparent">

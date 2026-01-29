@@ -1,12 +1,11 @@
-import Fuego from "../../index";
+import React, { useEffect } from "react";
 import Footer from "../../components/Home/Footer";
 import Header from "../../components/Home/Header";
 import Main from "../../components/Home/Main";
 import BackgroundBlurEffect from "../../components/ui/BlurEffect/BackgroundBlurEffect";
 
 import { getToken } from "../../lib/auth";
-import { useEffect } from "../../library/hooks/useEffect";
-import { redirect } from "../../library/Router/Router";
+import { redirect } from "../../router";
 
 const Home = () => {
   useEffect(() => {

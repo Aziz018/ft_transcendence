@@ -14,8 +14,6 @@ import TOTPRoutes from "./routes/totp.js";
 import ChatRoutes from "./routes/chat.js";
 import LeaderboardRoutes from "./routes/leaderboard.js";
 import { MessageRoutes } from "./routes/message.js";
-import GameRoutes from "./routes/game.js";
-import TournamentRoutes from "./routes/tournament.js";
 
 import JWTAuthenticationPlugin from "./plugins/jwt.js";
 import {
@@ -41,8 +39,6 @@ const routes = [
   { pcb: ChatRoutes, opt: { prefix: "/v1/chat" } },
   { pcb: LeaderboardRoutes, opt: { prefix: "/v1/leaderboard" } },
   { pcb: MessageRoutes, opt: {} },
-  { pcb: GameRoutes, opt: { prefix: "/v1/game" } },
-  { pcb: TournamentRoutes, opt: { prefix: "/v1/tournament" } },
 ];
 
 const hooks = { onClose: CloseHandler, onSend: SendHandler, preHandler: PreHandler };

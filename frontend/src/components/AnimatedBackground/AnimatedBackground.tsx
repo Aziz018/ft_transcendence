@@ -3,8 +3,8 @@
  * Particle effect, grid, and aurora-like background
  */
 
-import React, { useEffect, useRef } from "react";
 
+import React, { useEffect, useRef } from "react";
 interface AnimatedBackgroundProps {
   type?: "particles" | "grid" | "aurora" | "combined";
   intensity?: "light" | "medium" | "heavy";

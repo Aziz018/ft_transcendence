@@ -1,13 +1,13 @@
-import Fuego from "../index";
+import React from "react";
 import {
   notificationService,
   Notification,
 } from "../services/notificationService";
 
 export function useNotifications() {
-  const [notifications, setNotifications] = Fuego.useState<Notification[]>([]);
+  const [notifications, setNotifications] = React.useState<Notification[]>([]);
 
-  Fuego.useEffect(() => {
+  React.useEffect(() => {
 
     const unsubscribe = notificationService.subscribe((notification) => {
       setNotifications((prev: any) => {

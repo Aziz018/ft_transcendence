@@ -3,7 +3,6 @@ import type FriendService from "../services/friend.ts";
 import type AuthService from "../services/auth.ts";
 import type TOTPService from "../services/totp.ts";
 import type MessageService from "../services/message.ts";
-import type GameService from "../services/game.ts";
 
 export interface ServiceManager {
   user: UserService;
@@ -11,5 +10,4 @@ export interface ServiceManager {
   auth: AuthService;
   totp: TOTPService;
   message: MessageService;
-  game: GameService;
 }

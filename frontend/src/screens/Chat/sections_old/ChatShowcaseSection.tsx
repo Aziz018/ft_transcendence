@@ -1,4 +1,4 @@
-import Fuego from "../../../index";
+import React from "react";
 import ChatIcon from "../../../assets/chat-icon.svg";
 
 const ChatShowcaseSection = () => {
@@ -14,7 +14,7 @@ const ChatShowcaseSection = () => {
       </div>
       <p className="text-[#f9f9f980] text-[16px] w-[573px] mt-4 leading-[30px] ">
         Stay connected with friends while you play! Our in-game chat feature
-        lets you easily communicate with your friends during your ping pong
+        lets you easily communicate with your friends during your Pongrush Game
         matches.
       </p>
     </div>

@@ -1,4 +1,4 @@
-import Fuego from "../../../../index";
+import React from "react";
 import EmailField from "./LoginForm/EmailField";
 import PasswordField from "./LoginForm/PasswordField";
 import ForgotPassword from "./LoginForm/ForgotPassword";
@@ -8,8 +8,8 @@ import GoogleBtn from "../../../ui/SocialLoginButtons/GoogleBtn";
 import IntraBtn from "../../../ui/SocialLoginButtons/IntraBtn";
 
 import { saveToken } from "../../../../lib/auth";
-import { redirect, Link } from "../../../../library/Router/Router";
-import { useState } from "../../../../index";
+import { redirect, Link } from "../../../../router";
+import { useState } from "react";
 import API_CONFIG from "../../../../config/api";
 
 const LoginForm = () => {

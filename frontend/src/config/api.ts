@@ -276,12 +276,10 @@ const API_URL = (import.meta as any).env?.VITE_API_URL || "http://localhost:3000
 const WS_BASE = API_URL.replace(/^http/, "ws");
 
 const WS_URL = (import.meta as any).env?.VITE_WS_URL || `${WS_BASE}/v1/chat/ws`;
-const GAME_WS_URL = (import.meta as any).env?.VITE_GAME_WS_URL || `${WS_BASE}/v1/game/ws`;
 
 export const API_CONFIG = {
   BASE_URL: API_URL,
   WS_URL: WS_URL,
-  GAME_WS_URL: GAME_WS_URL,
 
   // API Endpoints
   AUTH: {
@@ -313,11 +311,6 @@ export const API_CONFIG = {
     REQUESTS: `${API_URL}/v1/friend/requests`,
   },
 
-  GAME: {
-    START: `${API_URL}/v1/game/start`,
-    MATCH: (id: string) => `${API_URL}/v1/game/match/${id}`,
-    HISTORY: (id: string) => `${API_URL}/v1/game/history/${id}`,
-  },
 
   MESSAGE: {
     SEND: `${API_URL}/v1/message/send`,

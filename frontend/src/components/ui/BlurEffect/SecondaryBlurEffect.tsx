@@ -1,5 +1,5 @@
-import Fuego from "../../../index";
 
+import React from "react";
 const SecondaryBlurEffect = () => {
   return (
     <div className="absolute top-[500px] left-[-540px] w-[1275px] h-[1198px]">

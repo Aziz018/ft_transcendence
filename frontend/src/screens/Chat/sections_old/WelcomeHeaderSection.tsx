@@ -1,14 +1,12 @@
-import Fuego from "../../../index";
 
+import React, { useEffect, useState } from "react";
 import { BellIcon, SearchIcon } from "lucide-react";
 
 import NotificationBell from "../../../assets/notification.svg";
 import SecondaryButton from "../../../components/ui/SecondaryButton";
 import { getToken, decodeTokenPayload } from "../../../lib/auth";
-import { useEffect } from "../../../library/hooks/useEffect";
-import { useState } from "../../../library/hooks/useState";
 import ArrowReturn from "../../../assets/arrow-return.svg";
-import { redirect } from "../../../library/Router/Router";
+import { redirect } from "../../../router";
 import { wsService } from "../../../services/wsService";
 import NotificationToast from "../../../components/ui/NotificationToast";
 
@@ -479,8 +477,6 @@ const WelcomeHeaderSection = () => {
           <div className="relative">
             <button
               onClick={() => setShowNotifications(!showNotifications)}
-              variant="outline"
-              size="icon"
               className="relative flex items-center justify-center h-10 w-[43px] rounded-[14px] border border-solid border-[#f9f9f933] bg-transparent hover:bg-transparent">
               <img
                 src={NotificationBell}

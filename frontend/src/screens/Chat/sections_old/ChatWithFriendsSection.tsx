@@ -1,4 +1,4 @@
-import Fuego from "../../../index";
+import React, { useEffect } from "react";
 import Mason from "../../../assets/1.svg";
 import PrimaryButton from "../../../components/ui/PrimaryButton";
 import PlayIcon from "../../../assets/Play.svg";
@@ -9,20 +9,19 @@ import InviteIcon from "../../../assets/invite-icon.svg";
 import UnfriendIcon from "../../../assets/unfriend-icon.svg";
 import BlockUserIcon from "../../../assets/block-icon.svg";
 import { getToken, decodeTokenPayload } from "../../../lib/auth";
-import { useEffect } from "../../../library/hooks/useEffect";
 import { wsService } from "../../../services/wsService";
 
 const ChatWithFriendsSection = () => {
-  const [isMenuOpen, setIsMenuOpen] = Fuego.useState(false);
-  const [friends, setFriends] = Fuego.useState([]);
-  const [selectedFriend, setSelectedFriend] = Fuego.useState(null);
-  const [incomingRequests, setIncomingRequests] = Fuego.useState([]);
-  const [pendingRequests, setPendingRequests] = Fuego.useState([]);
-  const [messages, setMessages] = Fuego.useState<any[]>([]);
-  const [messageInput, setMessageInput] = Fuego.useState("");
-  const [searchQuery, setSearchQuery] = Fuego.useState("");
-  const [searchResults, setSearchResults] = Fuego.useState<any[]>([]);
-  const [isSearching, setIsSearching] = Fuego.useState(false);
+  const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+  const [friends, setFriends] = React.useState([]);
+  const [selectedFriend, setSelectedFriend] = React.useState(null);
+  const [incomingRequests, setIncomingRequests] = React.useState([]);
+  const [pendingRequests, setPendingRequests] = React.useState([]);
+  const [messages, setMessages] = React.useState<any[]>([]);
+  const [messageInput, setMessageInput] = React.useState("");
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const [searchResults, setSearchResults] = React.useState<any[]>([]);
+  const [isSearching, setIsSearching] = React.useState(false);
 
   const backend =
     (import.meta as any).env?.VITE_BACKEND_ORIGIN || "/api";

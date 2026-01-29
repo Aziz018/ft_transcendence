@@ -1,7 +1,5 @@
-import Fuego from "../../index";
-import { useState } from "../../library/hooks/useState";
-import { useEffect } from "../../library/hooks/useEffect";
-import { Link, redirect } from "../../library/Router/Router";
+import React, { useState, useEffect } from "react";
+import { Link, redirect } from "../../router";
 import { getToken, clearToken, decodeTokenPayload } from "../../lib/auth";
 import { wsService } from "../../services/wsService";
 import TopRightBlurEffect from "../../components/ui/BlurEffect/TopRightBlurEffect";
@@ -12,31 +10,20 @@ import QRCode from "qrcode";
 
 import DashboardIcon from "../../assets/dd.svg";
 import LeaderboardIcon from "../../assets/Leaderboard.svg";
-import Game from "../../assets/game-icon.svg";
 import ChatIcon from "../../assets/chat-icon.svg";
-import TournamentIcon from "../../assets/Tournament-icon.svg";
 import SettingsIcon from "../../assets/Settings.svg";
-import CareerIcon from "../../assets/view-profile.svg";
 import LogOutIcon from "../../assets/Logout.svg";
 import Logo from "../../assets/secondLogo.svg";
 
 const navigationItems = [
   { label: "Dashboard", active: false, icon: DashboardIcon, path: "dashboard" },
-  { label: "Game", active: false, icon: Game, path: "game" },
   { label: "Chat", active: false, icon: ChatIcon, path: "chat" },
-  {
-    label: "Tournament",
-    active: false,
-    icon: TournamentIcon,
-    path: "tournament",
-  },
   {
     label: "Leaderboard",
     active: false,
     icon: LeaderboardIcon,
     path: "leaderboard",
   },
-  { label: "Career", active: false, icon: CareerIcon, path: "career" },
   { label: "Settings", active: true, icon: SettingsIcon, path: "settings" },
 ];
 
@@ -53,7 +40,7 @@ const Settings = () => {
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
-  const fileInputRef = Fuego.useRef<HTMLInputElement>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [blockedUsers, setBlockedUsers] = useState<any[]>([]);
   const [isLoadingBlocked, setIsLoadingBlocked] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
@@ -474,7 +461,7 @@ const Settings = () => {
   }
 
   return (
-    <div className="bg-dark-950 w-full h-screen flex overflow-hidden">
+    <div className="bg-dark-950 w-full min-h-screen flex flex-col lg:flex-row overflow-x-hidden">
       <TopRightBlurEffect />
       <div className="absolute top-[991px] left-[-285px] w-[900px] h-[900px] bg-[#f9f9f980] rounded-[450px] blur-[153px] pointer-events-none" />
       <img
@@ -484,32 +471,30 @@ const Settings = () => {
       />
       <div className="absolute top-[721px] left-[-512px] w-[700px] h-[700px] bg-[#dda15e80] rounded-[350px] blur-[153px] pointer-events-none" />
 
-      <aside className="w-[300px] border-r-[1px] border-light border-opacity-[0.05] h-screen flex flex-col relative z-10 flex-shrink-0">
+      <aside className="w-full md:w-[250px] lg:w-[300px] border-r-[1px] border-light border-opacity-[0.05] min-h-screen flex flex-col relative z-10 flex-shrink-0">
         <Link to="/">
-          <div className="pt-[47px] pl-[43px] pb-[50px] flex items-center gap-3">
-            <img className="w-[200px]" alt="Logo" src={Logo} />
+          <div className="pt-6 md:pt-[47px] pl-4 md:pl-8 lg:pl-[43px] pb-6 md:pb-[50px] flex items-center gap-3">
+            <img className="w-[150px] md:w-[180px] lg:w-[200px]" alt="Logo" src={Logo} />
           </div>
         </Link>
 
-        <nav className="flex flex-col gap-[18px] px-[60px] relative flex-1">
+        <nav className="flex flex-col gap-3 md:gap-[18px] px-4 md:px-8 lg:px-[60px] relative flex-1">
           {navigationItems.map((item, index) => (
-            <Link key={index} to={`/${item.path}`}>
-              <div className="cursor-pointer flex items-center gap-3 px-3 py-2 w-full transition-all duration-150 hover:bg-white/5 rounded-lg">
+            <Link key={index} to={"/" + item.path}>
+              <div className="cursor-pointer flex items-center gap-2 md:gap-3 px-2 md:px-3 py-2 w-full transition-all duration-150 hover:bg-white/5 rounded-lg">
                 <div
-                  className={`${item.active
+                  className={(item.active
                     ? "bg-accent-green/20 border border-accent-green/50"
                     : "bg-transparent border border-white/10"
-                    } rounded-full p-3 transition-all duration-150`}>
+                    ) + " rounded-full p-2 md:p-3 transition-all duration-150"}>
                   <img
                     src={item.icon}
-                    alt={`${item.label} icon`}
-                    className={`w-[15px] ${item.active ? "opacity-100" : "opacity-30"
-                      } transition-opacity duration-150`}
+                    alt={item.label + " icon"}
+                    className={"w-3 md:w-[15px] " + (item.active ? "opacity-100" : "opacity-30") + " transition-opacity duration-150"}
                   />
                 </div>
                 <span
-                  className={`font-questrial font-normal text-base tracking-[0] leading-[15px] whitespace-nowrap ${item.active ? "text-light" : "text-light/30"
-                    } transition-colors duration-150`}>
+                  className={"font-questrial font-normal text-sm md:text-base tracking-[0] leading-[15px] whitespace-nowrap " + (item.active ? "text-light" : "text-light/30") + " transition-colors duration-150"}>
                   {item.label}
                 </span>
               </div>
@@ -648,7 +633,7 @@ const Settings = () => {
                           value={currentPassword}
                           onChange={(e: any) => setCurrentPassword(e.target.value)}
                           placeholder="Required to change password"
-                          className={`w-full bg-white/10 border ${errors.currentPassword ? "border-red-500" : "border-white/20"} rounded-lg px-4 py-3 text-light font-questrial focus:outline-none focus:border-accent-green`}
+                          className={"w-full bg-white/10 border " + (errors.currentPassword ? "border-red-500" : "border-white/20") + " rounded-lg px-4 py-3 text-light font-questrial focus:outline-none focus:border-accent-green"}
                         />
                         {errors.currentPassword && (
                           <span className="text-red-500 text-xs mt-1 block">{errors.currentPassword}</span>
@@ -664,7 +649,7 @@ const Settings = () => {
                           value={newPassword}
                           onChange={(e: any) => setNewPassword(e.target.value)}
                           placeholder="Leave blank to keep current"
-                          className={`w-full bg-white/10 border ${errors.password ? "border-red-500" : "border-white/20"} rounded-lg px-4 py-3 text-light font-questrial focus:outline-none focus:border-accent-green`}
+                          className={"w-full bg-white/10 border " + (errors.password ? "border-red-500" : "border-white/20") + " rounded-lg px-4 py-3 text-light font-questrial focus:outline-none focus:border-accent-green"}
                         />
                       </div>
                     </>
@@ -703,10 +688,10 @@ const Settings = () => {
 
                 <button
                   onClick={handleActivate2FA}
-                  className={`px-6 py-3 rounded-lg font-questrial font-semibold transition-colors ${twoFactorEnabled
+                  className={"px-6 py-3 rounded-lg font-questrial font-semibold transition-colors " + (twoFactorEnabled
                     ? "bg-red-500/20 text-red-500 border border-red-500/50 hover:bg-red-500/30"
                     : "bg-accent-orange text-dark-950 hover:bg-accent-orange/90"
-                    }`}>
+                    ) + ""}>
                   {twoFactorEnabled ? "Disable 2FA" : "Activate 2FA"}
                 </button>
               </div>

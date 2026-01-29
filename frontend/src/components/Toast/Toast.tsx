@@ -1,4 +1,4 @@
-import Fuego from "../../index";
+import React from "react";
 import { Notification } from "../../services/notificationService";
 import Mason from "../../assets/1.svg";
 

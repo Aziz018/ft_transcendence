@@ -1,5 +1,4 @@
-import { useState } from "../library/hooks/useState";
-import { useEffect } from "../library/hooks/useEffect";
+import { useState, useEffect } from "react";
 import { Theme, getThemeColors, generateCSSVariables } from "../config/theme";
 
 let currentTheme: Theme = "dark";

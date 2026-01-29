@@ -1,15 +1,12 @@
-import Fuego from "../../../index";
-import { useState } from "../../../library/hooks/useState";
-import { useEffect } from "../../../library/hooks/useEffect";
+import React, { useState, useEffect } from "react";
 import StarsFilled from "../../../assets/stars_filled.svg";
 import Logo from "../../../assets/secondLogo.svg";
 import ArrowSvg from "../../../assets/arrow.svg";
 import { getToken } from "../../../lib/auth";
 
-import React from "react";
-import { Link } from "../../../library/Router/Router";
+import { Link } from "../../../router";
 
-const PingPongShowcaseSection = () => {
+const PongrushGameShowcaseSection = () => {
   const [userXP, setUserXP] = useState(0);
   const [displayedXP, setDisplayedXP] = useState(0);
   const [userRank, setUserRank] = useState(0);
@@ -126,7 +123,7 @@ const PingPongShowcaseSection = () => {
             </div>
             <div className="pt-2">
               <h2 className="[font-family:'Questrial',Helvetica] font-normal text-theme-text-primary text-4xl tracking-[0] leading-[50px] whitespace-nowrap">
-                My Ping Pong <br /> Evolution
+                My Pongrush Game <br /> Evolution
               </h2>
             </div>
           </div>
@@ -158,4 +155,4 @@ const PingPongShowcaseSection = () => {
   );
 };
 
-export default PingPongShowcaseSection;
+export default PongrushGameShowcaseSection;

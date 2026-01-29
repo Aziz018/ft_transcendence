@@ -55,14 +55,8 @@ type WSMessageType =
   | "typing"
   | "friend_request_received"
   | "friend_request_accepted"
-  | "friend_request_declined"
-  | "join_queue"
-  | "leave_queue"
-  | "move_paddle"
-  | "pause_game"
-  | "game_invite"
-  | "reject_game"
-  | "accept_game";
+  | "friend_request_declined";
+  // Removed game types: join_queue, leave_queue, move_paddle, pause_game, game_invite, reject_game, accept_game
 
 interface WSMessage<T = any> {
   type: WSMessageType;
@@ -288,7 +282,8 @@ const sendToClientWithRetry = (client: any, message: any, retries = 3, delay = 1
   send(0);
 };
 
-// Track Pending Game Invites
+// Track Pending Game Invites - DISABLED (game functionality removed)
+/*
 const inviteTimeouts = new Map<string, { timeout: NodeJS.Timeout, messageId: string }>(); // key: `${senderId}:${targetId}`
 
 const startInviteTimeout = (senderId: string, targetId: string, messageId: string, request: FastifyRequest) => {
@@ -354,6 +349,7 @@ const startInviteTimeout = (senderId: string, targetId: string, messageId: strin
 
   inviteTimeouts.set(key, { timeout, messageId });
 };
+*/
 
 
 // Cleanup function for room rate limits
@@ -2630,6 +2626,8 @@ export const websocketHandler = async (
 
     const gameTypes = ["join_queue", "leave_queue", "move_paddle", "pause_game"];
 
+    // Game types handler disabled - game functionality removed
+    /*
     if (gameTypes.includes(type)) {
       console.log(`[WS DEBUG] inside gameTypes block for: ${type}`);
       if (type === "join_queue") {
@@ -2637,12 +2635,8 @@ export const websocketHandler = async (
       } else if (type === "leave_queue") {
         request.server.service.game.handleMatchmaking(connection.authenticatedUser.uid, { action: 'leave', gameType: 'classic' });
       }
-      // togglePause is not supported in new service
-      // else if (type === "pause_game") ... 
-
       else if (type === "move_paddle" && payload && typeof payload.position === 'number') {
         const userId = connection.authenticatedUser.uid;
-        // Try to find gameId
         let gameId = payload.gameId;
         if (!gameId) {
           gameId = request.server.service.game.getGameIdByPlayerId(userId);
@@ -2656,12 +2650,9 @@ export const websocketHandler = async (
           });
         }
       }
-      /* 
-         DEAD CODE RE MOVED - These types are not in gameTypes array so this code never executes!
-         Logic moved to switch statement below.
-      */
       return;
     }
+    */
     
     console.log(`[WS DEBUG] Past gameTypes block. Type=${type}`);
     
@@ -2832,23 +2823,10 @@ export const websocketHandler = async (
             break;
           }
 
-          case "game_invite": {
-            console.log(`[WebSocket] game_invite message received from ${authUser.name}, payload:`, payload);
-            handleGameInvite(connection, authUser, payload, request);
-            break;
-          }
-
-          case "accept_game": {
-            console.log(`[WebSocket] accept_game message received from ${authUser.name}, payload:`, payload);
-            handleAcceptGame(connection, authUser, payload, request);
-            break;
-          }
-
-          case "reject_game": {
-            console.log(`[WebSocket] reject_game message received from ${authUser.name}, payload:`, payload);
-            handleRejectGame(connection, authUser, payload, request);
-            break;
-          }
+          // Game-related cases removed
+          // case "game_invite"
+          // case "accept_game"
+          // case "reject_game"
 
           default:
             console.log(`[WebSocket] Unknown message type: ${type} from ${authUser.name}`);
@@ -3129,7 +3107,8 @@ const broadcastStatusChange = async (userId: string, isOnline: boolean) => {
     console.error(`Error broadcasting status change for user ${userId}:`, error);
   }
 };
-
+// Game invite handlers disabled - game functionality removed
+/*
 const handleGameInvite = async (
   connection: ExtendedWS,
   authUser: User & { uid: string },
@@ -3546,6 +3525,8 @@ const handleRejectGame = async (
     });
   }
 };
+*/
+// End game handlers
 
 // Cleanup on process exit
 process.on("SIGINT", () => {

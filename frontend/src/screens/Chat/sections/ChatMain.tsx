@@ -1,8 +1,4 @@
-import Fuego from "../../../index";
-import { useState } from "../../../library/hooks/useState";
-import { useEffect } from "../../../library/hooks/useEffect";
-import { useCallback } from "../../../library/hooks/useCallback";
-import { useRef } from "../../../library/hooks/useRef";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   chatService,
   type Message,
@@ -10,7 +6,7 @@ import {
 } from "../../../services/chatService";
 import { decodeTokenPayload, getToken } from "../../../lib/auth";
 import { wsService } from "../../../services/wsService";
-import { Link, redirect } from "../../../library/Router/Router";
+import { Link, redirect } from "../../../router";
 
 // Invite status type
 type InviteStatus = 'idle' | 'sending' | 'sent' | 'error';

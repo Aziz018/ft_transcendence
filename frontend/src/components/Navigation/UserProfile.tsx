@@ -1,5 +1,5 @@
-import React from "react";
 
+import React from "react";
 interface UserProfileProps {
   name?: string;
   email?: string;

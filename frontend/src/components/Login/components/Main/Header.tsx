@@ -1,5 +1,5 @@
-import Fuego from "../../../../index";
 
+import React from "react";
 const Header = () => {
   return (
     <>

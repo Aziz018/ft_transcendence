@@ -3,10 +3,7 @@
  * Displays incoming friend requests in a dropdown from the notification bell
  */
 
-import Fuego from "../../index";
-import { useState } from "../../library/hooks/useState";
-import { useEffect } from "../../library/hooks/useEffect";
-import { useCallback } from "../../library/hooks/useCallback";
+import React, { useState, useEffect, useCallback } from "react";
 import { getToken } from "../../lib/auth";
 import { notificationService } from "../../services/notificationService";
 import { wsService } from "../../services/wsService";

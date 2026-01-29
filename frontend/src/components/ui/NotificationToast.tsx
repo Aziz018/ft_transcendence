@@ -1,7 +1,5 @@
-import Fuego from "../../index";
-import { useState } from "../../library/hooks/useState";
-import { useEffect } from "../../library/hooks/useEffect";
 
+import React, { useState, useEffect } from "react";
 interface Notification {
   id: string;
   type:

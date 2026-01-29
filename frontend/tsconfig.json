@@ -2,26 +2,21 @@
   "compilerOptions": {
     "target": "ES2020",
     "useDefineForClassFields": true,
-    "module": "ESNext",
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
     "skipLibCheck": true,
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "strict": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "noFallthroughCasesInSwitch": true,
-    "jsxFactory": "Fuego.createElement",
-    "jsxFragmentFactory": "Fuego.Fragment"
+    "noFallthroughCasesInSwitch": true
   },
   "include": [
-    "src/**/*",
-    "src/lib/jsx.d.ts",
-    "src/library/types/svg.d.ts",
-    "src/library/types/types.ts"
+    "src/**/*"
   ]
 }

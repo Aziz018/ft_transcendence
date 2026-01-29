@@ -1,5 +1,5 @@
-import Fuego from "../../../index";
-import { Link } from "../../../library/Router/Router";
+import React from "react";
+import { Link } from "../../../router";
 
 const SignUpFormContainer = ({
   name,
@@ -24,7 +24,7 @@ const SignUpFormContainer = ({
               Create Account
             </h1>
             <p className="[font-family:'Questrial',Helvetica] font-normal text-[#ffffff80] text-sm">
-              Join us and start your ping pong journey
+              Join us and start your Pongrush Game journey
             </p>
           </div>
 

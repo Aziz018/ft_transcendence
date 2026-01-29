@@ -1,4 +1,4 @@
-import { Link } from "../../library/Router/Router";
+import { Link } from "../../router";
 
 const AuthIntra = () => {
   return (

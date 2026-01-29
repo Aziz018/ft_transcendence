@@ -1,6 +1,6 @@
-import Fuego from "../../index";
-import { useState } from "../../index";
-import { redirect } from "../../library/Router/Router";
+import React from "react";
+import { useState } from "react";
+import { redirect } from "../../router";
 import { saveToken } from "../../lib/auth";
 import SignUpFormContainer from "./components/SignUpFormContainer";
 import API_CONFIG from "../../config/api";

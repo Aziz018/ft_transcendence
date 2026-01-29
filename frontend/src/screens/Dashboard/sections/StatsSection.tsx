@@ -1,5 +1,5 @@
+import React from "react";
 import { StarIcon, ThumbsUpIcon } from "lucide-react";
-import Fuego from "../../../index";
 
 const statsData = [
   {

@@ -1,5 +1,5 @@
-import Fuego from "../../index";
 
+import React from "react";
 const Footer = () => {
   return (
     <div className="flex items-start justify-between animate-[fadeIn_1s_ease-out_1s_both]">
@@ -9,7 +9,7 @@ const Footer = () => {
         </p>
       </div>
       <div>
-        <p className="text-light text-[14px]">Start Ping Pong</p>
+        <p className="text-light text-[14px]">Start Pongrush Game</p>
         <div className="flex gap-[2px] pt-[4px]">
           <span className="w-[14.4px] h-[2px] bg-light rounded-full block animate-[progressBar_0.3s_ease-out_1.2s_both]"></span>
           <span className="w-[14.4px] h-[2px] bg-light rounded-full block animate-[progressBar_0.3s_ease-out_1.4s_both]"></span>

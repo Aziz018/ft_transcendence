@@ -1,4 +1,4 @@
-import Fuego from "../../index";
+import React from "react";
 import Header from "./components/Main/Header";
 import BackToHome from "./components/Main/BackToHome";
 import SignUpLink from "./components/Main/SignUpLink";

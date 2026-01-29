@@ -1,6 +1,6 @@
 import { API_CONFIG } from "../config/api";
 import { getToken, saveToken, clearToken } from "./auth";
-import { redirect } from "../library/Router/Router";
+import { redirect } from '../router';
 
 interface FetchOptions extends RequestInit {
     skipAuth?: boolean;

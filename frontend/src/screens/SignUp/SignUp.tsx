@@ -1,9 +1,8 @@
+import React, { useEffect } from "react";
 import Main from "../../components/SignUp/Main";
 import BackgroundBlurEffect from "../../components/ui/BlurEffect/BackgroundBlurEffect";
-import Fuego from "../../index";
 import { getToken } from "../../lib/auth";
-import { redirect } from "../../library/Router/Router";
-import { useEffect } from "../../library/hooks/useEffect";
+import { redirect } from "../../router";
 
 const SignUp = () => {
   useEffect(() => {

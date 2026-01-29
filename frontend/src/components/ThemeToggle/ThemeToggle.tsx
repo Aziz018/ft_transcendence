@@ -5,9 +5,8 @@
  * Can be placed in the dashboard header or settings.
  */
 
-import Fuego from "../../index";
-import { useState } from "../../index";
-import { useEffect } from "../../library/hooks/useEffect";
+import React, { useEffect } from "react";
+import { useState } from "react";
 import { themeService } from "../../context/ThemeContext";
 import { THEME_LABELS } from "../../config/theme";
 import "./ThemeToggle.css";

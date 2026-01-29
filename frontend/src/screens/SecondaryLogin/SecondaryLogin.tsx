@@ -1,4 +1,4 @@
-import Fuego from "../../index";
+import React from "react";
 import Footer from "../../components/SecondaryLogin/Footer";
 import Header from "../../components/SecondaryLogin/Header";
 import Main from "../../components/SecondaryLogin/Main";
