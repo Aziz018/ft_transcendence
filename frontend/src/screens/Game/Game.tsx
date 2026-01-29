@@ -72,7 +72,7 @@ const Game = () => {
         <div className="flex flex-col gap-6 w-full max-w-md">
           <button
             onClick={handlePlayLocal}
-            className="group relative px-8 py-6 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 rounded-xl text-white font-bold text-2xl transition-all duration-300 transform hover:scale-105 hover:shadow-2xl shadow-blue-500/50"
+            className="group relative px-8 py-6 bg-gradient-to-r from-[#dda15e] to-[#cc9455] hover:from-[#cc9455] hover:to-[#b8834a] rounded-xl text-[#141517] font-bold text-2xl transition-all duration-300 transform hover:scale-105 hover:shadow-2xl shadow-[#dda15e]/50"
           >
             <div className="absolute inset-0 bg-white/10 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             <span className="relative flex items-center justify-center gap-3">
@@ -83,7 +83,7 @@ const Game = () => {
 
           <button
             onClick={handlePlayRemote}
-            className="group relative px-8 py-6 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 rounded-xl text-white font-bold text-2xl transition-all duration-300 transform hover:scale-105 hover:shadow-2xl shadow-purple-500/50"
+            className="group relative px-8 py-6 bg-gradient-to-r from-[#dda15e] to-[#cc9455] hover:from-[#cc9455] hover:to-[#b8834a] rounded-xl text-[#141517] font-bold text-2xl transition-all duration-300 transform hover:scale-105 hover:shadow-2xl shadow-[#dda15e]/50"
           >
             <div className="absolute inset-0 bg-white/10 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             <span className="relative flex items-center justify-center gap-3">
@@ -94,7 +94,7 @@ const Game = () => {
 
           <button
             onClick={handlePlayBot}
-            className="group relative px-8 py-6 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-500 hover:to-green-600 rounded-xl text-white font-bold text-2xl transition-all duration-300 transform hover:scale-105 hover:shadow-2xl shadow-green-500/50"
+            className="group relative px-8 py-6 bg-gradient-to-r from-[#dda15e] to-[#cc9455] hover:from-[#cc9455] hover:to-[#b8834a] rounded-xl text-[#141517] font-bold text-2xl transition-all duration-300 transform hover:scale-105 hover:shadow-2xl shadow-[#dda15e]/50"
           >
             <div className="absolute inset-0 bg-white/10 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             <span className="relative flex items-center justify-center gap-3">
