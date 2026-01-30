@@ -11,8 +11,7 @@ import { Link, useRedirect } from "../../../router";
 // Invite status type
 type InviteStatus = 'idle' | 'sending' | 'sent' | 'error';
 
-const defaultAvatar = `${(import.meta as any).env?.VITE_BACKEND_ORIGIN || "/api"
-  }/images/default-avatar.png`;
+const defaultAvatar = "https://ui-avatars.com/api/?name=User&background=FF6B35&color=fff&size=128";
 
 const getAvatarUrl = (avatarPath: string | null | undefined): string => {
   const backend =

@@ -8,9 +8,7 @@ import { chatService, type Friend } from "../../../services/chatService";
 import { getToken } from "../../../lib/auth";
 import { wsService } from "../../../services/wsService";
 
-const defaultAvatar = `${
-  (import.meta as any).env?.VITE_BACKEND_ORIGIN || "/api"
-}/images/default-avatar.png`;
+const defaultAvatar = "https://ui-avatars.com/api/?name=User&background=FF6B35&color=fff&size=128";
 
 /**
  * Get proper avatar URL - handles both backend URLs and fixes incorrect paths

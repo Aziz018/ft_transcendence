@@ -14,6 +14,7 @@ import GameIcon from "../../assets/game-icon.svg";
 import SettingsIcon from "../../assets/Settings.svg";
 import LogOutIcon from "../../assets/Logout.svg";
 import Logo from "../../assets/secondLogo.svg";
+import Avatar from "../../assets/Ellipse 46.svg";
 
 const navigationItems = [
   { label: "Dashboard", active: false, icon: DashboardIcon, path: "/dashboard" },
@@ -32,6 +33,8 @@ const Chat = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(true);
   const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
   const [showMobileChat, setShowMobileChat] = useState(false);
+  const [userAvatar, setUserAvatar] = useState("");
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
 
   useEffect(() => {
     const token = getToken();
@@ -46,8 +49,34 @@ const Chat = () => {
       }
       wsService.connect();
       chatService.connectWebSocket(token);
+      fetchUserProfile();
     }
   }, []);
+
+  const fetchUserProfile = async () => {
+    const backend = (import.meta as any).env?.VITE_BACKEND_ORIGIN || "/api";
+    const token = getToken();
+    
+    try {
+      const res = await fetch(`${backend}/v1/user/profile`, {
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      });
+
+      if (!res.ok) {
+        console.error("[Profile] Failed to fetch:", res.status);
+        return;
+      }
+
+      const data = await res.json();
+      setUserAvatar(data?.avatar || "");
+    } catch (error) {
+      console.error("[Profile] Error fetching profile:", error);
+    } finally {
+      setIsLoadingProfile(false);
+    }
+  };
 
   const handleSelectFriend = (friend: Friend) => {
     setSelectedFriend(friend);
@@ -87,6 +116,36 @@ const Chat = () => {
     return null;
   }
 
+  const getAvatarUrl = (path: string | null | undefined): string => {
+    const defaultAvatar = "https://ui-avatars.com/api/?name=User&background=FF6B35&color=fff&size=128";
+    if (!path || !path.trim()) return defaultAvatar;
+    if (path.startsWith("/public/"))
+      return `/api${path.replace("/public", "")}`;
+    if (path.startsWith("/"))
+      return `/api${path}`;
+    if (path.startsWith("http"))
+      return path;
+    return defaultAvatar;
+  };
+
+  const TokenAvatar = () => {
+    if (isLoadingProfile) {
+      return (
+        <div className="w-[120px] h-[120px] md:w-[150px] md:h-[150px] rounded-full bg-white/10 animate-pulse" />
+      );
+    }
+    return (
+      <img
+        className="w-[120px] h-[120px] md:w-[150px] md:h-[150px] object-cover rounded-full"
+        alt="User Avatar"
+        src={getAvatarUrl(userAvatar)}
+        onError={(e: any) => {
+          e.currentTarget.src = Avatar;
+        }}
+      />
+    );
+  };
+
   return (
     <div className="bg-theme-bg-primary w-full h-screen flex overflow-hidden relative">
       {/* Fixed Background Elements */}
@@ -104,7 +163,7 @@ const Chat = () => {
       {/* Mobile Navigation - Hamburger Menu */}
       <MobileNavigation
         navigationItems={navigationItems}
-        userAvatar={null}
+        userAvatar={<TokenAvatar />}
         onLogout={handleLogout}
       />
 
