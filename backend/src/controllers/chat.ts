@@ -60,7 +60,8 @@ type WSMessageType =
   | "typing"
   | "friend_request_received"
   | "friend_request_accepted"
-  | "friend_request_declined";
+  | "friend_request_declined"
+  | "game:exit";
 // Removed game types: join_queue, leave_queue, move_paddle, pause_game, game_invite, reject_game, accept_game
 
 interface WSMessage<T = any> {
@@ -2629,7 +2630,7 @@ export const websocketHandler = async (
       "friend_request_declined",
     ];
 
-    const gameTypes = ["join_queue", "leave_queue", "move_paddle", "pause_game"];
+    const gameTypes = ["join_queue", "leave_queue", "move_paddle", "pause_game", "game:exit"];
 
     if (gameTypes.includes(type)) {
       console.log(`[WS DEBUG] inside gameTypes block for: ${type}`);
@@ -2649,6 +2650,9 @@ export const websocketHandler = async (
       } else if (type === "pause_game") {
         if (!connection.authenticatedUser) return;
         gameManager.pauseGame(connection.authenticatedUser.uid);
+      } else if (type === "game:exit") {
+        if (!connection.authenticatedUser) return;
+        gameManager.handleDisconnect(connection.authenticatedUser.uid);
       }
       return;
     }
@@ -2859,7 +2863,7 @@ export const websocketHandler = async (
     request.log.info("Client disconnected");
 
     if (userId) {
-      gameManager.leaveQueue(userId);
+      gameManager.handleDisconnect(userId);
     }
 
     // Step 1: Clean up rateLimits for this connection

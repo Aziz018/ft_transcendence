@@ -140,6 +140,7 @@ const PongGame = ({ onBackToMenu, gameMode = "remote" }: PongGameProps) => {
           detail: { xp: data.xpGained, xpGained: data.xpGained }
         }));
       }
+      setGameState(prev => prev ? ({ ...prev, status: 'finished' }) : null);
     });
 
     const unsubscribePaused = gameService.onGamePaused((paused) => {

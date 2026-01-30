@@ -184,12 +184,34 @@ export class GameManager {
         state.ball.vy = (Math.random() - 0.5) * 5;
     }
 
-    private async endGame(state: GameState) {
+    handleDisconnect(userId: string) {
+        // 1. Remove from Queue
+        this.leaveQueue(userId);
+
+        // 2. Check active games
+        const game = this.findGameByPlayer(userId);
+        if (game) {
+            const winner = game.p1.id === userId ? game.p2 : game.p1;
+            this.endGame(game, winner.id);
+        }
+    }
+
+    private async endGame(state: GameState, winnerIdOverride?: string) {
         if (state.interval) clearInterval(state.interval);
         this.games.delete(state.id);
 
-        const winner = state.p1.score >= 5 ? state.p1 : state.p2;
-        const loser = winner.id === state.p1.id ? state.p2 : state.p1;
+        let winner: Player;
+        let loser: Player;
+
+        if (winnerIdOverride) {
+            winner = state.p1.id === winnerIdOverride ? state.p1 : state.p2;
+            loser = winner.id === state.p1.id ? state.p2 : state.p1;
+            // Force valid winning score for display/db consistency if desired
+            // winner.score = 5; 
+        } else {
+            winner = state.p1.score >= 5 ? state.p1 : state.p2;
+            loser = winner.id === state.p1.id ? state.p2 : state.p1;
+        }
 
         const endPayload = {
             gameId: state.id,
@@ -197,7 +219,9 @@ export class GameManager {
             winnerScore: winner.score,
             loserId: loser.id,
             loserScore: loser.score,
-            xpGained: 50
+            xpGained: 50,
+            scoreDifference: Math.abs(winner.score - loser.score),
+            reason: winnerIdOverride ? 'opponent_quit' : 'score_limit'
         };
 
         const msg = JSON.stringify({ type: 'game:end', payload: endPayload });
