@@ -302,6 +302,12 @@ export default class Server {
     await this.registerPlugs();
 
     // CRITICAL: Register routes BEFORE setting notFoundHandler
+    // Register health route
+    this.fastify.get("/health", async (_request, reply) => {
+      reply.header("Content-Type", "application/json");
+      reply.code(200).send({ status: "OK" });
+    });
+
     this.registerRoutes();
 
     // Set error handler BEFORE notFoundHandler

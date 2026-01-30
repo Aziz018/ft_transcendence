@@ -234,22 +234,42 @@ export const getMatchHistory = async (request: FastifyRequest, reply: FastifyRep
             }
         });
 
-        const history = matches.map(m => ({
-            id: m.id,
-            gameType: m.gameType,
-            player1Id: m.player1Id,
-            player2Id: m.player2Id,
-            player1Score: m.player1Score,
-            player2Score: m.player2Score,
-            player1Exp: 50, // Approximation or fetch real
-            player2Exp: 10,
-            player1Name: m.player1.name,
-            player2Name: m.player2?.name || (m.gameType === 'bot' ? 'Bot' : 'Guest'),
-            player1Avatar: m.player1.avatar,
-            player2Avatar: m.player2?.avatar || "",
-            winnerId: m.winnerId,
-            playedAt: m.playedAt
-        }));
+        const history = matches.map(m => {
+            let p1Exp = 0;
+            let p2Exp = 0;
+
+            if (m.gameType === 'remote') {
+                // Remote logic: Winner 50, Loser 10
+                if (m.winnerId === m.player1Id) {
+                    p1Exp = 50;
+                    p2Exp = 10;
+                } else {
+                    p1Exp = 10;
+                    p2Exp = 50;
+                }
+            } else {
+                // Local/Bot logic: No XP gain
+                p1Exp = 0;
+                p2Exp = 0;
+            }
+
+            return {
+                id: m.id,
+                gameType: m.gameType,
+                player1Id: m.player1Id,
+                player2Id: m.player2Id,
+                player1Score: m.player1Score,
+                player2Score: m.player2Score,
+                player1Exp: p1Exp,
+                player2Exp: p2Exp,
+                player1Name: m.player1.name,
+                player2Name: m.player2?.name || (m.gameType === 'bot' ? 'Bot' : 'Guest'),
+                player1Avatar: m.player1.avatar,
+                player2Avatar: m.player2?.avatar || "",
+                winnerId: m.winnerId,
+                playedAt: m.playedAt
+            };
+        });
 
         reply.send({ games: history });
     } catch (error) {
@@ -265,8 +285,12 @@ export const saveMatch = async (request: FastifyRequest, reply: FastifyReply) =>
 
         const { gameType, player1Score, player2Score, winner } = request.body as any;
 
+        console.log(`[GameController] Saving ${gameType} match. P1: ${player1Score}, P2: ${player2Score}, Winner: ${winner}`);
+
         const isWin = winner === 'p1';
-        const xpGained = isWin ? 50 : 10;
+
+        // No XP gain for Local/Bot games
+        const xpGained = 0;
 
         await prisma.match.create({
             data: {
@@ -279,11 +303,13 @@ export const saveMatch = async (request: FastifyRequest, reply: FastifyReply) =>
             }
         });
 
-        // Update XP
+        // Update XP for the logged-in user (Player 1)
         await prisma.user.update({
             where: { id: user.uid },
             data: { xp: { increment: xpGained } }
         });
+
+        console.log(`[GameController] Awarded ${xpGained} XP to user ${user.uid}`);
 
         reply.send({ success: true, xp: xpGained });
     } catch (error) {
@@ -291,5 +317,6 @@ export const saveMatch = async (request: FastifyRequest, reply: FastifyReply) =>
         reply.status(500).send({ error: "Failed to save match" });
     }
 };
+
 
 export const gameManager = new GameManager();

@@ -510,7 +510,7 @@ const PongGame = ({ onBackToMenu, gameMode = "remote" }: PongGameProps) => {
     const winner = state.player1.score >= state.maxScore ? state.player1 : state.player2;
     const loser = winner.id === state.player1.id ? state.player2 : state.player1;
     const scoreDiff = Math.abs(winner.score - loser.score);
-    const xpGained = scoreDiff * 25;
+    const xpGained = (gameMode === 'local' || gameMode === 'bot') ? 0 : scoreDiff * 25;
 
     const result: GameEndPayload = {
       gameId: state.id,
