@@ -2560,12 +2560,12 @@ export const websocketHandler = async (
 
   // ⚡ Common close codes
   // Here are some you might use:
-  // - 1000 → Normal closure (everything is fine, connection ended cleanly).
-  // - 1001 → Going away (server shutdown, client leaving).
-  // - 1002 → Protocol error (malformed frame).
-  // - 1003 → Unsupported data (e.g., binary when only text expected).
-  // - 1008 → Policy violation (authentication failure, unauthorized action).
-  // - 1011 → Internal error (server couldn’t handle something).
+  // - 1000 -> Normal closure (everything is fine, connection ended cleanly).
+  // - 1001 -> Going away (server shutdown, client leaving).
+  // - 1002 -> Protocol error (malformed frame).
+  // - 1003 -> Unsupported data (e.g., binary when only text expected).
+  // - 1008 -> Policy violation (authentication failure, unauthorized action).
+  // - 1011 -> Internal error (server couldn’t handle something).
   const token = extractTokenFromHeaders(request.headers, request.query);
   if (!token) {
     connection.close(1008, "No token provided");

@@ -30,7 +30,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
       {/* Mobile/Tablet Hamburger Icon - Only visible on mobile/tablet */}
       <button
         onClick={toggleMenu}
-        className="lg:hidden fixed top-6 left-4 z-50 w-11 h-11 flex flex-col items-center justify-center gap-1.5 bg-transparent border border-white/10 rounded-lg hover:bg-white/5 transition-colors"
+        className="lg:hidden fixed top-6 left-4 z-[60] w-11 h-11 flex flex-col items-center justify-center gap-1.5 bg-dark-950/80 backdrop-blur-md border border-white/10 rounded-lg hover:bg-white/5 transition-all duration-300 shadow-lg"
         aria-label="Toggle navigation menu"
       >
         <span
@@ -60,7 +60,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
 
       {/* Slide-out Navigation Menu */}
       <aside
-        className={`lg:hidden fixed top-0 left-0 h-full w-[280px] sm:w-[320px] bg-theme-bg-primary border-r border-white/5 z-50 transform transition-transform duration-300 ease-in-out overflow-y-auto ${
+        className={`lg:hidden fixed top-0 left-0 h-full w-[280px] sm:w-[320px] bg-dark-950/95 backdrop-blur-xl border-r border-white/5 z-50 transform transition-transform duration-300 ease-in-out overflow-y-auto shadow-2xl ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >

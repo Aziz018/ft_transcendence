@@ -3,6 +3,7 @@ import { Link, redirect } from "../../router";
 import { getToken, clearToken, decodeTokenPayload } from "../../lib/auth";
 import { wsService } from "../../services/wsService";
 import TopRightBlurEffect from "../../components/ui/BlurEffect/TopRightBlurEffect";
+import MobileNavigation from "../../components/Navigation/MobileNavigation";
 import { fetchWithAuth } from "../../lib/fetch";
 import { API_CONFIG } from "../../config/api";
 import { notificationService } from "../../services/notificationService";
@@ -12,23 +13,21 @@ import DashboardIcon from "../../assets/dd.svg";
 import LeaderboardIcon from "../../assets/Leaderboard.svg";
 import ChatIcon from "../../assets/chat-icon.svg";
 import GameIcon from "../../assets/game-icon.svg";
-import TicTacToeIcon from "../../assets/tictactoe-icon.svg";
 import SettingsIcon from "../../assets/Settings.svg";
 import LogOutIcon from "../../assets/Logout.svg";
 import Logo from "../../assets/secondLogo.svg";
 
 const navigationItems = [
-  { label: "Dashboard", active: false, icon: DashboardIcon, path: "dashboard" },
-  { label: "Chat", active: false, icon: ChatIcon, path: "chat" },
-  { label: "PingPong", active: false, icon: GameIcon, path: "game" },
-  { label: "TicTacToe", active: false, icon: TicTacToeIcon, path: "tictactoe" },
+  { label: "Dashboard", active: false, icon: DashboardIcon, path: "/dashboard" },
+  { label: "Chat", active: false, icon: ChatIcon, path: "/chat" },
+  { label: "PingPong", active: false, icon: GameIcon, path: "/game" },
   {
     label: "Leaderboard",
     active: false,
     icon: LeaderboardIcon,
-    path: "leaderboard",
+    path: "/leaderboard",
   },
-  { label: "Settings", active: true, icon: SettingsIcon, path: "settings" },
+  { label: "Settings", active: true, icon: SettingsIcon, path: "/settings" },
 ];
 
 const Settings = () => {
@@ -465,26 +464,52 @@ const Settings = () => {
   }
 
   return (
-    <div className="bg-dark-950 w-full min-h-screen flex flex-col lg:flex-row overflow-x-hidden">
-      <TopRightBlurEffect />
-      <div className="absolute top-[991px] left-[-285px] w-[900px] h-[900px] bg-[#f9f9f980] rounded-[450px] blur-[153px] pointer-events-none" />
-      <img
-        className="absolute top-[-338px] left-[1235px] max-w-full w-[900px] pointer-events-none"
-        alt="Ellipse"
-        src="/ellipse-2.svg"
-      />
-      <div className="absolute top-[721px] left-[-512px] w-[700px] h-[700px] bg-[#dda15e80] rounded-[350px] blur-[153px] pointer-events-none" />
+    <div className="relative w-full min-h-screen flex flex-col lg:flex-row overflow-x-hidden">
+      {/* Fixed Background Layer with Parallax Effect */}
+      <div 
+        className="fixed inset-0 w-full h-full bg-dark-950 z-0"
+        style={{
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundAttachment: 'fixed',
+          backgroundRepeat: 'no-repeat'
+        }}
+      >
+        {/* Decorative gradient overlays */}
+        <div className="absolute top-[991px] left-[-285px] w-[900px] h-[900px] bg-[#f9f9f980] rounded-[450px] blur-[153px] pointer-events-none opacity-30" />
+        <div className="absolute top-[-338px] left-[1235px] w-[900px] h-[900px] bg-gradient-radial from-[#dda15e40] to-transparent rounded-full blur-[153px] pointer-events-none" />
+        <div className="absolute top-[721px] left-[-512px] w-[700px] h-[700px] bg-[#dda15e80] rounded-[350px] blur-[153px] pointer-events-none opacity-40" />
+      </div>
 
-      <aside className="w-full md:w-[250px] lg:w-[300px] border-r-[1px] border-light border-opacity-[0.05] min-h-screen flex flex-col relative z-10 flex-shrink-0">
+      <TopRightBlurEffect />
+      
+      {/* Mobile Navigation */}
+      <MobileNavigation
+        navigationItems={navigationItems}
+        userAvatar={
+          <img
+            src={getAvatarUrl(userAvatar)}
+            alt="Avatar"
+            className="w-16 h-16 rounded-full object-cover border-2 border-white/20"
+            onError={(e: any) => {
+              e.currentTarget.src = "https://ui-avatars.com/api/?name=User&background=FF6B35&color=fff&size=128";
+            }}
+          />
+        }
+        onLogout={handleLogout}
+      />
+
+      {/* Desktop Sidebar - Hidden on mobile/tablet */}
+      <aside className="hidden lg:flex w-[300px] border-r-[1px] border-light border-opacity-[0.05] min-h-screen flex-col relative z-20 flex-shrink-0 bg-dark-950/80 backdrop-blur-xl">
         <Link to="/">
-          <div className="pt-6 md:pt-[47px] pl-4 md:pl-8 lg:pl-[43px] pb-6 md:pb-[50px] flex items-center gap-3">
-            <img className="w-[150px] md:w-[180px] lg:w-[200px]" alt="Logo" src={Logo} />
+          <div className="pt-[47px] pl-[43px] pb-[50px] flex items-center gap-3">
+            <img className="w-[200px]" alt="Logo" src={Logo} />
           </div>
         </Link>
 
-        <nav className="flex flex-col gap-3 md:gap-[18px] px-4 md:px-8 lg:px-[60px] relative flex-1">
+        <nav className="flex flex-col gap-[18px] px-[60px] relative flex-1">
           {navigationItems.map((item, index) => (
-            <Link key={index} to={"/" + item.path}>
+            <Link key={index} to={item.path}>
               <div className="cursor-pointer flex items-center gap-2 md:gap-3 px-2 md:px-3 py-2 w-full transition-all duration-150 hover:bg-white/5 rounded-lg">
                 <div
                   className={(item.active
@@ -517,46 +542,46 @@ const Settings = () => {
       </aside>
 
       <div className="flex-1 flex h-full relative z-10 overflow-y-auto">
-        <div className="w-full max-w-layout mx-auto px-layout py-12">
-          <div className="mb-12">
-            <h1 className="font-questrial font-normal text-light text-4xl mb-2">
+        <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
+          <div className="mb-8 sm:mb-12">
+            <h1 className="font-questrial font-normal text-light text-2xl sm:text-3xl lg:text-4xl mb-1 sm:mb-2">
               Account Settings
             </h1>
-            <p className="font-questrial text-light/60 text-base">
+            <p className="font-questrial text-light/60 text-sm sm:text-base">
               Manage your profile and security preferences
             </p>
           </div>
 
-          <div className="space-y-6">
-            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="font-questrial text-light text-2xl">
+          <div className="space-y-4 sm:space-y-6">
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 sm:mb-6">
+                <h2 className="font-questrial text-light text-xl sm:text-2xl">
                   Profile Information
                 </h2>
                 {!isEditing ? (
                   <button
                     onClick={handleStartEdit}
-                    className="px-4 py-2 bg-accent-green text-dark-950 rounded-lg font-questrial font-semibold hover:bg-accent-green/90 transition-colors">
+                    className="w-full sm:w-auto min-h-[44px] px-4 py-2 bg-accent-green text-dark-950 rounded-lg font-questrial font-semibold hover:bg-accent-green/90 transition-colors">
                     Edit Profile
                   </button>
                 ) : (
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                     <button
                       onClick={handleCancelEdit}
-                      className="px-4 py-2 bg-white/10 text-light rounded-lg font-questrial hover:bg-white/20 transition-colors">
+                      className="min-h-[44px] px-4 py-2 bg-white/10 text-light rounded-lg font-questrial hover:bg-white/20 transition-colors">
                       Cancel
                     </button>
                     <button
                       onClick={handleSaveProfile}
-                      className="px-4 py-2 bg-accent-green text-dark-950 rounded-lg font-questrial font-semibold hover:bg-accent-green/90 transition-colors">
+                      className="min-h-[44px] px-4 py-2 bg-accent-green text-dark-950 rounded-lg font-questrial font-semibold hover:bg-accent-green/90 transition-colors">
                       Save Changes
                     </button>
                   </div>
                 )}
               </div>
 
-              <div className="flex items-start gap-6">
-                <div className="flex-shrink-0 relative group">
+              <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
+                <div className="flex-shrink-0 relative group mx-auto sm:mx-0">
                   {isLoadingProfile ? (
                     <div className="w-24 h-24 rounded-full bg-white/10 animate-pulse border-2 border-transparent" />
                   ) : (
@@ -675,24 +700,24 @@ const Settings = () => {
               </div>
             </div>
 
-            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
-              <h2 className="font-questrial text-light text-2xl mb-4">
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-4 sm:p-6">
+              <h2 className="font-questrial text-light text-xl sm:text-2xl mb-4">
                 Security
               </h2>
 
-              <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
-                <div>
-                  <h3 className="font-questrial text-light text-lg mb-1">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 bg-white/5 rounded-lg">
+                <div className="flex-1">
+                  <h3 className="font-questrial text-light text-base sm:text-lg mb-1">
                     Two-Factor Authentication
                   </h3>
-                  <p className="font-questrial text-light/60 text-sm">
+                  <p className="font-questrial text-light/60 text-xs sm:text-sm">
                     Add an extra layer of security to your account
                   </p>
                 </div>
 
                 <button
                   onClick={handleActivate2FA}
-                  className={"px-6 py-3 rounded-lg font-questrial font-semibold transition-colors " + (twoFactorEnabled
+                  className={"w-full sm:w-auto min-h-[44px] px-4 sm:px-6 py-3 rounded-lg font-questrial font-semibold transition-colors " + (twoFactorEnabled
                     ? "bg-red-500/20 text-red-500 border border-red-500/50 hover:bg-red-500/30"
                     : "bg-accent-orange text-dark-950 hover:bg-accent-orange/90"
                     ) + ""}>
@@ -701,8 +726,8 @@ const Settings = () => {
               </div>
             </div>
 
-            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
-              <h2 className="font-questrial text-light text-2xl mb-4">
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-4 sm:p-6">
+              <h2 className="font-questrial text-light text-xl sm:text-2xl mb-4">
                 Blocked Users
               </h2>
 
@@ -719,18 +744,18 @@ const Settings = () => {
                   {blockedUsers.map((user) => (
                     <div
                       key={user.id}
-                      className="flex items-center justify-between p-4 bg-white/5 rounded-lg hover:bg-white/10 transition-colors">
+                      className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 p-4 bg-white/5 rounded-lg hover:bg-white/10 transition-colors">
                       <div className="flex items-center gap-3">
                         <img
                           src={getAvatarUrl(user.avatar)}
                           alt={user.username}
-                          className="w-12 h-12 rounded-full object-cover"
+                          className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover flex-shrink-0"
                           onError={(e) => {
                             e.currentTarget.src = "https://ui-avatars.com/api/?name=User&background=FF6B35&color=fff&size=128";
                           }}
                         />
                         <div>
-                          <h3 className="font-questrial text-light text-lg">
+                          <h3 className="font-questrial text-light text-base sm:text-lg">
                             {user.username}
                           </h3>
                         </div>
@@ -738,7 +763,7 @@ const Settings = () => {
 
                       <button
                         onClick={() => handleUnblock(user.id, user.username)}
-                        className="px-4 py-2 rounded-lg font-questrial font-semibold bg-accent-orange text-dark-950 hover:bg-accent-orange/90 transition-colors">
+                        className="w-full sm:w-auto min-h-[44px] px-4 py-2 rounded-lg font-questrial font-semibold bg-accent-orange text-dark-950 hover:bg-accent-orange/90 transition-colors">
                         Unblock
                       </button>
                     </div>
@@ -752,27 +777,27 @@ const Settings = () => {
       </div>
 
       {showTwoFactorModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-dark-900 border border-white/10 rounded-2xl p-8 max-w-md w-full mx-4">
-            <h2 className="font-questrial text-light text-2xl mb-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+          <div className="bg-dark-900 border border-white/10 rounded-2xl p-6 sm:p-8 max-w-md w-full">
+            <h2 className="font-questrial text-light text-xl sm:text-2xl mb-3 sm:mb-4">
               Activate Two-Factor Authentication
             </h2>
-            <p className="font-questrial text-light/60 mb-6">
+            <p className="font-questrial text-light/60 text-sm sm:text-base mb-4 sm:mb-6">
               Scan this QR code with your authenticator app
             </p>
 
-            <div className="bg-white p-4 rounded-lg mb-6 flex items-center justify-center">
+            <div className="bg-white p-4 rounded-lg mb-4 sm:mb-6 flex items-center justify-center">
               {qrCode ? (
-                <img src={qrCode} alt="2FA QR Code" className="w-48 h-48" />
+                <img src={qrCode} alt="2FA QR Code" className="w-40 h-40 sm:w-48 sm:h-48" />
               ) : (
-                <div className="w-48 h-48 bg-gray-200 rounded flex items-center justify-center">
+                <div className="w-40 h-40 sm:w-48 sm:h-48 bg-gray-200 rounded flex items-center justify-center">
                   <span className="text-gray-500 text-sm">Loading...</span>
                 </div>
               )}
             </div>
 
-            <div className="mb-6">
-              <p className="font-questrial text-light/60 text-sm mb-2 text-center">
+            <div className="mb-4 sm:mb-6">
+              <p className="font-questrial text-light/60 text-xs sm:text-sm mb-2 text-center">
                 Enter the 6-digit code from your app
               </p>
               <input
@@ -780,20 +805,20 @@ const Settings = () => {
                 value={otpCode}
                 onChange={(e: any) => setOtpCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
                 placeholder="000000"
-                className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-light font-questrial text-center tracking-[0.5em] text-xl focus:outline-none focus:border-accent-green"
+                className="w-full min-h-[48px] bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-light font-questrial text-center tracking-[0.5em] text-lg sm:text-xl focus:outline-none focus:border-accent-green"
                 autoFocus
               />
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={() => setShowTwoFactorModal(false)}
-                className="flex-1 px-4 py-3 bg-white/10 text-light rounded-lg font-questrial hover:bg-white/20 transition-colors">
+                className="flex-1 min-h-[44px] px-4 py-3 bg-white/10 text-light rounded-lg font-questrial hover:bg-white/20 transition-colors">
                 Cancel
               </button>
               <button
                 onClick={handleVerify2FA}
-                className="flex-1 px-4 py-3 bg-accent-orange text-dark-950 rounded-lg font-questrial font-semibold hover:bg-accent-orange/90 transition-colors">
+                className="flex-1 min-h-[44px] px-4 py-3 bg-accent-orange text-dark-950 rounded-lg font-questrial font-semibold hover:bg-accent-orange/90 transition-colors">
                 Verify & Done
               </button>
             </div>

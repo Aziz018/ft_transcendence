@@ -11,23 +11,21 @@ import DashboardIcon from "../../assets/dd.svg";
 import LeaderboardIcon from "../../assets/Leaderboard.svg";
 import ChatIcon from "../../assets/chat-icon.svg";
 import GameIcon from "../../assets/game-icon.svg";
-import TicTacToeIcon from "../../assets/tictactoe-icon.svg";
 import SettingsIcon from "../../assets/Settings.svg";
 import LogOutIcon from "../../assets/Logout.svg";
 import Logo from "../../assets/secondLogo.svg";
 
 const navigationItems = [
-  { label: "Dashboard", active: false, icon: DashboardIcon, path: "dashboard" },
-  { label: "Chat", active: true, icon: ChatIcon, path: "chat" },
-  { label: "PingPong", active: false, icon: GameIcon, path: "game" },
-  { label: "TicTacToe", active: false, icon: TicTacToeIcon, path: "tictactoe" },
+  { label: "Dashboard", active: false, icon: DashboardIcon, path: "/dashboard" },
+  { label: "Chat", active: true, icon: ChatIcon, path: "/chat" },
+  { label: "PingPong", active: false, icon: GameIcon, path: "/game" },
   {
     label: "Leaderboard",
     active: false,
     icon: LeaderboardIcon,
-    path: "leaderboard",
+    path: "/leaderboard",
   },
-  { label: "Settings", active: false, icon: SettingsIcon, path: "settings" },
+  { label: "Settings", active: false, icon: SettingsIcon, path: "/settings" },
 ];
 
 const Chat = () => {
@@ -120,7 +118,7 @@ const Chat = () => {
 
         <nav className="flex flex-col gap-[18px] px-[60px] relative flex-1">
           {navigationItems.map((item, index) => (
-            <Link key={index} to={"/" + item.path}>
+            <Link key={index} to={item.path}>
               <div className="cursor-pointer flex items-center gap-3 px-3 py-2 w-full transition-all duration-150 hover:bg-white/5 rounded-lg">
                 <div
                   className={

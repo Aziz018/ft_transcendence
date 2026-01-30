@@ -6,7 +6,7 @@ import {
 } from "../../../services/chatService";
 import { decodeTokenPayload, getToken } from "../../../lib/auth";
 import { wsService } from "../../../services/wsService";
-import { Link, redirect } from "../../../router";
+import { Link, useRedirect } from "../../../router";
 
 // Invite status type
 type InviteStatus = 'idle' | 'sending' | 'sent' | 'error';
@@ -43,6 +43,7 @@ interface ChatMainProps {
 }
 
 const ChatMain = ({ selectedFriend, onBack }: ChatMainProps) => {
+  const navigate = useRedirect();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -379,7 +380,7 @@ const ChatMain = ({ selectedFriend, onBack }: ChatMainProps) => {
       if (payload.gameId) {
         localStorage.setItem("pendingGameId", payload.gameId);
       }
-      redirect('/game');
+      navigate('/game');
     });
     
     // Listen for game_matched event (triggered when invite is accepted)
@@ -401,7 +402,7 @@ const ChatMain = ({ selectedFriend, onBack }: ChatMainProps) => {
         // Navigate to game with room ID
         const gameUrl = `/game/${matchData.gameId}`;
         console.log("[ChatMain] Redirecting to:", gameUrl);
-        redirect(gameUrl);
+        navigate(gameUrl);
       }
     };
     
