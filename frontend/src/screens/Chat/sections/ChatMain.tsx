@@ -555,32 +555,6 @@ const ChatMain = ({ selectedFriend, onBack }: ChatMainProps) => {
           </p>
         </div>
         <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-          <button
-            onClick={handlePlayInvite}
-            disabled={inviteStatus === 'sending' || inviteStatus === 'sent'}
-            className={`hidden sm:flex px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg font-[Questrial] font-semibold text-xs sm:text-sm transition-all items-center gap-2 min-h-[44px] touch-manipulation ${
-              inviteStatus === 'sending' || inviteStatus === 'sent'
-                ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                : 'bg-accent-green hover:bg-accent-green/90 text-dark-950 shadow-[0_0_20px_rgba(183,242,114,0.3)] hover:shadow-[0_0_30px_rgba(183,242,114,0.5)]'
-            }`}>
-            {inviteStatus === 'sending' ? (
-              <>
-                <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
-                Sending...
-              </>
-            ) : inviteStatus === 'sent' ? (
-              <>
-                <span className="text-lg">⏳</span>
-                Waiting...
-              </>
-            ) : (
-              <>
-                <span className="text-lg">🎮</span>
-                Let's Play
-              </>
-            )}
-          </button>
-
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setShowMenu(!showMenu)}
