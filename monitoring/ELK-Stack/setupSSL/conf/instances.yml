@@ -1,0 +1,15 @@
+instances:
+  - name: "elasticsearch"
+    dns:
+      - "elasticsearch"
+      - "localhost"
+    ip:
+      - "127.0.0.1"
+    filename: "elasticsearch"  
+  - name: "kibana"
+    dns:
+      - "kibana"
+      - "localhost"
+    ip:
+      - "127.0.0.1"
+    filename: "kibana"

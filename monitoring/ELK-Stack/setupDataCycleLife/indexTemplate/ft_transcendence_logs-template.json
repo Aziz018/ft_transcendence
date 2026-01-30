@@ -1,0 +1,13 @@
+{
+  "index_patterns": ["logs-nginx.access-production"],
+  "data_stream": { },
+  "priority": 500,
+  "template": {
+    "lifecycle": {
+      "data_retention": "30d"
+    }
+  },
+  "_meta": {
+    "description": "Template with data stream lifecycle"
+  }
+}

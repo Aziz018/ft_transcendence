@@ -1,0 +1,92 @@
+networks:
+  prom_net:
+ 
+volumes:
+  prometheus_data:
+    driver: local
+
+secrets:
+  admin_password:
+    file: ./secrets/admin-password.txt
+  #google_client_secret:
+  #  file: ./secrets/google-client-secret.txt
+  github_client_secret:
+    file: ./secrets/github-client-secret.txt
+  #gitlab_client_secret:
+  #  file: ./secrets/gitlab-client-secret.txt
+
+services:
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus-container
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.size=500MB'
+      - '--storage.tsdb.retention.time=7d'
+    volumes:
+      - ./prometheus/config/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/config/rules.yml:/etc/prometheus/rules.yml
+      - prometheus_data:/prometheus
+    networks:
+      - prom_net
+    ports:
+      - 9090:9090
+  grafana:
+    image: grafana/grafana-enterprise
+    container_name: grafana-container
+    #healthcheck:
+    #  test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+    #  interval: 10s
+    #  timeout: 3s
+    #  retries: 5
+    #  start_period: 20s
+    volumes:
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    secrets:
+      - admin_password
+      - github_client_secret
+      #- google_client_secret
+      #- gitlab_client_secret
+    env_file:
+      - ./.env
+    networks:
+      - prom_net
+    ports:
+      - 3000:3000
+  alertmanager:
+    image: prom/alertmanager
+    build: alertmanager
+    container_name: alertmanager
+    networks:
+      - prom_net
+    ports:
+      - 9093:9093
+  node-exporter:
+    image: prom/node-exporter
+    container_name: node-exporter
+    command:
+      - '--path.rootfs=/host'
+    volumes:
+      - /:/host:ro,rslave
+    networks:
+      - prom_net
+    ports:
+      - 9100:9100
+  service-x:
+    image: service-x
+    build: service-x
+    container_name: service-x
+    networks:
+      - prom_net
+    ports:
+      - 3010:3010
+  service-y:
+    image: service-x
+    build: service-x
+    container_name: service-y
+    networks:
+      - prom_net
+    ports:
+      - 3011:3010
+  
