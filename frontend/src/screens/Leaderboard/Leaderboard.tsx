@@ -13,6 +13,7 @@ import ChatIcon from "../../assets/chat-icon.svg";
 import GameIcon from "../../assets/game-icon.svg";
 import SettingsIcon from "../../assets/Settings.svg";
 import LogOutIcon from "../../assets/Logout.svg";
+import CareerIcon from "../../assets/view-profile.svg";
 import Logo from "../../assets/secondLogo.svg";
 
 const navigationItems = [
@@ -25,6 +26,7 @@ const navigationItems = [
     icon: LeaderboardIcon,
     path: "/leaderboard",
   },
+  { label: "Career", active: false, icon: CareerIcon, path: "/career" },
   { label: "Settings", active: false, icon: SettingsIcon, path: "/settings" },
 ];
 
@@ -138,7 +140,7 @@ const Leaderboard = () => {
   return (
     <div className="relative w-full min-h-screen flex flex-col lg:flex-row overflow-x-hidden">
       {/* Fixed Background Layer with Parallax Effect */}
-      <div 
+      <div
         className="fixed inset-0 w-full h-full bg-dark-950 z-0"
         style={{
           backgroundSize: 'cover',
@@ -154,7 +156,7 @@ const Leaderboard = () => {
       </div>
 
       <TopRightBlurEffect />
-      
+
       {/* Mobile Navigation */}
       <MobileNavigation
         navigationItems={navigationItems}
@@ -178,7 +180,7 @@ const Leaderboard = () => {
                   className={(item.active
                     ? "bg-accent-green/20 border border-accent-green/50"
                     : "bg-transparent border border-white/10"
-                    ) + " rounded-full p-3 transition-all duration-150"}>
+                  ) + " rounded-full p-2 md:p-3 transition-all duration-150"}>
                   <img
                     src={item.icon}
                     alt={item.label + " icon"}
@@ -225,7 +227,7 @@ const Leaderboard = () => {
                 className={"min-h-[44px] px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg font-questrial font-semibold transition-colors text-sm sm:text-base " + (filter === "all"
                   ? "bg-accent-green text-dark-950"
                   : "bg-white/10 text-light hover:bg-white/20 active:bg-white/30"
-                  ) + ""}>
+                ) + ""}>
                 All Time
               </button>
               <button
@@ -233,7 +235,7 @@ const Leaderboard = () => {
                 className={"min-h-[44px] px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg font-questrial font-semibold transition-colors text-sm sm:text-base " + (filter === "weekly"
                   ? "bg-accent-green text-dark-950"
                   : "bg-white/10 text-light hover:bg-white/20 active:bg-white/30"
-                  ) + ""}>
+                ) + ""}>
                 Weekly
               </button>
               <button
@@ -241,7 +243,7 @@ const Leaderboard = () => {
                 className={"min-h-[44px] px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg font-questrial font-semibold transition-colors text-sm sm:text-base " + (filter === "monthly"
                   ? "bg-accent-green text-dark-950"
                   : "bg-white/10 text-light hover:bg-white/20 active:bg-white/30"
-                  ) + ""}>
+                ) + ""}>
                 Monthly
               </button>
             </div>
@@ -285,7 +287,7 @@ const Leaderboard = () => {
                       <tr
                         key={player.id}
                         className={"border-b border-white/5 hover:bg-white/5 transition-colors " + (player.rank <= 3 ? "bg-white/5" : ""
-                          ) + ""}>
+                        ) + ""}>
                         <td className="py-3 sm:py-4 px-3 sm:px-6">
                           <div className="flex items-center gap-1.5 sm:gap-2">
                             <span

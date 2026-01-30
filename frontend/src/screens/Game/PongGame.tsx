@@ -37,6 +37,7 @@ const PongGame = ({ onBackToMenu, gameMode = "remote" }: PongGameProps) => {
 
   const keysPressed = useRef<Set<string>>(new Set<string>());
   const animationFrameId = useRef<number | undefined>(undefined);
+  const isGameEndedRef = useRef(false);
 
   // Initialize game
   useEffect(() => {
@@ -133,9 +134,11 @@ const PongGame = ({ onBackToMenu, gameMode = "remote" }: PongGameProps) => {
       setGameResult(data);
       setShowEndModal(true);
 
-      // Update XP on backend
+      // Update UI for XP (Backend already updated DB)
       if (data.winnerId === myPlayerId) {
-        updatePlayerXP(data.xpGained);
+        window.dispatchEvent(new CustomEvent("profile-updated", {
+          detail: { xp: data.xpGained, xpGained: data.xpGained }
+        }));
       }
     });
 
@@ -192,6 +195,7 @@ const PongGame = ({ onBackToMenu, gameMode = "remote" }: PongGameProps) => {
     };
 
     setGameState(initialState);
+    isGameEndedRef.current = false;
     setGameState(initialState);
     setIsMyPaddle({ left: true, right: false });
   };
@@ -236,25 +240,40 @@ const PongGame = ({ onBackToMenu, gameMode = "remote" }: PongGameProps) => {
     };
 
     setGameState(initialState);
+    isGameEndedRef.current = false;
     // In local mode, we control both paddles locally
     setIsMyPaddle({ left: true, right: true });
   };
 
-  // Update XP on backend
-  const updatePlayerXP = async (xpGained: number) => {
+  // Save local/bot game to backend
+  const saveLocalGame = async (result: GameEndPayload) => {
+    if (gameMode === 'remote') return;
+
     try {
-      await fetchWithAuth(`${API_CONFIG.USER.UPDATE_PROFILE}`, {
-        method: "PUT",
+      const isWin = result.winnerId === myPlayerId;
+      const p1Score = isWin ? result.winnerScore : result.loserScore;
+      const p2Score = isWin ? result.loserScore : result.winnerScore;
+
+      const res = await fetchWithAuth(API_CONFIG.GAME.SAVE, {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ field: "xp", value: xpGained }),
+        body: JSON.stringify({
+          gameType: gameMode,
+          player1Score: p1Score,
+          player2Score: p2Score,
+          winner: isWin ? 'p1' : 'p2'
+        }),
       });
 
-      // Dispatch event to update UI
-      window.dispatchEvent(new CustomEvent("profile-updated", {
-        detail: { xpGained }
-      }));
+      if (res.ok) {
+        const data = await res.json();
+        // Dispatch event to update UI with actual XP from backend
+        window.dispatchEvent(new CustomEvent("profile-updated", {
+          detail: { xp: data.xp } // Backend returns xp gained
+        }));
+      }
     } catch (error) {
-      console.error("Failed to update XP:", error);
+      console.error("Failed to save game:", error);
     }
   };
 
@@ -388,6 +407,8 @@ const PongGame = ({ onBackToMenu, gameMode = "remote" }: PongGameProps) => {
           newState.player1.score >= newState.maxScore ||
           newState.player2.score >= newState.maxScore
         ) {
+          newState.status = 'finished';
+          setGameState(newState);
           endGame(newState);
           return;
         }
@@ -483,6 +504,9 @@ const PongGame = ({ onBackToMenu, gameMode = "remote" }: PongGameProps) => {
   };
 
   const endGame = (state: GameState) => {
+    if (isGameEndedRef.current) return;
+    isGameEndedRef.current = true;
+
     const winner = state.player1.score >= state.maxScore ? state.player1 : state.player2;
     const loser = winner.id === state.player1.id ? state.player2 : state.player1;
     const scoreDiff = Math.abs(winner.score - loser.score);
@@ -501,8 +525,8 @@ const PongGame = ({ onBackToMenu, gameMode = "remote" }: PongGameProps) => {
     setGameResult(result);
     setShowEndModal(true);
 
-    if (winner.id === myPlayerId) {
-      updatePlayerXP(xpGained);
+    if (gameMode === 'local' || gameMode === 'bot') {
+      saveLocalGame(result);
     }
   };
 

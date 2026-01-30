@@ -15,6 +15,7 @@ import ChatIcon from "../../assets/chat-icon.svg";
 import GameIcon from "../../assets/game-icon.svg";
 import SettingsIcon from "../../assets/Settings.svg";
 import LogOutIcon from "../../assets/Logout.svg";
+import CareerIcon from "../../assets/view-profile.svg";
 import Logo from "../../assets/secondLogo.svg";
 
 const navigationItems = [
@@ -27,6 +28,7 @@ const navigationItems = [
     icon: LeaderboardIcon,
     path: "/leaderboard",
   },
+  { label: "Career", active: false, icon: CareerIcon, path: "/career" },
   { label: "Settings", active: true, icon: SettingsIcon, path: "/settings" },
 ];
 
@@ -147,9 +149,9 @@ const Settings = () => {
         console.error("User ID is undefined");
         return;
       }
-      
+
       const blocked_uid = typeof userId === 'string' ? userId : userId.toString();
-      
+
       const res = await fetchWithAuth(`${API_CONFIG.BASE_URL}/v1/friend/unblock`, {
         method: "POST",
         headers: {
@@ -466,7 +468,7 @@ const Settings = () => {
   return (
     <div className="relative w-full min-h-screen flex flex-col lg:flex-row overflow-x-hidden">
       {/* Fixed Background Layer with Parallax Effect */}
-      <div 
+      <div
         className="fixed inset-0 w-full h-full bg-dark-950 z-0"
         style={{
           backgroundSize: 'cover',
@@ -482,7 +484,7 @@ const Settings = () => {
       </div>
 
       <TopRightBlurEffect />
-      
+
       {/* Mobile Navigation */}
       <MobileNavigation
         navigationItems={navigationItems}
@@ -515,7 +517,7 @@ const Settings = () => {
                   className={(item.active
                     ? "bg-accent-green/20 border border-accent-green/50"
                     : "bg-transparent border border-white/10"
-                    ) + " rounded-full p-2 md:p-3 transition-all duration-150"}>
+                  ) + " rounded-full p-2 md:p-3 transition-all duration-150"}>
                   <img
                     src={item.icon}
                     alt={item.label + " icon"}
@@ -720,7 +722,7 @@ const Settings = () => {
                   className={"w-full sm:w-auto min-h-[44px] px-4 sm:px-6 py-3 rounded-lg font-questrial font-semibold transition-colors " + (twoFactorEnabled
                     ? "bg-red-500/20 text-red-500 border border-red-500/50 hover:bg-red-500/30"
                     : "bg-accent-orange text-dark-950 hover:bg-accent-orange/90"
-                    ) + ""}>
+                  ) + ""}>
                   {twoFactorEnabled ? "Disable 2FA" : "Activate 2FA"}
                 </button>
               </div>

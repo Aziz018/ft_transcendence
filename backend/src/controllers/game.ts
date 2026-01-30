@@ -1,4 +1,6 @@
 import { WebSocket } from 'ws';
+import { prisma } from '../utils/prisma.js';
+import type { FastifyReply, FastifyRequest } from 'fastify';
 
 const CANVAS_WIDTH = 800;
 const CANVAS_HEIGHT = 600;
@@ -167,7 +169,7 @@ export class GameManager {
         state.ball.vy = (Math.random() - 0.5) * 5;
     }
 
-    private endGame(state: GameState) {
+    private async endGame(state: GameState) {
         if (state.interval) clearInterval(state.interval);
         this.games.delete(state.id);
 
@@ -186,7 +188,108 @@ export class GameManager {
         const msg = JSON.stringify({ type: 'game:end', payload: endPayload });
         if (winner.ws.readyState === WebSocket.OPEN) winner.ws.send(msg);
         if (loser.ws.readyState === WebSocket.OPEN) loser.ws.send(msg);
+
+        // Save to DB
+        try {
+            await prisma.match.create({
+                data: {
+                    gameType: 'remote',
+                    player1Id: state.p1.id,
+                    player2Id: state.p2.id,
+                    player1Score: state.p1.score,
+                    player2Score: state.p2.score,
+                    winnerId: winner.id
+                }
+            });
+
+            // Update XP
+            await prisma.user.update({
+                where: { id: winner.id },
+                data: { xp: { increment: 50 } }
+            });
+            await prisma.user.update({
+                where: { id: loser.id },
+                data: { xp: { increment: 10 } }
+            });
+        } catch (error) {
+            console.error("[GameManager] Failed to save match history:", error);
+        }
     }
 }
+
+export const getMatchHistory = async (request: FastifyRequest, reply: FastifyReply) => {
+    const { uid } = request.params as { uid: string };
+    try {
+        const matches = await prisma.match.findMany({
+            where: {
+                OR: [
+                    { player1Id: uid },
+                    { player2Id: uid }
+                ]
+            },
+            orderBy: { playedAt: 'desc' },
+            include: {
+                player1: true,
+                player2: true
+            }
+        });
+
+        const history = matches.map(m => ({
+            id: m.id,
+            gameType: m.gameType,
+            player1Id: m.player1Id,
+            player2Id: m.player2Id,
+            player1Score: m.player1Score,
+            player2Score: m.player2Score,
+            player1Exp: 50, // Approximation or fetch real
+            player2Exp: 10,
+            player1Name: m.player1.name,
+            player2Name: m.player2?.name || (m.gameType === 'bot' ? 'Bot' : 'Guest'),
+            player1Avatar: m.player1.avatar,
+            player2Avatar: m.player2?.avatar || "",
+            winnerId: m.winnerId,
+            playedAt: m.playedAt
+        }));
+
+        reply.send({ games: history });
+    } catch (error) {
+        request.log.error(error);
+        reply.status(500).send({ error: "Failed to fetch history" });
+    }
+};
+
+export const saveMatch = async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+        const user = (request as any).user;
+        if (!user) return reply.status(401).send({ error: "Unauthorized" });
+
+        const { gameType, player1Score, player2Score, winner } = request.body as any;
+
+        const isWin = winner === 'p1';
+        const xpGained = isWin ? 50 : 10;
+
+        await prisma.match.create({
+            data: {
+                gameType,
+                player1Id: user.uid,
+                player2Id: null, // Local/Bot has no P2 User ID
+                player1Score,
+                player2Score,
+                winnerId: isWin ? user.uid : null
+            }
+        });
+
+        // Update XP
+        await prisma.user.update({
+            where: { id: user.uid },
+            data: { xp: { increment: xpGained } }
+        });
+
+        reply.send({ success: true, xp: xpGained });
+    } catch (error) {
+        request.log.error(error);
+        reply.status(500).send({ error: "Failed to save match" });
+    }
+};
 
 export const gameManager = new GameManager();

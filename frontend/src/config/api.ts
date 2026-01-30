@@ -305,6 +305,11 @@ export const API_CONFIG = {
     VERIFY_2FA: `${API_URL}/v1/totp/verify`,
   },
 
+  GAME: {
+    HISTORY: (uid: string) => `${API_URL}/v1/game/history/${uid}`,
+    SAVE: `${API_URL}/v1/game/save`,
+  },
+
   USER: {
     PROFILE: `${API_URL}/v1/user/profile`,
     SEARCH: `${API_URL}/v1/user/search`,

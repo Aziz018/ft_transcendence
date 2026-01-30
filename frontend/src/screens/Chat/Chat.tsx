@@ -13,6 +13,7 @@ import ChatIcon from "../../assets/chat-icon.svg";
 import GameIcon from "../../assets/game-icon.svg";
 import SettingsIcon from "../../assets/Settings.svg";
 import LogOutIcon from "../../assets/Logout.svg";
+import CareerIcon from "../../assets/view-profile.svg";
 import Logo from "../../assets/secondLogo.svg";
 import Avatar from "../../assets/Ellipse 46.svg";
 
@@ -26,6 +27,7 @@ const navigationItems = [
     icon: LeaderboardIcon,
     path: "/leaderboard",
   },
+  { label: "Career", active: false, icon: CareerIcon, path: "/career" },
   { label: "Settings", active: false, icon: SettingsIcon, path: "/settings" },
 ];
 
@@ -56,7 +58,7 @@ const Chat = () => {
   const fetchUserProfile = async () => {
     const backend = (import.meta as any).env?.VITE_BACKEND_ORIGIN || "/api";
     const token = getToken();
-    
+
     try {
       const res = await fetch(`${backend}/v1/user/profile`, {
         headers: {
@@ -240,7 +242,7 @@ const Chat = () => {
             flex-1 
             transition-all duration-300 ease-in-out
           `}>
-          <ChatMain 
+          <ChatMain
             selectedFriend={selectedFriend}
             onBack={handleBackToFriends}
           />

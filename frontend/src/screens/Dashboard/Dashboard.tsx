@@ -8,6 +8,7 @@ import ChatIcon from "../../assets/chat-icon.svg";
 import GameIcon from "../../assets/game-icon.svg";
 import SettingsIcon from "../../assets/Settings.svg";
 import LogOutIcon from "../../assets/Logout.svg";
+import CareerIcon from "../../assets/view-profile.svg";
 import WelcomeHeaderSection from "./sections/WelcomeHeaderSection";
 import PongrushGameShowcaseSection from "./sections/PongrushGameShowcaseSection";
 import StatsSection from "./sections/StatsSection";
@@ -24,6 +25,7 @@ const navigationItems = [
   { label: "Chat", active: false, icon: ChatIcon, path: "/chat" },
   { label: "PingPong", active: false, icon: GameIcon, path: "/game" },
   { label: "Leaderboard", active: false, icon: LeaderboardIcon, path: "/leaderboard" },
+  { label: "Career", active: false, icon: CareerIcon, path: "/career" },
   { label: "Settings", active: false, icon: SettingsIcon, path: "/settings" },
 ];
 
@@ -195,24 +197,21 @@ const Dashboard = () => {
               key={index}
               className="cursor-pointer flex items-center gap-3 px-3 py-2 w-full max-w-full transition-colors duration-150">
               <div
-                className={`${
-                  item.active
-                    ? "bg-transparent border border-white/10 border-solid rounded-full p-3"
-                    : "bg-transparent border border-white/10 border-solid rounded-full p-3"
-                }`}>
+                className={`${item.active
+                  ? "bg-transparent border border-white/10 border-solid rounded-full p-3"
+                  : "bg-transparent border border-white/10 border-solid rounded-full p-3"
+                  }`}>
                 <img
                   src={item.icon}
                   alt={`${item.label} icon`}
-                  className={`${
-                    item.active ? "w-[15px] opacity-100" : "w-[15px] text-red-500 opacity-30"
-                  }`}
+                  className={`${item.active ? "w-[15px] opacity-100" : "w-[15px] text-red-500 opacity-30"
+                    }`}
                 />
               </div>
               <Link to={item.path}>
                 <span
-                  className={`[font-family:'Questrial',Helvetica] font-normal text-base tracking-[0] leading-[15px] whitespace-nowrap ${
-                    item.active ? "text-white" : "text-white/30"
-                  }`}>
+                  className={`[font-family:'Questrial',Helvetica] font-normal text-base tracking-[0] leading-[15px] whitespace-nowrap ${item.active ? "text-white" : "text-white/30"
+                    }`}>
                   {item.label}
                 </span>
               </Link>
