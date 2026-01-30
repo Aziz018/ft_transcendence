@@ -23,6 +23,7 @@ interface GameState {
     p2: Player;
     ball: { x: number; y: number; vx: number; vy: number };
     interval: NodeJS.Timeout | null;
+    paused: boolean;
 }
 
 export class GameManager {
@@ -69,6 +70,17 @@ export class GameManager {
         return undefined;
     }
 
+    pauseGame(userId: string) {
+        const game = this.findGameByPlayer(userId);
+        if (!game) return;
+
+        game.paused = !game.paused;
+        const msg = JSON.stringify({ type: 'game:paused', payload: { paused: game.paused } });
+
+        if (game.p1.ws.readyState === WebSocket.OPEN) game.p1.ws.send(msg);
+        if (game.p2.ws.readyState === WebSocket.OPEN) game.p2.ws.send(msg);
+    }
+
     private startGame(u1: { id: string; ws: WebSocket; name: string }, u2: { id: string; ws: WebSocket; name: string }) {
         const gameId = `game_${Date.now()}_${Math.random()}`;
         console.log(`[GameManager] Starting game ${gameId} between ${u1.name} and ${u2.name}`);
@@ -83,7 +95,8 @@ export class GameManager {
                 vx: (Math.random() > 0.5 ? 1 : -1) * 5,
                 vy: (Math.random() - 0.5) * 5
             },
-            interval: null
+            interval: null,
+            paused: false
         };
 
         this.games.set(gameId, state);
@@ -103,6 +116,8 @@ export class GameManager {
     }
 
     private updateGame(state: GameState) {
+        if (state.paused) return;
+
         // Update Ball
         state.ball.x += state.ball.vx;
         state.ball.y += state.ball.vy;

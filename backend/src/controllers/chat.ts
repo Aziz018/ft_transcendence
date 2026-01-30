@@ -52,6 +52,7 @@ type WSMessageType =
   | "join_queue"
   | "leave_queue"
   | "move_paddle"
+  | "pause_game"
   | "get_room_members"
   | "promote_member"
   | "update_status"
@@ -2617,7 +2618,7 @@ export const websocketHandler = async (
 
     // DEBUG: Log all incoming WebSocket messages
     console.log(`[WS DEBUG] Received message type="${type}" from ${connection.authenticatedUser?.name || 'unknown'} (${connection.authenticatedUser?.uid || 'no-uid'})`,
-      type === 'game_invite' || type === 'accept_game' || type === 'reject_game' ? payload : '(payload hidden)');
+      '(payload hidden)');
 
     console.log(`[WS DEBUG] About to check gameTypes. gameTypes.includes("${type}") = ${["join_queue", "leave_queue", "move_paddle", "pause_game"].includes(type)}`);
 
@@ -2645,6 +2646,9 @@ export const websocketHandler = async (
       else if (type === "move_paddle" && payload && typeof payload.position === 'number') {
         if (!connection.authenticatedUser) return;
         gameManager.movePaddle(connection.authenticatedUser.uid, payload.position);
+      } else if (type === "pause_game") {
+        if (!connection.authenticatedUser) return;
+        gameManager.pauseGame(connection.authenticatedUser.uid);
       }
       return;
     }

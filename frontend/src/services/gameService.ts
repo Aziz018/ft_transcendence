@@ -20,6 +20,7 @@ type GameStartListener = (data: GameStartPayload) => void;
 type GameStateListener = (data: GameStateUpdatePayload) => void;
 type GameEndListener = (data: GameEndPayload) => void;
 type GameTimeoutListener = (inviteId: string) => void;
+type GamePausedListener = (paused: boolean) => void;
 
 class GameService {
   private inviteListeners: Set<GameInviteListener> = new Set();
@@ -27,6 +28,7 @@ class GameService {
   private stateListeners: Set<GameStateListener> = new Set();
   private endListeners: Set<GameEndListener> = new Set();
   private timeoutListeners: Set<GameTimeoutListener> = new Set();
+  private pausedListeners: Set<GamePausedListener> = new Set();
 
   private activeGameId: string | null = null;
   private pendingInvites: Map<string, GameInvite> = new Map();
@@ -102,6 +104,12 @@ class GameService {
         invite.status = 'expired';
       }
       this.timeoutListeners.forEach(listener => listener(payload.inviteId));
+    });
+
+    // Listen for game paused
+    wsService.on("game:paused", (payload: { paused: boolean }) => {
+      console.log("[GameService] ⏸️ Game paused state:", payload.paused);
+      this.pausedListeners.forEach(listener => listener(payload.paused));
     });
 
     console.log("[GameService] ✅ All game listeners registered");
@@ -219,7 +227,7 @@ class GameService {
    */
   pauseGame(gameId: string) {
     wsService.send({
-      type: "game:pause",
+      type: "pause_game",
       payload: { gameId }
     });
   }
@@ -283,6 +291,14 @@ class GameService {
   onTimeout(listener: GameTimeoutListener) {
     this.timeoutListeners.add(listener);
     return () => this.timeoutListeners.delete(listener);
+  }
+
+  /**
+   * Listen for game paused
+   */
+  onGamePaused(listener: GamePausedListener) {
+    this.pausedListeners.add(listener);
+    return () => this.pausedListeners.delete(listener);
   }
 
   /**

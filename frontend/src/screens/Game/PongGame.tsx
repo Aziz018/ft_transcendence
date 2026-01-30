@@ -142,10 +142,17 @@ const PongGame = ({ onBackToMenu, gameMode = "remote" }: PongGameProps) => {
       }
     });
 
+    const unsubscribePaused = gameService.onGamePaused((paused) => {
+      if (gameMode === 'remote') {
+        setShowPauseModal(paused);
+      }
+    });
+
     return () => {
       unsubscribeState();
       unsubscribeStart();
       unsubscribeEnd();
+      unsubscribePaused();
       if (gameMode === "remote") {
         gameService.leaveQueue();
       }
@@ -283,7 +290,11 @@ const PongGame = ({ onBackToMenu, gameMode = "remote" }: PongGameProps) => {
       if (e.code === "Space") {
         e.preventDefault();
         if (gameState?.status === 'playing') {
-          setShowPauseModal(true);
+          if (gameMode === 'remote') {
+            gameService.pauseGame(gameState.id);
+          } else {
+            setShowPauseModal(true);
+          }
         }
       }
       keysPressed.current.add(e.code);
@@ -531,7 +542,11 @@ const PongGame = ({ onBackToMenu, gameMode = "remote" }: PongGameProps) => {
   };
 
   const handleContinue = () => {
-    setShowPauseModal(false);
+    if (gameMode === 'remote') {
+      if (gameState) gameService.pauseGame(gameState.id);
+    } else {
+      setShowPauseModal(false);
+    }
   };
 
   const handleExit = () => {
