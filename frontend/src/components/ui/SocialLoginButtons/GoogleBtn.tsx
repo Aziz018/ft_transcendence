@@ -17,13 +17,17 @@ function openGooglePopup() {
 
   function handleMessage(e: MessageEvent) {
     // Ignore messages from the app itself (e.g. Vite HMR, extensions)
-    if (e.origin === window.location.origin) {
-      return;
-    }
+    // Ignore messages from the app itself (e.g. Vite HMR, extensions) - REMOVED because we are on same origin now
+    // if (e.origin === window.location.origin) {
+    //   return;
+    // }
 
     // Check against the expected backend origin
+    // If running on same domain/port, e.origin should equal window.location.origin
+    const expectedOrigin = new URL(API_CONFIG.BASE_URL).origin;
     if (
-      !e.origin.startsWith(new URL(API_CONFIG.BASE_URL).origin) &&
+      e.origin !== expectedOrigin &&
+      e.origin !== window.location.origin && // Explicitly allow same-origin
       !e.origin.startsWith("http://localhost:3000")
     ) {
       console.warn("OAuth Origin mismatch:", {

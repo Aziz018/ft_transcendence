@@ -10,10 +10,14 @@ const getBaseUrls = () => {
   // Use http/ws for local/IP, https/wss if serving securely
   const protocol = window.location.protocol;
   const wsProtocol = protocol === 'https:' ? 'wss:' : 'ws:';
+  const port = window.location.port;
 
-  // Backend is always on port 3000 based on current setup
-  const API_URL = `${protocol}//${hostname}:3000`;
-  const WS_URL = `${wsProtocol}//${hostname}:3000/v1/chat/ws`;
+  // If accessed via standard ports (80/443 via Nginx), use /api prefix
+  // If accessed via 5173, we might want to fallback to 3000, but we closed it.
+  // We assume access via Nginx.
+
+  const API_URL = `${protocol}//${hostname}${port ? ':' + port : ''}/api`;
+  const WS_URL = `${wsProtocol}//${hostname}${port ? ':' + port : ''}/api/v1/chat/ws`;
 
   return { API_URL, WS_URL };
 };

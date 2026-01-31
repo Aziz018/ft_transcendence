@@ -1,17 +1,19 @@
-FROM node:lts-alpine3.23 AS builder
+FROM node:22-bookworm
 
 WORKDIR /app
 
-COPY package.json .
+# Install dependencies first (caching)
+COPY package.json package-lock.json ./
+RUN npm ci
 
-RUN npm i
-
+# Copy output (will be overridden by volume in dev usually, but good for build)
 COPY . .
 
-RUN npm run db:migrate
-
+# Generate Client (needs to run after deps)
 RUN npm run db:generate
 
-CMD [ "npm", "run", "dev" ]
-
+# Expose port
 EXPOSE 3000
+
+# Default command (can be overridden in docker-compose)
+CMD ["npm", "run", "dev"]

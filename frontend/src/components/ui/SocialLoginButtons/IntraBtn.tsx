@@ -17,11 +17,16 @@ function openIntraPopup() {
 
   function handleMessage(e: MessageEvent) {
     // Ignore messages from the app itself
-    if (e.origin === window.location.origin) {
-      return;
-    }
+    // if (e.origin === window.location.origin) {
+    //   return;
+    // }
 
-    if (!e.origin.startsWith(new URL(API_CONFIG.BASE_URL).origin)) {
+    const expectedOrigin = new URL(API_CONFIG.BASE_URL).origin;
+    if (
+      e.origin !== expectedOrigin &&
+      e.origin !== window.location.origin &&
+      !e.origin.startsWith("http://localhost:3000")
+    ) {
       console.warn("OAuth Origin mismatch:", {
         expected: new URL(API_CONFIG.BASE_URL).origin,
         received: e.origin,

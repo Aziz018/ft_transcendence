@@ -1,36 +1,59 @@
-version: '3.8'
-
 services:
-  postgres:
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: transcendence
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-
-  api-gateway:
-    build: ./backend
-    ports:
-      - "3000:3000"
-    depends_on:
-      - postgres
-    environment:
-      - DATABASE_URL=postgresql://postgres:password@postgres:5432/transcendence
-      - NODE_ENV=development
+  backend:
+    container_name: backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: ft_transcendence-backend
+    # ports:
+    #   - "3000:3000"
     volumes:
       - ./backend:/app
       - /app/node_modules
+    env_file:
+      - ./backend/.env
+    # Override command to run migrations on startup, then start dev server
+    command: sh -c "npm run db:migrate && npm run dev"
+    networks:
+      - trans_network
 
   frontend:
-    build: ./frontend
-    ports:
-      - "8080:80"
+    container_name: frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development
+    image: ft_transcendence-frontend-dev
+    # ports:
+    #   - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - VITE_BACKEND_ORIGIN=/api
+      - CHOKIDAR_USEPOLLING=true # Helper for file watching across some filesystems
     depends_on:
-      - api-gateway
+      - backend
+    networks:
+      - trans_network
 
-volumes:
-  postgres-data:
+  nginx:
+    container_name: nginx
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+      - "443:443"
+      - "3000:3000"
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      trans_network:
+        aliases:
+          - pongrush.game
+
+networks:
+  trans_network:
+    driver: bridge
