@@ -58,6 +58,7 @@
 - [Features](#features)
 - [Technologies Used](#technologies-used)
 - [Database Schema](#database-schema)
+- [Implemented Modules](#implemented-modules)
 - [Project Structure](#project-structure)
 - [Getting Started](#getting-started)
 - [Contributing](#contributing)
@@ -80,8 +81,8 @@ The project integrates real-time WebSockets for instantaneous gameplay and chat,
 | :--- | :--- | :--- | :--- |
 | **Mustapha Elfersioui** | [@BL4KCY](https://github.com/BL4KCY) | **Project Manager / DevOps** | Infrastructure, Monitoring (ELK/Grafana), Docker, Project Coordination |
 | **Aziz Elkhetabi** | [@Aziz018](https://github.com/Aziz018) | **Product Owner / Backend** | Database Design, API Architecture, Social Hub Logic |
-| **Hamza Mouhib** | [@LH4J](https://github.com/LH4J) | **Backend Team Lead** | Security (JWT/2FA), Core Backend Logic, API Documentation |
-| **Hamza Barda** | [@g0dr1c](https://github.com/g0dr1c) | **Backend / Game** | Real-time Game Engine, WebSocket Synchronization, Matchmaking |
+| **Hamza Mouhib** | [@itsLhaj](https://github.com/itsLhaj) | **Backend Team Lead** | Security (JWT/2FA), Core Backend Logic, API Documentation |
+| **Hamza Barda** | [@N308-ui](https://github.com/N308-ui) | **Backend / Game** | Real-time Game Engine, WebSocket Synchronization, Matchmaking |
 | **Ibnoukhalkane Zakaria** | [@Ibnoukhalkanezakaria](https://github.com/Ibnoukhalkanezakaria) | **Frontend Developer** | UI/UX Design, React Architecture, State Management, Styling |
 
 ---
@@ -100,7 +101,9 @@ Our team adopted an **Agile-inspired approach** to manage the development of Pon
 
 ---
 
-**🎮 The Arena (Core Gameplay)** - _Implemented by [@g0dr1c](https://github.com/g0dr1c)_
+## Features
+
+**🎮 The Arena (Core Gameplay)** - _Implemented by [@N308-ui](https://github.com/N308-ui)_
 - **Real-time Multiplayer:** Low-latency Pong matches powered by WebSockets.
 - **Dual Mode Support:**
     - **Local Play:** Battle friends on the same machine.
@@ -115,7 +118,7 @@ Our team adopted an **Agile-inspired approach** to manage the development of Pon
 - **Live Status Tracking:** Real-time "Online/Offline/In-Game" status indicators.
 - **Friend System:** Manage relationships, block intruders, and invite friends to matches.
 
-**🔐 Security & Identity** - _Implemented by [@LH4J](https://github.com/LH4J)_
+**🔐 Security & Identity** - _Implemented by [@itsLhaj](https://github.com/itsLhaj)_
 - **Multi-Strategy Auth:** Support for traditional credentials and OAuth2 (42 & Google).
 - **Advanced Protection:**
     - **Two-Factor Authentication (2FA):** Google Authenticator integration for account security.
@@ -165,6 +168,45 @@ erDiagram
     ROOM ||--o{ MESSAGE : contains
     USER ||--o{ MESSAGE : sends
 ```
+
+---
+
+## Implemented Modules
+
+This project satisfies the requirement of 42 Transcendence by implementing several major and minor modules, totaling **27.0 points**.
+
+### 🌐 Web (7.0 Points)
+| Module | Type | Value | Justification |
+| :--- | :--- | :--- | :--- |
+| **Frameworks** | Major | 2.0 | Used **Fastify** for the backend and **React** for the frontend to build a high-performance SPA. |
+| **Real-time features** | Major | 2.0 | Integrated **WebSockets** for live game state updates and instant chat messaging. |
+| **User Interactions** | Major | 2.0 | Implemented a social graph with Chat, Profiles, and a Friend system. |
+| **Use an ORM** | Minor | 1.0 | Utilized **Prisma ORM** for type-safe database interactions and schema management. |
+
+### 👤 User Management (5.0 Points)
+| Module | Type | Value | Justification |
+| :--- | :--- | :--- | :--- |
+| **Standard Management** | Major | 2.0 | Full user lifecycle management: registration, profile editing, and friend status. |
+| **Remote Auth** | Minor | 1.0 | Support for **OAuth 2.0** (Google and 42) for secure, third-party authentication. |
+| **2FA System** | Minor | 1.0 | Enhanced security with **Two-Factor Authentication** via Google Authenticator. |
+| **Game Stats** | Minor | 1.0 | Real-time tracking of Wins/Losses, XP, and global Leaderboard rankings. |
+
+### 🎮 Gaming & AI (6.0 Points)
+| Module | Type | Value | Justification |
+| :--- | :--- | :--- | :--- |
+| **Web-based Game** | Major | 2.0 | A custom real-time Pong game implemented with modern canvas API and logic. |
+| **Remote Players** | Major | 2.0 | Matchmaking system allowing two players to compete from different machines. |
+| **AI Opponent** | Major | 2.0 | Developed a challenging AI bot that simulates human movements for solo play. |
+
+### 🛠️ DevOps & UX (9.0 Points)
+| Module | Type | Value | Justification |
+| :--- | :--- | :--- | :--- |
+| **ELK Stack** | Major | 2.0 | Centralized logging using **Elasticsearch**, **Logstash**, and **Kibana** for system auditing. |
+| **Prometheus/Grafana** | Major | 2.0 | Real-time monitoring of service health and resource usage with custom dashboards. |
+| **Public API** | Major | 2.0 | Secured API with documentation (Scalar) and rate-limiting for third-party access. |
+| **Notification System** | Minor | 1.0 | Real-time in-app notifications for friend requests and game invites. |
+| **Custom Design** | Minor | 1.0 | Built a cohesive, custom-made design system with reusable components and consistent styling. |
+| **Health Check** | Minor | 1.0 | Implemented status pages and health endpoints for all microservices. |
 
 ---
 
