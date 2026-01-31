@@ -7,7 +7,7 @@
     "start": "tsx --watch src/app.ts",
     "dev": "nodemon",
     "test": "vitest run --sequence.concurrent=false --silent 2> /dev/null",
-    "db:migrate": "prisma migrate dev",
+    "db:migrate": "prisma migrate dev --name dev",
     "db:generate": "prisma generate",
     "db:studio": "prisma studio"
   },
@@ -80,6 +80,7 @@
     "axios": "^1.11.0",
     "bcrypt": "^6.0.0",
     "crypto": "^1.0.1",
+    "fastify-metrics": "^12.1.0",
     "fastify-type-provider-zod": "^6.0.0",
     "qrcode": "^1.5.4",
     "speakeasy": "^2.0.0",
