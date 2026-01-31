@@ -1,3 +1,4 @@
+import metricsPlugin from "fastify-metrics";
 import Fastify, {
   type FastifyError,
   type FastifyInstance,
@@ -306,6 +307,14 @@ export default class Server {
     this.fastify.get("/health", async (_request, reply) => {
       reply.header("Content-Type", "application/json");
       reply.code(200).send({ status: "OK" });
+    });
+    // Register Fastify metrics route
+    this.fastify.register(metricsPlugin.default, {
+      endpoint: "/metrics",
+      routeMetrics: {
+        enabled: true,
+        routeBlacklist: ["/metrics"],
+      },
     });
 
     this.registerRoutes();
