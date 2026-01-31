@@ -53,15 +53,13 @@
 
 - [Table of Contents](#table-of-contents)
 - [Overview](#overview)
+- [Team Members](#team-members)
+- [Project Management](#project-management)
 - [Features](#features)
+- [Technologies Used](#technologies-used)
+- [Database Schema](#database-schema)
 - [Project Structure](#project-structure)
-    - [Project Index](#project-index)
 - [Getting Started](#getting-started)
-    - [Prerequisites](#prerequisites)
-    - [Installation](#installation)
-    - [Usage](#usage)
-    - [Testing](#testing)
-- [Roadmap](#roadmap)
 - [Contributing](#contributing)
 - [License](#license)
 - [Acknowledgments](#acknowledgments)
@@ -76,9 +74,33 @@ The project integrates real-time WebSockets for instantaneous gameplay and chat,
 
 ---
 
-## Features
+## Team Members
 
-**🎮 The Arena (Core Gameplay)**
+| Name | GitHub | Role | Responsibilities |
+| :--- | :--- | :--- | :--- |
+| **Mustapha Elfersioui** | [@BL4KCY](https://github.com/BL4KCY) | **Project Manager / DevOps** | Infrastructure, Monitoring (ELK/Grafana), Docker, Project Coordination |
+| **Aziz Elkhetabi** | [@Aziz018](https://github.com/Aziz018) | **Product Owner / Backend** | Database Design, API Architecture, Social Hub Logic |
+| **Hamza Mouhib** | [@LH4J](https://github.com/LH4J) | **Backend Team Lead** | Security (JWT/2FA), Core Backend Logic, API Documentation |
+| **Hamza Barda** | [@g0dr1c](https://github.com/g0dr1c) | **Backend / Game** | Real-time Game Engine, WebSocket Synchronization, Matchmaking |
+| **Ibnoukhalkane Zakaria** | [@Ibnoukhalkanezakaria](https://github.com/Ibnoukhalkanezakaria) | **Frontend Developer** | UI/UX Design, React Architecture, State Management, Styling |
+
+---
+
+## Project Management
+
+Our team adopted an **Agile-inspired approach** to manage the development of Pong Rush.
+
+- **Tools:**
+    - **Notion:** Centralized task board for tracking features, bugs, and documentation.
+    - **Discord:** Daily sync-ups and real-time troubleshooting.
+- **Workflow:**
+    - **Branching Strategy:** Strict `feature/` branch model. No direct commits to `dev` or `master`.
+    - **Code Reviews:** Every Pull Request required a peer review to maintain code quality.
+    - **Automation:** Dockerized environments ensured seamless integration between front-end and back-end modules.
+
+---
+
+**🎮 The Arena (Core Gameplay)** - _Implemented by [@g0dr1c](https://github.com/g0dr1c)_
 - **Real-time Multiplayer:** Low-latency Pong matches powered by WebSockets.
 - **Dual Mode Support:**
     - **Local Play:** Battle friends on the same machine.
@@ -86,28 +108,63 @@ The project integrates real-time WebSockets for instantaneous gameplay and chat,
 - **AI Contender:** An intelligent bot system for solo practice and skill-building.
 - **Live Game Synchronization:** Seamless state management across all connected clients.
 
-**💬 Social Hub (Chat & Community)**
+**💬 Social Hub (Chat & Community)** - _Implemented by [@Aziz018](https://github.com/Aziz018)_
 - **Dynamic Chat Rooms:** Create, join, and manage public or password-protected channels.
 - **Direct Messaging (DMs):** Private, secure communication between users.
 - **Moderation Tools:** Admin capabilities including kicking, banning, and promoting members.
 - **Live Status Tracking:** Real-time "Online/Offline/In-Game" status indicators.
 - **Friend System:** Manage relationships, block intruders, and invite friends to matches.
 
-**🔐 Security & Identity**
+**🔐 Security & Identity** - _Implemented by [@LH4J](https://github.com/LH4J)_
 - **Multi-Strategy Auth:** Support for traditional credentials and OAuth2 (42 & Google).
 - **Advanced Protection:**
     - **Two-Factor Authentication (2FA):** Google Authenticator integration for account security.
     - **JWT Security:** Secure token-based sessions with refresh rotation.
 - **Profile Customization:** Personalize your presence with avatars and unique handles.
+- **Database Reliability:** Type-safe interactions using Prisma ORM.
 
-
-**📊 Engine & Orchestration**
 - **Scalar Interactive Docs:** Sleek, modern API documentation accessible at /docs.
+
+**📊 Engine & Orchestration** - _Implemented by [@BL4KCY](https://github.com/BL4KCY)_
 - **Observation Stack:**
     - **ELK Stack:** Centralized logging for debugging and audit trails.
     - **Prometheus & Grafana:** Real-time performance metrics and visual dashboards.
-- **Database Reliability:** Type-safe interactions using Prisma ORM with PostgreSQL.
 - **Dockerized Environment:** Fully containerized services for consistent "one-command" deployment.
+
+---
+
+## Technologies Used
+
+| Technology | Justification |
+| :--- | :--- |
+| **Fastify** | Chosen for its high performance and low overhead, essential for handling high-concurrency WebSocket connections. |
+| **TypeScript** | Ensures type safety across the stack, reducing runtime errors and improving developer productivity. |
+| **React** | Provides a robust component-based architecture for building a dynamic and responsive game UI. |
+| **Prisma ORM** | Offers type-safe database queries and automated migrations, ensuring data consistency with SQLite. |
+| **WebSockets** | Critical for the real-time bidirectional communication required for real-time multiplayer gameplay. |
+| **Docker** | Simplifies deployment and ensures environment parity between development and production. |
+| **ELK Stack** | Provides centralized logging for observability and efficient debugging of system events. |
+
+---
+
+## Database Schema
+
+Our data model is designed to handle complex social interactions and real-time game state tracking.
+
+- **User:** Manages authentication, profile data, and XP/stats.
+- **Room & Message:** Handles both direct messages and multi-user group chats.
+- **Friendships & Requests:** Manages the social graph and blocked users.
+- **Match:** Records match history, scores, and winners for the leaderboard.
+
+```mermaid
+erDiagram
+    USER ||--o{ MATCH : plays
+    USER ||--o{ FRIENDSHIP : has
+    USER ||--o{ ROOM_MEMBER : joins
+    ROOM ||--o{ ROOM_MEMBER : contains
+    ROOM ||--o{ MESSAGE : contains
+    USER ||--o{ MESSAGE : sends
+```
 
 ---
 
@@ -322,7 +379,14 @@ yarn start
 
 ## Acknowledgments
 
-- Credit `contributors`, `inspiration`, `references`, etc.
+- Credit `contributors`
+
+<!-- https://github.com/Aziz018/ft_transcendence/graphs/contributors -->
+<div align="center">
+<a href="https://github.com/Aziz018/ft_transcendence/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=Aziz018/ft_transcendence" />
+</a>
+</div>
 
 <div align="right">
 
@@ -332,6 +396,3 @@ yarn start
 
 
 [back-to-top]: https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square
-
-
----
