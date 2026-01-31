@@ -1,6 +1,6 @@
 node_modules
 prisma/migrations
-prisma/pookie.db
+prisma/*.db
 dist
 .git
 .gitignore

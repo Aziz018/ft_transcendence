@@ -15,9 +15,3 @@ RUN npm run db:generate
 CMD [ "npm", "run", "dev" ]
 
 EXPOSE 3000
-
-#FROM node:lts-alpine3.23 AS runner
-
-#WORKDIR /app
-
-#COPY --from=builder /app /app/

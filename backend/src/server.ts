@@ -10,7 +10,7 @@ import Fastify, {
   type FastifyRequest,
 } from "fastify";
 import fastifySwagger from "@fastify/swagger";
-import fastifySwaggerUi from "@fastify/swagger-ui";
+import fastifyScalarApiReference from "@scalar/fastify-api-reference";
 
 import type { ApplicationHook, LifecycleHook } from "fastify/types/hooks.js";
 
@@ -81,7 +81,7 @@ export default class Server {
   plugins: (FastifyPluginCallback | FastifyPluginAsync)[];
   multipartFSize: number;
   swaggerOpts: FastifyPluginOptions;
-  swaggerUIOpts: FastifyPluginOptions;
+  scalarOpts: FastifyPluginOptions;
   ajv: Ajv2020;
   defaultOrigins: string[];
 
@@ -120,14 +120,14 @@ export default class Server {
         servers: [{ url: `http://${process.env.HOST || "localhost"}:${process.env.PORT || "3000"}` }],
       },
     };
-    this.swaggerUIOpts = {
+    this.scalarOpts = {
       routePrefix: "/docs",
-      uiConfig: {
-        docExpansion: "full",
-        deepLinking: false,
+      configuration: {
+        theme: "moon",
+        spec: {
+          content: () => (this.fastify as any).swagger(),
+        },
       },
-      staticCSP: true,
-      transformStaticCSP: (header: string): string => header,
     };
     this.ajv = new Ajv2020({ allErrors: true });
     addErrors(this.ajv);
@@ -162,7 +162,7 @@ export default class Server {
     });
 
     await this.fastify.register(fastifySwagger, this.swaggerOpts);
-    await this.fastify.register(fastifySwaggerUi, this.swaggerUIOpts);
+    await this.fastify.register(fastifyScalarApiReference, this.scalarOpts);
     await this.fastify.register(jwt, { secret: this.secrets.jwt });
     await this.fastify.register(fcookie, { secret: this.secrets.cookie });
     await this.fastify.register(multipart, {

@@ -1,4 +1,4 @@
-FROM node:18-alpine AS builder
+FROM node:25-alpine AS builder
 
 WORKDIR /app
 
@@ -6,7 +6,7 @@ RUN apk add --no-cache --virtual .gyp python3 make g++
 
 COPY package.json package-lock.json* ./
 
-RUN npm ci --silent
+RUN npm ci
 
 COPY . .
 

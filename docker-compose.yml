@@ -12,5 +12,25 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
 
+  api-gateway:
+    build: ./backend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/transcendence
+      - NODE_ENV=development
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - api-gateway
+
 volumes:
   postgres-data:
