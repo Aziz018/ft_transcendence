@@ -1,52 +1,23 @@
-FROM node:20-alpine
-
-LABEL author="OZ3N corp"
-LABEL version="0.0.1"
-LABEL maintainer="Hamza <hmouhib@student.1337.ma>"
-LABEL maintainer="Aziz <aelkheta@student.1337.ma>"
-LABEL description="backend API for ft_transcendence"
-LABEL repository="https://github.com/iTsLhaj/backend"
-LABEL liscense="GNU General Public License v3.0"
-LABEL homepage="https://github.com/iTsLhaj/backend#readme"
-LABEL vcs-url="https://github.com/iTsLhaj/backend"
-LABEL vcs-ref="d63dd03f8ea94b98f2a1490480306c320bc1927a"
-LABEL build-date="2025-08-29T22:00:00Z"
-LABEL org.opencontainers.image.source="https://github.com/iTsLhaj/backend"
-LABEL org.opencontainers.image.title="ft_transcendence.backend"
-LABEL org.opencontainers.image.description="backend API for ft_transcendence"
-LABEL org.opencontainers.image.version="0.0.1"
-LABEL org.opencontainers.image.url="https://github.com/iTsLhaj/backend"
-LABEL environment="dev"
+FROM node:lts-alpine3.23 AS builder
 
 WORKDIR /app
 
-COPY package*.json ./
+COPY package.json .
 
-RUN npm install
+RUN npm i
 
 COPY . .
 
-# RUN npx prisma migrate dev --name init
-RUN npx prisma generate
+RUN npm run db:migrate
 
-# FILEBEAT INSTALLATION
-RUN apk add --no-cache curl tar \
-    && FILEBEAT_VERSION=8.10.0 \
-    && curl -L -O https://artifacts.elastic.co/downloads/beats/filebeat/filebeat-$FILEBEAT_VERSION-linux-x86_64.tar.gz \
-    && tar xzf filebeat-$FILEBEAT_VERSION-linux-x86_64.tar.gz \
-    && mv filebeat-$FILEBEAT_VERSION-linux-x86_64 /usr/share/filebeat \
-    && rm filebeat-$FILEBEAT_VERSION-linux-x86_64.tar.gz
+RUN npm run db:generate
 
-# Copy your Filebeat config
-COPY filebeat.yml /usr/share/filebeat/filebeat.yml
+CMD [ "npm", "run", "dev" ]
 
 EXPOSE 3000
 
-# Production-ready startup with graceful shutdown
-# Set NODE_ENV and use exec form to properly handle signals
-ENV NODE_ENV=production
-ENV PORT=3000
+#FROM node:lts-alpine3.23 AS runner
 
-# Start Node app with proper signal handling
-# The exec form ensures Node receives SIGTERM for graceful shutdown
-CMD [ "sh", "-c", "exec npm start" ]
+#WORKDIR /app
+
+#COPY --from=builder /app /app/
