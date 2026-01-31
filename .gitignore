@@ -1,3 +1,8 @@
 .idea/
 backend/prisma/migrations
 backend/.env
+backend/node_modules/
+backend/prisma/
+backend/src/generated/
+frontend/dist
+frontend/node_modules/
