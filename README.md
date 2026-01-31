@@ -5,8 +5,6 @@
 
 <img src="assets/cover.png" style="position: relative; top: 0; right: 0;" alt="Project Cover"/>
 
-# <code>❯ ft_transcendence</code>
-
 <em></em>
 
 <!-- BADGES -->
@@ -115,7 +113,7 @@ The project integrates real-time WebSockets for instantaneous gameplay and chat,
 
 ## Project Structure
 
-<code>❯ *48 directories, 36 files* </code>
+<code>❯ *48 directories, 35 files* </code>
 
 ```sh
 .
@@ -200,7 +198,6 @@ The project integrates real-time WebSockets for instantaneous gameplay and chat,
 │       ├── Makefile
 │       ├── prometheus
 │       └── service-x
-├── README.AI.md
 └── README.md
 ```
 
@@ -223,50 +220,47 @@ Build  from the source and intsall dependencies:
 1. **Clone the repository:**
 
     ```sh
-    ❯ git clone ../
+    git clone ../
     ```
 
 2. **Navigate to the project directory:**
 
     ```sh
-    ❯ cd 
+    cd 
     ```
 
 3. **Install the dependencies:**
 
-<!-- SHIELDS BADGE CURRENTLY DISABLED -->
-	<!-- [![docker][docker-shield]][docker-link] -->
-	<!-- REFERENCE LINKS -->
-	<!-- [docker-shield]: https://img.shields.io/badge/Docker-2CA5E0.svg?style={badge_style}&logo=docker&logoColor=white -->
-	<!-- [docker-link]: https://www.docker.com/ -->
+    <br/>
 
-	**Using [docker](https://www.docker.com/):**
+    [![Docker](https://img.shields.io/badge/Docker-2CA5E0?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
 
-	```sh
-	❯ docker build -t / .
-	```
-<!-- SHIELDS BADGE CURRENTLY DISABLED -->
-	<!-- [![npm][npm-shield]][npm-link] -->
-	<!-- REFERENCE LINKS -->
-	<!-- [npm-shield]: https://img.shields.io/badge/npm-CB3837.svg?style={badge_style}&logo=npm&logoColor=white -->
-	<!-- [npm-link]: https://www.npmjs.com/ -->
+    **Using [docker](https://www.docker.com/):**
 
+    ```sh
+    docker build -t my-app .
+    ```
+
+    [![npm](https://img.shields.io/badge/npm-CB3837.svg?style=for-the-badge&logo=npm&logoColor=white)](https://www.npmjs.com/)
 	**Using [npm](https://www.npmjs.com/):**
 
 	```sh
-	❯ npm install
+	npm install
 	```
-<!-- SHIELDS BADGE CURRENTLY DISABLED -->
-	<!-- [![yarn][yarn-shield]][yarn-link] -->
-	<!-- REFERENCE LINKS -->
-	<!-- [yarn-shield]: https://img.shields.io/badge/Yarn-2C8EBB.svg?style={badge_style}&logo=yarn&logoColor=white -->
-	<!-- [yarn-link]: https://yarnpkg.com/ -->
 
+    [![yarn](https://img.shields.io/badge/Yarn-2C8EBB.svg?style=for-the-badge&logo=yarn&logoColor=white)](https://yarnpkg.com/)
 	**Using [yarn](https://yarnpkg.com/):**
 
 	```sh
-	❯ yarn install
+	yarn install
 	```
+
+    [![Bun](https://img.shields.io/badge/Bun-000000?style=for-the-badge\&logo=bun\&logoColor=white)](https://bun.sh/)
+    **Using [bun](https://bun.sh/):**
+
+    ```sh
+    bun install
+    ```
 
 ### Usage
 
