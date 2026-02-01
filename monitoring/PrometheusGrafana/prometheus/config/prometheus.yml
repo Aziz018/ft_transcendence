@@ -26,11 +26,11 @@ scrape_configs:
   #      labels:
   #        app: "sample_server"
   
-  #- job_name: "node-exporter"
-  #  static_configs:
-  #    - targets: ["node-exporter:9100"]
-  #      labels:
-  #        app: "node-exporter"
+  - job_name: "node-exporter"
+    static_configs:
+      - targets: ["node-exporter:9100"]
+        labels:
+          app: "node-exporter"
   #- job_name: "service-x"
   #  static_configs:
   #    - targets: ["service-x:3010"]
