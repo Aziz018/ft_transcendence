@@ -20,24 +20,29 @@ scrape_configs:
         labels:
           app: "prometheus"
 
-  - job_name: "sample_server"
-    static_configs:
-      - targets: ["golang_server:8090"]
-        labels:
-          app: "sample_server"
+  #- job_name: "sample_server"
+  #  static_configs:
+  #    - targets: ["golang_server:8090"]
+  #      labels:
+  #        app: "sample_server"
   
-  - job_name: "node-exporter"
+  #- job_name: "node-exporter"
+  #  static_configs:
+  #    - targets: ["node-exporter:9100"]
+  #      labels:
+  #        app: "node-exporter"
+  #- job_name: "service-x"
+  #  static_configs:
+  #    - targets: ["service-x:3010"]
+  #      labels:
+  #        app: "service-x"
+  #- job_name: "service-y"
+  #  static_configs:
+  #    - targets: ["service-y:3010"]
+  #      labels:
+  #        app: "service-y"
+  - job_name: "pong-backend"
     static_configs:
-      - targets: ["node-exporter:9100"]
+      - targets: ["backend:3000"]
         labels:
-          app: "node-exporter"
-  - job_name: "service-x"
-    static_configs:
-      - targets: ["service-x:3010"]
-        labels:
-          app: "service-x"
-  - job_name: "service-y"
-    static_configs:
-      - targets: ["service-y:3010"]
-        labels:
-          app: "service-y"
+          app: "pong-backend"
