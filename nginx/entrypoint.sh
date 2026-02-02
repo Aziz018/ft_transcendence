@@ -12,5 +12,7 @@ if [ ! -f /etc/nginx/ssl/nginx.crt ]; then
         -subj "/C=MA/ST=Morocco/L=IHAHAN/O=OZEN/OU=FT_Transcendence/CN=pongrush.game"
 fi
 
+mkdir -p /var/log/nginx
+
 # Execute the CMD
 exec "$@"

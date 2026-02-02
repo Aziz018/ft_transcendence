@@ -1,8 +1,7 @@
 networks:
-  elk:
-    name: elk-stack_elk
-    driver: bridge
-
+  elk-net:
+    external: true
+    name: trans_network
 volumes:
   esdata:
     name: elk-stack_esdata
@@ -28,7 +27,7 @@ services:
     volumes:
       - certs:/certs
     networks:
-      - elk
+      - elk-net
     depends_on:
       elasticsearch:
         condition: service_healthy
@@ -39,7 +38,7 @@ services:
     environment:
       - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
     networks:
-      - elk
+      - elk-net
     depends_on:
       kibana:
         condition: service_healthy
@@ -50,7 +49,7 @@ services:
     environment:
       - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
     networks:
-      - elk
+      - elk-net
     depends_on:
       elasticsearch:
         condition: service_healthy
@@ -95,7 +94,7 @@ services:
       - "9200:9200"
       - "9300:9300"
     networks:
-      - elk
+      - elk-net
   kibana:
     image: docker.elastic.co/kibana/kibana:${STACK_VERSION}
     container_name: kibana
@@ -118,7 +117,7 @@ services:
       elasticsearch:
         condition: service_healthy
     networks:
-      - elk
+      - elk-net
     healthcheck:
       test: >
         curl -s -k https://localhost:5601/api/status | grep -w -E '"level":"available"'
@@ -138,7 +137,7 @@ services:
       elasticsearch:
         condition: service_healthy
     networks:
-      - elk
+      - elk-net
   filebeat:
     image: docker.elastic.co/beats/filebeat:${STACK_VERSION}
     container_name: filebeat
@@ -149,7 +148,7 @@ services:
       - logs:/var/log/:rw
       - ./filebeat/conf/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
     networks:
-      - elk
+      - elk-net
     depends_on:
       logstash:
         condition: service_started
@@ -162,4 +161,4 @@ services:
       - ./nginx/conf/:/etc/nginx/conf.d:ro
       - logs:/var/log/:rw
     networks:
-      - elk
+      - elk-net

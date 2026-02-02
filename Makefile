@@ -7,7 +7,7 @@ RESET  := \033[0m
 
 # 🔧 Variables
 NAME   := ft_transcendence
-COMPOSE := docker-compose
+COMPOSE := docker compose
 
 .PHONY: all up down stop start build logs clean fclean re prune backend-shell frontend-shell db-migrate db-reset status
 
@@ -16,7 +16,7 @@ all: up
 
 up: ## Start the application in detached mode
 	@printf "$(GREEN)🚀 Starting $(NAME)...$(RESET)\n"
-	@$(COMPOSE) up -d --build
+	@$(COMPOSE) up -d --build --remove-orphans
 	@printf "$(CYAN)✅ Application is up! Access it at: https://pongrush.game:3000$(RESET)\n"
 
 down: ## Stop and remove containers
