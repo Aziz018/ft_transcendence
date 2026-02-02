@@ -1,3 +1,10 @@
+networks:
+  trans_network:
+    name: trans_network
+    driver: bridge
+include:
+  - monitoring/PrometheusGrafana/docker-compose.yaml
+  - monitoring/ELK-Stack/docker-compose.yml
 services:
   backend:
     container_name: backend
@@ -42,10 +49,11 @@ services:
     build:
       context: ./nginx
       dockerfile: Dockerfile
+    image: nginx:trans
     ports:
       - "80:80"
       - "443:443"
-      - "3000:3000"
+      - "3010:3010"
     depends_on:
       - frontend
       - backend
@@ -53,7 +61,3 @@ services:
       trans_network:
         aliases:
           - pongrush.game
-
-networks:
-  trans_network:
-    driver: bridge
