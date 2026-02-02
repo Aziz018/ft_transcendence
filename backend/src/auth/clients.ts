@@ -34,7 +34,7 @@ export const googleOAuthOpts: FastifyOAuth2Options = {
   callbackUri: googleOauthRedirectOpts.callbackUri,
   scope: ["profile", "email"],
   cookie: {
-    secure: false,
+    secure: true,
     sameSite: "lax",
     path: "/",
   },
@@ -69,7 +69,7 @@ export const facebookOAuthOpts: FastifyOAuth2Options = {
   callbackUri: facebookOauthRedirectOpts.callbackUri,
   scope: ["email", "public_profile"],
   cookie: {
-    secure: false,
+    secure: true,
     sameSite: "lax",
     path: "/",
   },
@@ -104,7 +104,7 @@ export const intra42OAuthOpts: FastifyOAuth2Options = {
   callbackUri: intra42OauthRedirectOpts.callbackUri,
   scope: ["public"],
   cookie: {
-    secure: false,
+    secure: true,
     sameSite: "lax",
     path: "/",
   },

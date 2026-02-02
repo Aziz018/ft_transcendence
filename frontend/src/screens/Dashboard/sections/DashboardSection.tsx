@@ -13,7 +13,7 @@ const sections = [
     buttonIcon: "/group-312.png",
   },
   {
-    label: "TOURNAMENT",
+    label: "TOURNAMENT [COMING SOON]",
     title:
       "Join The Thrilling World Of Pongrush Game Battles Where Every Shot Counts!",
     description:
@@ -50,7 +50,7 @@ const DashboardSection = () => {
             {/* <Button className="bg-[#dda15e] hover:bg-[#dda15e]/90 text-theme-text-primary rounded-[30px] h-[37px] px-6 [-webkit-text-stroke:1px_#87878766] [font-family:'Questrial',Helvetica] font-normal text-base tracking-[0] leading-[15px]">
               {sections[1].buttonText}
             </Button> */}
-            <Link to="/leaderboard">
+            <Link to="/game">
               <SecondaryButton data={"Play Now"} />
             </Link>
           </div>
@@ -80,7 +80,7 @@ const DashboardSection = () => {
             {/* <Button className="bg-[#dda15e] hover:bg-[#dda15e]/90 text-theme-text-primary rounded-[30px] h-[37px] px-6 [-webkit-text-stroke:1px_#87878766] [font-family:'Questrial',Helvetica] font-normal text-base tracking-[0] leading-[15px]">
               {sections[1].buttonText}
             </Button> */}
-            <Link to="/tournament">
+            <Link to="/leaderboard">
               <SecondaryButton data={"Join Now"} />
             </Link>
           </div>

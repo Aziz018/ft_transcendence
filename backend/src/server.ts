@@ -35,7 +35,10 @@ import { chatSchema } from "schemas/chat.js";
 import { prisma as PrismaClientInstance } from "./utils/prisma.js";
 import LoggingOpts from "./utils/logger.js";
 
-export const fastify: FastifyInstance = Fastify({ logger: LoggingOpts });
+export const fastify: FastifyInstance = Fastify({
+  logger: LoggingOpts,
+  trustProxy: true
+});
 
 export const wsValidators: Record<string, Ajv.ValidateFunction> = {};
 
