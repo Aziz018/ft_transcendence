@@ -152,13 +152,3 @@ services:
     depends_on:
       logstash:
         condition: service_started
-  nginx:
-    image: nginx:bookworm
-    container_name: nginx
-    ports:
-      - "8080:80"
-    volumes:
-      - ./nginx/conf/:/etc/nginx/conf.d:ro
-      - logs:/var/log/:rw
-    networks:
-      - elk-net

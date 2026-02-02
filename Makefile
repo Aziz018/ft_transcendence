@@ -17,7 +17,7 @@ all: up
 up: ## Start the application in detached mode
 	@printf "$(GREEN)🚀 Starting $(NAME)...$(RESET)\n"
 	@$(COMPOSE) up -d --build --remove-orphans
-	@printf "$(CYAN)✅ Application is up! Access it at: https://pongrush.game:3000$(RESET)\n"
+	@printf "$(CYAN)✅ Application is up! Access it at: https://pongrush.game$(RESET)\n"
 
 down: ## Stop and remove containers
 	@printf "$(YELLOW)🛑 Stopping $(NAME)...$(RESET)\n"

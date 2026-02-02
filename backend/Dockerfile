@@ -13,7 +13,7 @@ COPY . .
 RUN npm run db:generate
 
 # Expose port
-EXPOSE 3000
+EXPOSE 3030
 
 # Default command (can be overridden in docker-compose)
 CMD ["npm", "run", "dev"]

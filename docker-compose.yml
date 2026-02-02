@@ -57,6 +57,8 @@ services:
     depends_on:
       - frontend
       - backend
+    volumes:
+      - logs:/var/log/:rw
     networks:
       trans_network:
         aliases:

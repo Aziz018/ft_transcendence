@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ProtectedRoute } from "./router";
 import Login from "./screens/Login/Login";
 import Home from "./screens/Home/Home";
+import ServerHealthMonitor from "./components/Health/Health";
 import SignUp from "./screens/SignUp/SignUp";
 import Dashboard from "./screens/Dashboard/Dashboard";
 import Chat from "./screens/Chat/Chat";
@@ -22,6 +23,7 @@ const App: React.FC = () => {
         <main className="h-full w-full">
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/health" element={<ServerHealthMonitor />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<SignUp />} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
