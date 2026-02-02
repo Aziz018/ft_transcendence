@@ -14,11 +14,11 @@ const ForgotPassword = () => {
             Remember me
           </span>
         </label>
-        <a
+        {/*<a
           href="#"
           className="[font-family:'Questrial',Helvetica] font-normal text-[#dda15e] text-sm hover:underline">
           Forgot password?
-        </a>
+        </a>*/}
       </div>
     </>
   );
